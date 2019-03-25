@@ -8,6 +8,20 @@ import (
 	"net/http"
 )
 
+const (
+	Created  = 0
+	Starting = 1
+	Running  = 2
+	Stopped  = 3
+	Finished = 4
+)
+
+type MsgJobList struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+	Jobs  []*Job `json:"jobs"`
+}
+
 type MsgLog struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`

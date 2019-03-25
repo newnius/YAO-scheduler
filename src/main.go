@@ -59,7 +59,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 	case "task_logs":
 		fmt.Println("task_logs")
 		fmt.Println(r.URL.Query().Get("id"))
-		js, _ := json.Marshal(allocator.logs(r.URL.Query().Get("id")))
+		js, _ := json.Marshal(allocator.logs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "jobs":
+		fmt.Println("job_list")
+		js, _ := json.Marshal(allocator.listJobs())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

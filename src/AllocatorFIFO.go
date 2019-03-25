@@ -3,18 +3,21 @@ package main
 import (
 	"sync"
 	"time"
-	"log"
-	"io/ioutil"
-	"encoding/json"
 )
 
 type AllocatorFIFO struct {
-	queue []Job
-	mu    sync.Mutex
+	history    []*Job
+	queue      []Job
+	mu         sync.Mutex
 	scheduling sync.Mutex
+
+	jobs map[string]*JobManager
 }
 
 func (allocator *AllocatorFIFO) start() {
+	allocator.jobs = map[string]*JobManager{}
+	allocator.history = []*Job{}
+
 	go func() {
 		for {
 			//fmt.Print("Scheduling ")
@@ -27,6 +30,14 @@ func (allocator *AllocatorFIFO) start() {
 				jm.job = allocator.queue[0]
 				allocator.queue = allocator.queue[1:]
 				jm.allocator = allocator
+				allocator.jobs[jm.job.Name] = &jm
+
+				for i := range allocator.history {
+					if allocator.history[i].Name == jm.job.Name {
+						allocator.history[i].Status = Starting
+					}
+				}
+
 				go func() {
 					jm.start()
 				}()
@@ -38,8 +49,21 @@ func (allocator *AllocatorFIFO) start() {
 	}()
 }
 
-func (allocator *AllocatorFIFO) ack() {
+func (allocator *AllocatorFIFO) ack(job *Job) {
 	allocator.scheduling.Unlock()
+	for i := range allocator.history {
+		if allocator.history[i].Name == job.Name {
+			allocator.history[i].Status = Running
+		}
+	}
+}
+
+func (allocator *AllocatorFIFO) finish(job *Job) {
+	for i := range allocator.history {
+		if allocator.history[i].Name == job.Name {
+			allocator.history[i].Status = Finished
+		}
+	}
 }
 
 func (allocator *AllocatorFIFO) schedule(job Job) {
@@ -47,6 +71,7 @@ func (allocator *AllocatorFIFO) schedule(job Job) {
 	defer allocator.mu.Unlock()
 
 	allocator.queue = append(allocator.queue, job)
+	allocator.history = append(allocator.history, &job)
 }
 
 func (allocator *AllocatorFIFO) requestResource(task Task) MsgAgent {
@@ -91,63 +116,21 @@ func (allocator *AllocatorFIFO) returnResource(agent MsgAgent) {
 }
 
 func (allocator *AllocatorFIFO) status(jobName string) MsgJobStatus {
-
-	var tasksStatus []TaskStatus
-	tasksStatus = append(tasksStatus, TaskStatus{Id: "8b9b665fc4f1"})
-	tasksStatus = append(tasksStatus, TaskStatus{Id: "4a4aeee2c5f9"})
-
-	for i, taskStatus := range tasksStatus {
-		spider := Spider{}
-		spider.Method = "GET"
-		spider.URL = "http://kafka_node1:8000/status?id=" + taskStatus.Id
-
-		err := spider.do()
-		if err != nil {
-			continue
-		}
-
-		resp := spider.getResponse()
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			continue
-		}
-
-		var res MsgTaskStatus
-		err = json.Unmarshal([]byte(string(body)), &res)
-		if err != nil {
-			continue
-		}
-		tasksStatus[i] = res.Status
+	jm, ok := allocator.jobs[jobName]
+	if !ok {
+		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
 	}
-
-	return MsgJobStatus{Status: tasksStatus}
+	return jm.status()
 }
 
-func (allocator *AllocatorFIFO) logs(taskName string) MsgLog {
-	spider := Spider{}
-	spider.Method = "GET"
-	spider.URL = "http://kafka_node1:8000/logs?id=" + taskName
-
-	err := spider.do()
-	if err != nil {
-		return MsgLog{Code: 1, Error: err.Error()}
+func (allocator *AllocatorFIFO) logs(jobName string, taskName string) MsgLog {
+	jm, ok := allocator.jobs[jobName]
+	if !ok {
+		return MsgLog{Code: 1, Error: "Job not exist!"}
 	}
+	return jm.logs(taskName)
+}
 
-	resp := spider.getResponse()
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return MsgLog{Code: 1, Error: err.Error()}
-	}
-
-	var res MsgLog
-	err = json.Unmarshal([]byte(string(body)), &res)
-	if err != nil {
-		log.Println(err)
-		return MsgLog{Code: 1, Error: "Unknown"}
-	}
-	return res
+func (allocator *AllocatorFIFO) listJobs() MsgJobList {
+	return MsgJobList{Code: 0, Jobs: allocator.history}
 }

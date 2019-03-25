@@ -18,6 +18,7 @@ type JobManager struct {
 
 func (jm *JobManager) start() {
 	log.Println("start job ", jm.job.Name)
+	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
 
 	/* request for resources */
 	for i := range jm.job.Tasks {
@@ -62,14 +63,16 @@ func (jm *JobManager) start() {
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id}
 	}
 
-	jm.allocator.ack()
+	jm.allocator.ack(&jm.job)
 
 	/* monitor job execution */
 	for {
 		res := jm.status()
+		flag := false
 		for i := range res.Status {
 			if res.Status[i].Status == "running" {
 				log.Println(jm.job.Name, "-", i, " is running")
+				flag = true
 			} else {
 				log.Println(jm.job.Name, "-", i, " ", res.Status[i].Status)
 
@@ -79,16 +82,20 @@ func (jm *JobManager) start() {
 				jm.allocator.returnResource(jm.resources[i])
 			}
 		}
+		if !flag {
+			break
+		}
 		time.Sleep(time.Second * 10)
 	}
 
+	jm.allocator.finish(&jm.job)
 	log.Println("finish job", jm.job.Name)
 }
 
 func (jm *JobManager) logs(taskName string) MsgLog {
 	spider := Spider{}
 	spider.Method = "GET"
-	spider.URL = "http://127.0.0.1:8000/logs?id=" + taskName
+	spider.URL = "http://kafka_node1:8000/logs?id=" + taskName
 
 	err := spider.do()
 	if err != nil {
@@ -113,12 +120,11 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 }
 
 func (jm *JobManager) status() MsgJobStatus {
-
 	var tasksStatus []TaskStatus
 	for _, taskStatus := range jm.jobStatus.tasks {
 		spider := Spider{}
 		spider.Method = "GET"
-		spider.URL = "http://127.0.0.1:8000/status?id=" + taskStatus.Id
+		spider.URL = "http://kafka_node1:8000/status?id=" + taskStatus.Id
 
 		err := spider.do()
 		if err != nil {
