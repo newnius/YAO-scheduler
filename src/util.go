@@ -16,6 +16,21 @@ const (
 	Finished = 4
 )
 
+type MsgSubmit struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
+type MsgSummary struct {
+	Code         int    `json:"code"`
+	Error        string `json:"error"`
+	JobsFinished int    `json:"jobs_finished"`
+	JobsRunning  int    `json:"jobs_running"`
+	JobsPending  int    `json:"jobs_pending"`
+	FreeGPU      int    `json:"gpu_free"`
+	UsingGPU     int    `json:"gpu_using"`
+}
+
 type MsgJobList struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
@@ -48,6 +63,7 @@ type MsgCreate struct {
 
 type TaskStatus struct {
 	Id          string `json:"id"`
+	Name        string `json:"name"`
 	Image       string `json:"image"`
 	ImageDigest string `json:"image_digest"`
 	Command     string `json:"command"`
@@ -83,9 +99,8 @@ type MsgAgent struct {
 type Job struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
-	Image     string `json:"image"`
 	Tasks     []Task `json:"tasks"`
-	Workspace int    `json:"workspace"`
+	Workspace string `json:"workspace"`
 	Cluster   int    `json:"virtual_cluster"`
 	Priority  int    `json:"priority"`
 	RunBefore int    `json:"run_before"`
@@ -97,6 +112,7 @@ type Job struct {
 
 type Task struct {
 	Name      string `json:"name"`
+	Image     string `json:"image"`
 	Cmd       string `json:"cmd"`
 	NumberCPU int    `json:"cpu_number"`
 	Memory    int    `json:"memory"`

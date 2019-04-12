@@ -15,7 +15,6 @@ type Spider struct {
 	ContentType string
 	Referer     string
 	Data        url.Values
-
 	Response *http.Response
 }
 

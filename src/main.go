@@ -70,6 +70,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
+
+	case "summary":
+		fmt.Println("summary")
+		js, _ := json.Marshal(allocator.summary())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

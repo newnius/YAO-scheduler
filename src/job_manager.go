@@ -7,6 +7,7 @@ import (
 	"strings"
 	"io/ioutil"
 	"encoding/json"
+	"fmt"
 )
 
 type JobManager struct {
@@ -32,12 +33,24 @@ func (jm *JobManager) start() {
 		log.Println("Receive resource", resource)
 		jm.resources = append(jm.resources, resource)
 	}
+	jm.allocator.ack(&jm.job)
 
 	/* bring up containers */
 	for i := range jm.job.Tasks {
+		var GPUs []string
+		for _, GPU := range jm.resources[i].Status {
+			GPUs = append(GPUs, GPU.UUID)
+		}
+
 		v := url.Values{}
-		v.Set("image", jm.job.Image)
+		v.Set("image", jm.job.Tasks[i].Image)
 		v.Set("cmd", jm.job.Tasks[i].Cmd)
+		v.Set("name", jm.job.Tasks[i].Name)
+		v.Set("workspace", jm.job.Workspace)
+		v.Set("gpus", strings.Join(GPUs, ","))
+
+		fmt.Print(v.Encode())
+
 		resp, err := doRequest("POST", "http://kafka_node1:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
 			log.Println(err)
@@ -63,7 +76,7 @@ func (jm *JobManager) start() {
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id}
 	}
 
-	jm.allocator.ack(&jm.job)
+	jm.allocator.running(&jm.job)
 
 	/* monitor job execution */
 	for {

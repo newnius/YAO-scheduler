@@ -51,6 +51,9 @@ func (allocator *AllocatorFIFO) start() {
 
 func (allocator *AllocatorFIFO) ack(job *Job) {
 	allocator.scheduling.Unlock()
+}
+
+func (allocator *AllocatorFIFO) running(job *Job) {
 	for i := range allocator.history {
 		if allocator.history[i].Name == job.Name {
 			allocator.history[i].Status = Running
@@ -133,4 +136,50 @@ func (allocator *AllocatorFIFO) logs(jobName string, taskName string) MsgLog {
 
 func (allocator *AllocatorFIFO) listJobs() MsgJobList {
 	return MsgJobList{Code: 0, Jobs: allocator.history}
+}
+
+func (allocator *AllocatorFIFO) summary() MsgSummary {
+	summary := MsgSummary{}
+	summary.Code = 0
+
+	finishedJobsCounter := 0
+	runningJobsCounter := 0
+	pendingJobsCounter := 0
+
+	for _, job := range allocator.history {
+		switch job.Status {
+		case Created:
+			pendingJobsCounter++
+		case Starting:
+			pendingJobsCounter++
+			break
+		case Running:
+			runningJobsCounter++
+			break;
+		case Finished:
+			finishedJobsCounter++
+		case Stopped:
+			finishedJobsCounter++
+		}
+	}
+	summary.JobsFinished = finishedJobsCounter
+	summary.JobsPending = pendingJobsCounter
+	summary.JobsRunning = runningJobsCounter
+
+	FreeGPU := 0
+	UsingGPU := 0
+
+	for _, node := range pool.nodes {
+		for j := range node {
+			if node[j].MemoryAllocated == 0 {
+				FreeGPU++
+			} else {
+				UsingGPU++
+			}
+		}
+	}
+	summary.FreeGPU = FreeGPU
+	summary.UsingGPU = UsingGPU
+
+	return summary
 }
