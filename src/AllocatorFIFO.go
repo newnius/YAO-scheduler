@@ -77,26 +77,27 @@ func (allocator *AllocatorFIFO) schedule(job Job) {
 	allocator.history = append(allocator.history, &job)
 }
 
-func (allocator *AllocatorFIFO) requestResource(task Task) MsgAgent {
+func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	res := MsgAgent{}
+	res := NodeStatus{}
 	for id, node := range pool.nodes {
-		var available []NodeStatus
-		for _, status := range node {
+		var available []GPUStatus
+		for _, status := range node.Status {
 			if status.MemoryAllocated == 0 {
 				available = append(available, status)
 			}
 		}
 		if len(available) >= task.NumberGPU {
 			res.ClientID = id
+			res.ClientHost = node.ClientHost
 			res.Status = available[0:task.NumberGPU]
 
 			for i := range res.Status {
-				for j := range node {
-					if res.Status[i].UUID == node[j].UUID {
-						node[j].MemoryAllocated = task.MemoryGPU
+				for j := range node.Status {
+					if res.Status[i].UUID == node.Status[j].UUID {
+						node.Status[j].MemoryAllocated = task.MemoryGPU
 					}
 				}
 			}
@@ -105,14 +106,14 @@ func (allocator *AllocatorFIFO) requestResource(task Task) MsgAgent {
 	return res
 }
 
-func (allocator *AllocatorFIFO) returnResource(agent MsgAgent) {
+func (allocator *AllocatorFIFO) returnResource(agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	nodes := pool.nodes[agent.ClientID]
 	for _, gpu := range agent.Status {
-		for j := range nodes {
-			if gpu.UUID == nodes[j].UUID {
-				nodes[j].MemoryAllocated = 0
+		for j := range nodes.Status {
+			if gpu.UUID == nodes.Status[j].UUID {
+				nodes.Status[j].MemoryAllocated = 0
 			}
 		}
 	}
@@ -170,8 +171,8 @@ func (allocator *AllocatorFIFO) summary() MsgSummary {
 	UsingGPU := 0
 
 	for _, node := range pool.nodes {
-		for j := range node {
-			if node[j].MemoryAllocated == 0 {
+		for j := range node.Status {
+			if node.Status[j].MemoryAllocated == 0 {
 				FreeGPU++
 			} else {
 				UsingGPU++

@@ -64,6 +64,7 @@ type MsgCreate struct {
 type TaskStatus struct {
 	Id          string `json:"id"`
 	Name        string `json:"name"`
+	Node        string `json:"node"`
 	Image       string `json:"image"`
 	ImageDigest string `json:"image_digest"`
 	Command     string `json:"command"`
@@ -77,7 +78,7 @@ type JobStatus struct {
 	tasks map[string]TaskStatus
 }
 
-type NodeStatus struct {
+type GPUStatus struct {
 	UUID             string `json:"uuid"`
 	ProductName      string `json:"product_name"`
 	PerformanceState string `json:"performance_state"`
@@ -91,10 +92,10 @@ type NodeStatus struct {
 	PowerDraw        int    `json:"power_draw"`
 }
 
-type MsgAgent struct {
-	ClientID   int          `json:"code"`
-	ClientHost string       `json:"host"`
-	Status     []NodeStatus `json:"status"`
+type NodeStatus struct {
+	ClientID   int         `json:"code"`
+	ClientHost string      `json:"host"`
+	Status     []GPUStatus `json:"status"`
 }
 
 type Job struct {

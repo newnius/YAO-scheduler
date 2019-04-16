@@ -5,14 +5,14 @@ import (
 	"github.com/Shopify/sarama"
 	"encoding/json"
 	"log"
-)
+	)
 
 var (
 	wg sync.WaitGroup
 )
 
 func start(pool *ResourcePool) {
-	consumer, err := sarama.NewConsumer([]string{"kafka:9092"}, nil)
+	consumer, err := sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -34,13 +34,13 @@ func start(pool *ResourcePool) {
 		go func(sarama.PartitionConsumer) {
 			defer wg.Done()
 			for msg := range pc.Messages() {
-				var msgAgent MsgAgent
-				err = json.Unmarshal([]byte(string(msg.Value)), &msgAgent)
+				var nodeStatus NodeStatus
+				err = json.Unmarshal([]byte(string(msg.Value)), &nodeStatus)
 				if err != nil {
 					log.Println(err)
 					continue
 				}
-				pool.update(msgAgent)
+				pool.update(nodeStatus)
 			}
 
 		}(pc)

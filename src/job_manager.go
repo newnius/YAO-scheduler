@@ -14,7 +14,7 @@ type JobManager struct {
 	allocator *AllocatorFIFO
 	job       Job
 	jobStatus JobStatus
-	resources []MsgAgent
+	resources []NodeStatus
 }
 
 func (jm *JobManager) start() {
@@ -23,7 +23,7 @@ func (jm *JobManager) start() {
 
 	/* request for resources */
 	for i := range jm.job.Tasks {
-		var resource MsgAgent
+		var resource NodeStatus
 		for {
 			resource = jm.allocator.requestResource(jm.job.Tasks[i])
 			if len(resource.Status) > 0 {
@@ -51,7 +51,7 @@ func (jm *JobManager) start() {
 
 		fmt.Println(v.Encode())
 
-		resp, err := doRequest("POST", "http://kafka:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
 			log.Println(err.Error())
 			return
@@ -73,7 +73,7 @@ func (jm *JobManager) start() {
 			return
 		}
 
-		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id}
+		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
 	}
 
 	jm.allocator.running(&jm.job)
@@ -108,7 +108,7 @@ func (jm *JobManager) start() {
 func (jm *JobManager) logs(taskName string) MsgLog {
 	spider := Spider{}
 	spider.Method = "GET"
-	spider.URL = "http://kafka_node1:8000/logs?id=" + taskName
+	spider.URL = "http://" + jm.jobStatus.tasks[taskName].Node + ":8000/logs?id=" + jm.jobStatus.tasks[taskName].Id
 
 	err := spider.do()
 	if err != nil {
@@ -137,7 +137,7 @@ func (jm *JobManager) status() MsgJobStatus {
 	for _, taskStatus := range jm.jobStatus.tasks {
 		spider := Spider{}
 		spider.Method = "GET"
-		spider.URL = "http://kafka_node1:8000/status?id=" + taskStatus.Id
+		spider.URL = "http://" + taskStatus.Node + ":8000/status?id=" + taskStatus.Id
 
 		err := spider.do()
 		if err != nil {

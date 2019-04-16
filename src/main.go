@@ -87,7 +87,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	pool = &ResourcePool{}
-	pool.nodes = make(map[int][]NodeStatus)
+	pool.nodes = make(map[int]NodeStatus)
 
 	allocator = &AllocatorFIFO{}
 	allocator.start()
