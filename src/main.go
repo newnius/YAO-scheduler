@@ -37,14 +37,15 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 	case "job_submit":
 		var job Job
 		fmt.Println("job_submit")
+		msgSubmit := MsgSubmit{Code: 0}
 		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.Write([]byte(err.Error()))
-			return
+			msgSubmit.Code = 1
+			msgSubmit.Error = err.Error()
+		} else {
+			allocator.schedule(job)
 		}
-		allocator.schedule(job)
-		js, _ := json.Marshal(nodes)
+		js, _ := json.Marshal(msgSubmit)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

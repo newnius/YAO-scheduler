@@ -49,11 +49,11 @@ func (jm *JobManager) start() {
 		v.Set("workspace", jm.job.Workspace)
 		v.Set("gpus", strings.Join(GPUs, ","))
 
-		fmt.Print(v.Encode())
+		fmt.Println(v.Encode())
 
-		resp, err := doRequest("POST", "http://kafka_node1:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+		resp, err := doRequest("POST", "http://kafka:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
-			log.Println(err)
+			log.Println(err.Error())
 			return
 		}
 		defer resp.Body.Close()

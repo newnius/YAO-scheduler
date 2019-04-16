@@ -92,8 +92,9 @@ type NodeStatus struct {
 }
 
 type MsgAgent struct {
-	ClientID int          `json:"code"`
-	Status   []NodeStatus `json:"status"`
+	ClientID   int          `json:"code"`
+	ClientHost string       `json:"host"`
+	Status     []NodeStatus `json:"status"`
 }
 
 type Job struct {

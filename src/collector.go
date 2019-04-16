@@ -12,7 +12,7 @@ var (
 )
 
 func start(pool *ResourcePool) {
-	consumer, err := sarama.NewConsumer([]string{"kafka_node1:9091", "kafka_node2:9092", "kafka_node3:9093"}, nil)
+	consumer, err := sarama.NewConsumer([]string{"kafka:9092"}, nil)
 	if err != nil {
 		panic(err)
 	}
