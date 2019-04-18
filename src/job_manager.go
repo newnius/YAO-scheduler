@@ -162,3 +162,18 @@ func (jm *JobManager) status() MsgJobStatus {
 
 	return MsgJobStatus{Status: tasksStatus}
 }
+
+func (jm *JobManager) stop() MsgStop {
+	for _, taskStatus := range jm.jobStatus.tasks {
+		spider := Spider{}
+		spider.Method = "POST"
+		spider.URL = "http://" + taskStatus.Node + ":8000/stop?id=" + taskStatus.Id
+		spider.do()
+	}
+
+	for i := range jm.resources {
+		jm.allocator.returnResource(jm.resources[i])
+	}
+	jm.allocator.finish(&jm.job)
+	return MsgStop{Code: 0}
+}

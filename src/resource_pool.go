@@ -2,12 +2,12 @@ package main
 
 import (
 	"sync"
-)
+	)
 
 type ResourcePool struct {
 	mu sync.Mutex
 
-	nodes map[int]NodeStatus
+	nodes map[string]NodeStatus
 }
 
 func (pool *ResourcePool) update(node NodeStatus) {
@@ -27,7 +27,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	//log.Println(pool.nodes)
 }
 
-func (pool *ResourcePool) getByID(id int) NodeStatus {
+func (pool *ResourcePool) getByID(id string) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 

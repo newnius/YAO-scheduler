@@ -15,7 +15,7 @@ var pool *ResourcePool
 var allocator *AllocatorFIFO
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
-	var nodes []int
+	var nodes []string
 	for id := range pool.nodes {
 		nodes = append(nodes, id)
 	}
@@ -28,7 +28,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		break
 
 	case "resource_get_by_node":
-		id := str2int(r.URL.Query().Get("id"), -1)
+		id := r.URL.Query().Get("id")
 		js, _ := json.Marshal(pool.getByID(id))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
@@ -57,9 +57,15 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "job_stop":
+		fmt.Println("job_stop")
+		js, _ := json.Marshal(allocator.stop(string(r.PostFormValue("id"))))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "task_logs":
 		fmt.Println("task_logs")
-		fmt.Println(r.URL.Query().Get("id"))
 		js, _ := json.Marshal(allocator.logs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
@@ -87,7 +93,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	pool = &ResourcePool{}
-	pool.nodes = make(map[int]NodeStatus)
+	pool.nodes = make(map[string]NodeStatus)
 
 	allocator = &AllocatorFIFO{}
 	allocator.start()

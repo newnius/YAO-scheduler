@@ -3,7 +3,7 @@ package main
 import (
 	"sync"
 	"time"
-)
+	)
 
 type AllocatorFIFO struct {
 	history    []*Job
@@ -125,6 +125,14 @@ func (allocator *AllocatorFIFO) status(jobName string) MsgJobStatus {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
 	}
 	return jm.status()
+}
+
+func (allocator *AllocatorFIFO) stop(jobName string) MsgStop {
+	jm, ok := allocator.jobs[jobName]
+	if !ok {
+		return MsgStop{Code: 1, Error: "Job not exist!"}
+	}
+	return jm.stop()
 }
 
 func (allocator *AllocatorFIFO) logs(jobName string, taskName string) MsgLog {

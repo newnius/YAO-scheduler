@@ -21,6 +21,11 @@ type MsgSubmit struct {
 	Error string `json:"error"`
 }
 
+type MsgStop struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
 type MsgSummary struct {
 	Code         int    `json:"code"`
 	Error        string `json:"error"`
@@ -93,7 +98,7 @@ type GPUStatus struct {
 }
 
 type NodeStatus struct {
-	ClientID   int         `json:"code"`
+	ClientID   string      `json:"id"`
 	ClientHost string      `json:"host"`
 	Status     []GPUStatus `json:"status"`
 }
