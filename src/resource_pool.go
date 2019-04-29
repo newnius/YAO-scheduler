@@ -29,12 +29,10 @@ func (pool *ResourcePool) start() {
 			TotalMemGPU := 0
 			AvailableMemGPU := 0
 			for _, node := range pool.nodes {
-				if i, err := strconv.ParseFloat(node.UtilCPU, 64); err != nil {
-					UtilCPU += i
-				}
+				UtilCPU += node.UtilCPU
 				TotalCPU += node.NumCPU
-				TotalMem += str2int(node.MemTotal, 0)
-				AvailableMem += str2int(node.MemAvailable, 0)
+				TotalMem += node.MemTotal
+				AvailableMem += node.MemAvailable
 
 				for _, GPU := range node.Status {
 					UtilGPU += GPU.UtilizationGPU
