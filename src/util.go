@@ -99,7 +99,7 @@ type GPUStatus struct {
 	UUID             string `json:"uuid"`
 	ProductName      string `json:"product_name"`
 	PerformanceState string `json:"performance_state"`
-	MemoryTotal      int    `json:"emory_total"`
+	MemoryTotal      int    `json:"memory_total"`
 	MemoryFree       int    `json:"memory_free"`
 	MemoryAllocated  int    `json:"memory_allocated"`
 	MemoryUsed       int    `json:"memory_used"`

@@ -93,6 +93,7 @@ func (jm *JobManager) start() {
 
 				/* return resource */
 				jm.allocator.returnResource(jm.resources[i])
+				fmt.Println("return resource ", jm.resources[i].ClientID)
 			}
 		}
 		if !flag {
