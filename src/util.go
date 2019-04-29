@@ -16,15 +16,27 @@ const (
 	Finished = 4
 )
 
+type PoolStatus struct {
+	TimeStamp       string  `json:"ts"`
+	UtilCPU         float64 `json:"cpu_util"`
+	TotalCPU        int     `json:"cpu_total"`
+	TotalMem        int     `json:"mem_total"`
+	AvailableMem    int     `json:"mem_available"`
+	TotalGPU        int     `json:"TotalGPU"`
+	UtilGPU         int     `json:"gpu_util"`
+	TotalMemGPU     int     `json:"gpu_mem_total"`
+	AvailableMemGPU int     `json:"gpu_mem_available"`
+}
+
 type MsgSubmit struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
 }
 
 type MsgPoolStatusHistory struct {
-	Code  int                 `json:"code"`
-	Error string              `json:"error"`
-	Data  []map[string]string `json:"data"`
+	Code  int          `json:"code"`
+	Error string       `json:"error"`
+	Data  []PoolStatus `json:"data"`
 }
 
 type MsgStop struct {

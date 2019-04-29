@@ -3,21 +3,21 @@ package main
 import (
 	"sync"
 	"time"
-	"strconv"
-	"fmt"
 )
 
 type ResourcePool struct {
 	mu    sync.Mutex
 	nodes map[string]NodeStatus
 
-	history []map[string]string
+	history []PoolStatus
 }
 
 func (pool *ResourcePool) start() {
 	go func() {
+		/* waiting for data */
+		time.Sleep(time.Second * 30)
 		for {
-			summary := map[string]string{}
+			summary := PoolStatus{}
 
 			UtilCPU := 0.0
 			TotalCPU := 0
@@ -41,19 +41,19 @@ func (pool *ResourcePool) start() {
 					AvailableMemGPU += GPU.MemoryFree
 				}
 			}
-			summary["ts"] = time.Now().Format("2006-01-02 15:04:05")
-			summary["cpu_util"] = fmt.Sprintf("%.2f", UtilCPU/(float64(len(pool.nodes))+0.001))
-			summary["cpu_total"] = strconv.Itoa(TotalCPU)
-			summary["mem_total"] = strconv.Itoa(TotalMem)
-			summary["mem_available"] = strconv.Itoa(AvailableMem)
-			summary["gpu_total"] = strconv.Itoa(TotalGPU)
+			summary.TimeStamp = time.Now().Format("2006-01-02 15:04:05")
+			summary.UtilCPU = UtilCPU / (float64(len(pool.nodes)) + 0.001)
+			summary.TotalCPU = TotalCPU
+			summary.TotalMem = TotalMem
+			summary.AvailableMem = AvailableMem
+			summary.TotalGPU = TotalGPU
 			if TotalGPU == 0 {
-				summary["gpu_util"] = "0"
+				summary.UtilGPU = 0.0
 			} else {
-				summary["gpu_util"] = fmt.Sprintf("%2d", UtilGPU/TotalGPU)
+				summary.UtilGPU = UtilGPU / TotalGPU
 			}
-			summary["gpu_mem_total"] = strconv.Itoa(TotalMemGPU)
-			summary["gpu_mem_available"] = strconv.Itoa(AvailableMemGPU)
+			summary.TotalMemGPU = TotalMemGPU
+			summary.AvailableMemGPU = AvailableMemGPU
 
 			pool.history = append(pool.history, summary)
 
