@@ -113,9 +113,9 @@ type NodeStatus struct {
 	ClientID     string      `json:"id"`
 	ClientHost   string      `json:"host"`
 	NumCPU       int         `json:"cpu_num"`
-	UtilCPU      string      `json:"cpu_load"`
-	MemTotal     string      `json:"mem_total"`
-	MemAvailable string      `json:"mem_available"`
+	UtilCPU      float64     `json:"cpu_load"`
+	MemTotal     int         `json:"mem_total"`
+	MemAvailable int         `json:"mem_available"`
 	Status       []GPUStatus `json:"status"`
 }
 
