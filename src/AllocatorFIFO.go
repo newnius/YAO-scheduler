@@ -3,8 +3,7 @@ package main
 import (
 	"sync"
 	"time"
-	"fmt"
-)
+	)
 
 type AllocatorFIFO struct {
 	history    []*Job
@@ -99,10 +98,10 @@ func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
 				for j := range node.Status {
 					if res.Status[i].UUID == node.Status[j].UUID {
 						node.Status[j].MemoryAllocated = task.MemoryGPU
-						fmt.Println(node.Status[j].UUID, res.Status[i].UUID)
 					}
 				}
 			}
+			break
 		}
 	}
 	return res
