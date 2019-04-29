@@ -15,14 +15,9 @@ var pool *ResourcePool
 var allocator *AllocatorFIFO
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
-	var nodes []string
-	for id := range pool.nodes {
-		nodes = append(nodes, id)
-	}
-
 	switch r.URL.Query().Get("action") {
-	case "node_gets":
-		js, _ := json.Marshal(nodes)
+	case "resource_list":
+		js, _ := json.Marshal(pool.list())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -85,6 +80,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "pool_status_history":
+		fmt.Println("pool_status_history")
+		js, _ := json.Marshal(pool.statusHistory())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break
@@ -94,6 +96,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 func main() {
 	pool = &ResourcePool{}
 	pool.nodes = make(map[string]NodeStatus)
+	pool.start()
 
 	allocator = &AllocatorFIFO{}
 	allocator.start()

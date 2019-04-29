@@ -5,7 +5,8 @@ import (
 	"github.com/Shopify/sarama"
 	"encoding/json"
 	"log"
-	)
+	"fmt"
+)
 
 var (
 	wg sync.WaitGroup
@@ -14,7 +15,9 @@ var (
 func start(pool *ResourcePool) {
 	consumer, err := sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
+		//panic(err)
 	}
 
 	partitionList, err := consumer.Partitions("yao")

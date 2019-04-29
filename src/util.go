@@ -21,6 +21,12 @@ type MsgSubmit struct {
 	Error string `json:"error"`
 }
 
+type MsgPoolStatusHistory struct {
+	Code  int                 `json:"code"`
+	Error string              `json:"error"`
+	Data  []map[string]string `json:"data"`
+}
+
 type MsgStop struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
@@ -34,6 +40,12 @@ type MsgSummary struct {
 	JobsPending  int    `json:"jobs_pending"`
 	FreeGPU      int    `json:"gpu_free"`
 	UsingGPU     int    `json:"gpu_using"`
+}
+
+type MsgResource struct {
+	Code     int                   `json:"code"`
+	Error    string                `json:"error"`
+	Resource map[string]NodeStatus `json:"resources"`
 }
 
 type MsgJobList struct {
@@ -98,9 +110,13 @@ type GPUStatus struct {
 }
 
 type NodeStatus struct {
-	ClientID   string      `json:"id"`
-	ClientHost string      `json:"host"`
-	Status     []GPUStatus `json:"status"`
+	ClientID     string      `json:"id"`
+	ClientHost   string      `json:"host"`
+	NumCPU       int         `json:"cpu_num"`
+	UtilCPU      string      `json:"cpu_load"`
+	MemTotal     string      `json:"mem_total"`
+	MemAvailable string      `json:"mem_available"`
+	Status       []GPUStatus `json:"status"`
 }
 
 type Job struct {
