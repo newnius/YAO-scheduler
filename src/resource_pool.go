@@ -15,6 +15,7 @@ type ResourcePool struct {
 func (pool *ResourcePool) start() {
 	go func() {
 		/* waiting for data */
+		pool.history = []PoolStatus{}
 		time.Sleep(time.Second * 30)
 		for {
 			summary := PoolStatus{}
@@ -58,7 +59,7 @@ func (pool *ResourcePool) start() {
 			pool.history = append(pool.history, summary)
 
 			if len(pool.history) > 60 {
-				pool.history = pool.history[0:60]
+				pool.history = pool.history[len(pool.history)-60:]
 			}
 			time.Sleep(time.Second * 60)
 		}
