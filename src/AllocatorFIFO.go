@@ -3,7 +3,7 @@ package main
 import (
 	"sync"
 	"time"
-	)
+)
 
 type AllocatorFIFO struct {
 	history    []*Job
@@ -85,7 +85,7 @@ func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
 	for id, node := range pool.nodes {
 		var available []GPUStatus
 		for _, status := range node.Status {
-			if status.MemoryAllocated == 0 {
+			if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
 				available = append(available, status)
 			}
 		}
@@ -97,7 +97,8 @@ func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
 			for i := range res.Status {
 				for j := range node.Status {
 					if res.Status[i].UUID == node.Status[j].UUID {
-						node.Status[j].MemoryAllocated = task.MemoryGPU
+						node.Status[j].MemoryAllocated += task.MemoryGPU
+						res.Status[i].MemoryTotal = task.MemoryGPU
 					}
 				}
 			}
@@ -114,7 +115,7 @@ func (allocator *AllocatorFIFO) returnResource(agent NodeStatus) {
 	for _, gpu := range agent.Status {
 		for j := range nodes.Status {
 			if gpu.UUID == nodes.Status[j].UUID {
-				nodes.Status[j].MemoryAllocated = 0
+				nodes.Status[j].MemoryAllocated -= gpu.MemoryTotal
 			}
 		}
 	}
