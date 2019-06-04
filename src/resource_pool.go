@@ -16,12 +16,18 @@ type ResourcePool struct {
 
 func (pool *ResourcePool) start() {
 	/* check dead nodes */
-	pool.heartBeat = map[string]time.Time{}
-	for k, v := range pool.heartBeat {
-		if v.Add(time.Second * 30).Before(time.Now()) {
-			delete(pool.nodes, k)
+	go func() {
+		pool.heartBeat = map[string]time.Time{}
+
+		for {
+			for k, v := range pool.heartBeat {
+				if v.Add(time.Second * 30).Before(time.Now()) {
+					delete(pool.nodes, k)
+				}
+			}
+			time.Sleep(time.Second * 10)
 		}
-	}
+	}()
 
 	/* save pool status periodically */
 	go func() {
