@@ -10,9 +10,19 @@ type ResourcePool struct {
 	nodes map[string]NodeStatus
 
 	history []PoolStatus
+
+	heartBeat map[string]time.Time
 }
 
 func (pool *ResourcePool) start() {
+	/* check dead nodes */
+	for k, v := range pool.heartBeat {
+		if v.Add(time.Second * 30).Before(time.Now()) {
+			delete(pool.nodes, k)
+		}
+	}
+
+	/* save pool status periodically */
 	go func() {
 		/* waiting for data */
 		pool.history = []PoolStatus{}
@@ -79,6 +89,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		}
 	}
 	pool.nodes[node.ClientID] = node
+	pool.heartBeat[node.ClientID] = time.Now()
 
 	//log.Println(pool.nodes)
 }
