@@ -194,3 +194,11 @@ func (allocator *AllocatorFIFO) summary() MsgSummary {
 
 	return summary
 }
+
+func (allocator *AllocatorFIFO) acquireNetwork() string {
+	return pool.acquireNetwork()
+}
+
+func (allocator *AllocatorFIFO) releaseNetwork(network string) {
+	pool.releaseNetwork(network)
+}

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 type JobManager struct {
@@ -20,6 +21,8 @@ type JobManager struct {
 func (jm *JobManager) start() {
 	log.Println("start job ", jm.job.Name)
 	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
+
+	network := allocator.acquireNetwork()
 
 	/* request for resources */
 	for i := range jm.job.Tasks {
@@ -48,6 +51,9 @@ func (jm *JobManager) start() {
 		v.Set("name", jm.job.Tasks[i].Name)
 		v.Set("workspace", jm.job.Workspace)
 		v.Set("gpus", strings.Join(GPUs, ","))
+		v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[i].Memory)+"m")
+		v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
+		v.Set("network", network)
 
 		fmt.Println(v.Encode())
 
@@ -101,6 +107,8 @@ func (jm *JobManager) start() {
 		}
 		time.Sleep(time.Second * 10)
 	}
+
+	allocator.releaseNetwork(network)
 
 	jm.allocator.finish(&jm.job)
 	log.Println("finish job", jm.job.Name)

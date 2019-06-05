@@ -3,6 +3,11 @@ package main
 import (
 	"sync"
 	"time"
+	"net/url"
+	"strings"
+	"log"
+	"math/rand"
+	"strconv"
 )
 
 type ResourcePool struct {
@@ -12,9 +17,16 @@ type ResourcePool struct {
 	history []PoolStatus
 
 	heartBeat map[string]time.Time
+
+	networks     map[string]bool
+	networksFree map[string]bool
+	networkMu    sync.Mutex
 }
 
 func (pool *ResourcePool) start() {
+	pool.networks = map[string]bool{}
+	pool.networksFree = map[string]bool{}
+
 	/* check dead nodes */
 	go func() {
 		pool.heartBeat = map[string]time.Time{}
@@ -118,4 +130,39 @@ func (pool *ResourcePool) list() MsgResource {
 
 func (pool *ResourcePool) statusHistory() MsgPoolStatusHistory {
 	return MsgPoolStatusHistory{Code: 0, Data: pool.history}
+}
+
+func (pool *ResourcePool) acquireNetwork() string {
+	var network string
+	if len(pool.networksFree) == 0 {
+		for {
+			network = "yao-net-" + strconv.Itoa(rand.Intn(999999))
+			if _, ok := pool.networksFree[network]; !ok {
+				break
+			}
+		}
+		v := url.Values{}
+		v.Set("name", network)
+		resp, err := doRequest("POST", "http://yao-agent-master:8000/network_create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+		if err != nil {
+			log.Println(err.Error())
+			return ""
+		}
+		defer resp.Body.Close()
+		pool.networksFree[network] = true
+		pool.networks[network] = true
+	}
+	pool.networkMu.Lock()
+	for k := range pool.networksFree {
+		network = k
+		delete(pool.networksFree, k)
+	}
+	pool.networkMu.Unlock()
+	return network
+}
+
+func (pool *ResourcePool) releaseNetwork(network string) {
+	pool.networkMu.Lock()
+	pool.networksFree[network] = true
+	pool.networkMu.Unlock()
 }
