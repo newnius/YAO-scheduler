@@ -24,6 +24,7 @@ type ResourcePool struct {
 }
 
 func (pool *ResourcePool) start() {
+	//TODO: retrieve networks from yao-agent-master in blocking io
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
 
@@ -133,31 +134,35 @@ func (pool *ResourcePool) statusHistory() MsgPoolStatusHistory {
 }
 
 func (pool *ResourcePool) acquireNetwork() string {
+	pool.networkMu.Lock()
+	defer pool.networkMu.Unlock()
 	var network string
 	if len(pool.networksFree) == 0 {
 		for {
-			network = "yao-net-" + strconv.Itoa(rand.Intn(999999))
-			if _, ok := pool.networksFree[network]; !ok {
-				break
+			for {
+				network = "yao-net-" + strconv.Itoa(rand.Intn(999999))
+				if _, ok := pool.networks[network]; !ok {
+					break
+				}
 			}
+			v := url.Values{}
+			v.Set("name", network)
+			resp, err := doRequest("POST", "http://yao-agent-master:8000/network_create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			if err != nil {
+				log.Println(err.Error())
+				continue
+			}
+			defer resp.Body.Close()
+			pool.networksFree[network] = true
+			pool.networks[network] = true
+			break
 		}
-		v := url.Values{}
-		v.Set("name", network)
-		resp, err := doRequest("POST", "http://yao-agent-master:8000/network_create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
-		if err != nil {
-			log.Println(err.Error())
-			return ""
-		}
-		defer resp.Body.Close()
-		pool.networksFree[network] = true
-		pool.networks[network] = true
 	}
-	pool.networkMu.Lock()
+
 	for k := range pool.networksFree {
 		network = k
 		delete(pool.networksFree, k)
 	}
-	pool.networkMu.Unlock()
 	return network
 }
 
