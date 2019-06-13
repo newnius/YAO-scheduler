@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
+	"fmt"
 )
 
 type ResourcePool struct {
@@ -137,6 +138,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 	pool.networkMu.Lock()
 	defer pool.networkMu.Unlock()
 	var network string
+	fmt.Println(pool.networksFree)
 	if len(pool.networksFree) == 0 {
 		for {
 			for {
@@ -148,6 +150,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 			v := url.Values{}
 			v.Set("name", network)
 			resp, err := doRequest("POST", "http://yao-agent-master:8000/network_create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			fmt.Print(resp, err)
 			if err != nil {
 				log.Println(err.Error())
 				continue
