@@ -55,8 +55,6 @@ func (jm *JobManager) start() {
 		v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
 		v.Set("network", network)
 
-		fmt.Println(v.Encode())
-
 		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
 			log.Println(err.Error())
@@ -69,8 +67,6 @@ func (jm *JobManager) start() {
 			log.Println(err)
 			return
 		}
-
-		log.Println(string(body))
 
 		var res MsgCreate
 		err = json.Unmarshal([]byte(string(body)), &res)
