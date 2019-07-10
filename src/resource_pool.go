@@ -5,11 +5,10 @@ import (
 	"time"
 	"net/url"
 	"strings"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
-	"fmt"
-)
+	)
 
 type ResourcePool struct {
 	mu    sync.Mutex
@@ -111,8 +110,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	}
 	pool.nodes[node.ClientID] = node
 	pool.heartBeat[node.ClientID] = time.Now()
-
-	//log.Println(pool.nodes)
+	log.Debug(pool.nodes)
 }
 
 func (pool *ResourcePool) getByID(id string) NodeStatus {
@@ -138,7 +136,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 	pool.networkMu.Lock()
 	defer pool.networkMu.Unlock()
 	var network string
-	fmt.Println(pool.networksFree)
+	log.Info(pool.networksFree)
 	if len(pool.networksFree) == 0 {
 		for {
 			for {

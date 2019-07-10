@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"fmt"
 )
@@ -12,7 +12,7 @@ var addr = flag.String("addr", ":8080", "http service address")
 
 var pool *ResourcePool
 
-var allocator *AllocatorFIFO
+var scheduler Scheduler
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Query().Get("action") {
@@ -38,7 +38,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
 		} else {
-			allocator.schedule(job)
+			scheduler.Schedule(job)
 		}
 		js, _ := json.Marshal(msgSubmit)
 		w.Header().Set("Content-Type", "application/json")
@@ -47,35 +47,35 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "job_status":
 		fmt.Println("job_status")
-		js, _ := json.Marshal(allocator.status(r.URL.Query().Get("id")))
+		js, _ := json.Marshal(scheduler.QueryState(r.URL.Query().Get("id")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "job_stop":
 		fmt.Println("job_stop")
-		js, _ := json.Marshal(allocator.stop(string(r.PostFormValue("id"))))
+		js, _ := json.Marshal(scheduler.Stop(string(r.PostFormValue("id"))))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "task_logs":
 		fmt.Println("task_logs")
-		js, _ := json.Marshal(allocator.logs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
+		js, _ := json.Marshal(scheduler.QueryLogs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "jobs":
 		fmt.Println("job_list")
-		js, _ := json.Marshal(allocator.listJobs())
+		js, _ := json.Marshal(scheduler.ListJobs())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "summary":
 		fmt.Println("summary")
-		js, _ := json.Marshal(allocator.summary())
+		js, _ := json.Marshal(scheduler.Summary())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -98,8 +98,8 @@ func main() {
 	pool.nodes = make(map[string]NodeStatus)
 	pool.start()
 
-	allocator = &AllocatorFIFO{}
-	allocator.start()
+	scheduler = &SchedulerFCFS{}
+	scheduler.Start()
 
 	go func() {
 		start(pool)

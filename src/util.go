@@ -8,26 +8,6 @@ import (
 	"net/http"
 )
 
-const (
-	Created  = 0
-	Starting = 1
-	Running  = 2
-	Stopped  = 3
-	Finished = 4
-)
-
-type PoolStatus struct {
-	TimeStamp       string  `json:"ts"`
-	UtilCPU         float64 `json:"cpu_util"`
-	TotalCPU        int     `json:"cpu_total"`
-	TotalMem        int     `json:"mem_total"`
-	AvailableMem    int     `json:"mem_available"`
-	TotalGPU        int     `json:"TotalGPU"`
-	UtilGPU         int     `json:"gpu_util"`
-	TotalMemGPU     int     `json:"gpu_mem_total"`
-	AvailableMemGPU int     `json:"gpu_mem_available"`
-}
-
 type MsgSubmit struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
@@ -143,7 +123,7 @@ type Job struct {
 	CreatedAt int    `json:"created_at"`
 	UpdatedAt int    `json:"updated_at"`
 	CreatedBy int    `json:"created_by"`
-	Status    int    `json:"status"`
+	Status    State  `json:"status"`
 }
 
 type Task struct {

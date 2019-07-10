@@ -3,9 +3,10 @@ package main
 import (
 	"sync"
 	"time"
+	log "github.com/sirupsen/logrus"
 )
 
-type AllocatorFIFO struct {
+type SchedulerFCFS struct {
 	history    []*Job
 	queue      []Job
 	mu         sync.Mutex
@@ -14,27 +15,27 @@ type AllocatorFIFO struct {
 	jobs map[string]*JobManager
 }
 
-func (allocator *AllocatorFIFO) start() {
-	allocator.jobs = map[string]*JobManager{}
-	allocator.history = []*Job{}
+func (scheduler *SchedulerFCFS) Start() {
+	scheduler.jobs = map[string]*JobManager{}
+	scheduler.history = []*Job{}
 
 	go func() {
 		for {
-			//fmt.Print("Scheduling ")
+			log.Info("Scheduling")
 			time.Sleep(time.Second * 5)
-			allocator.scheduling.Lock()
-			allocator.mu.Lock()
-			if len(allocator.queue) > 0 {
+			scheduler.scheduling.Lock()
+			scheduler.mu.Lock()
+			if len(scheduler.queue) > 0 {
 
 				jm := JobManager{}
-				jm.job = allocator.queue[0]
-				allocator.queue = allocator.queue[1:]
-				jm.allocator = allocator
-				allocator.jobs[jm.job.Name] = &jm
+				jm.job = scheduler.queue[0]
+				scheduler.queue = scheduler.queue[1:]
+				jm.scheduler = scheduler
+				scheduler.jobs[jm.job.Name] = &jm
 
-				for i := range allocator.history {
-					if allocator.history[i].Name == jm.job.Name {
-						allocator.history[i].Status = Starting
+				for i := range scheduler.history {
+					if scheduler.history[i].Name == jm.job.Name {
+						scheduler.history[i].Status = Starting
 					}
 				}
 
@@ -42,42 +43,45 @@ func (allocator *AllocatorFIFO) start() {
 					jm.start()
 				}()
 			} else {
-				allocator.scheduling.Unlock()
+				scheduler.scheduling.Unlock()
 			}
-			allocator.mu.Unlock()
+			scheduler.mu.Unlock()
 		}
 	}()
 }
 
-func (allocator *AllocatorFIFO) ack(job *Job) {
-	allocator.scheduling.Unlock()
-}
+func (scheduler *SchedulerFCFS) UpdateProgress(jobName string, state State) {
+	scheduler.scheduling.Unlock()
+	switch state {
+	case Running:
+		scheduler.scheduling.Unlock()
 
-func (allocator *AllocatorFIFO) running(job *Job) {
-	for i := range allocator.history {
-		if allocator.history[i].Name == job.Name {
-			allocator.history[i].Status = Running
+		for i := range scheduler.history {
+			if scheduler.history[i].Name == jobName {
+				scheduler.history[i].Status = Running
+			}
 		}
+		break
+	case Finished:
+		for i := range scheduler.history {
+			if scheduler.history[i].Name == jobName {
+				scheduler.history[i].Status = Finished
+			}
+		}
+		break
 	}
 }
 
-func (allocator *AllocatorFIFO) finish(job *Job) {
-	for i := range allocator.history {
-		if allocator.history[i].Name == job.Name {
-			allocator.history[i].Status = Finished
-		}
-	}
+func (scheduler *SchedulerFCFS) Schedule(job Job) {
+	scheduler.mu.Lock()
+	defer scheduler.mu.Unlock()
+
+	scheduler.queue = append(scheduler.queue, job)
+	scheduler.history = append(scheduler.history, &job)
+	job.Status = Created
 }
 
-func (allocator *AllocatorFIFO) schedule(job Job) {
-	allocator.mu.Lock()
-	defer allocator.mu.Unlock()
-
-	allocator.queue = append(allocator.queue, job)
-	allocator.history = append(allocator.history, &job)
-}
-
-func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
+func (scheduler *SchedulerFCFS) AcquireResource(task Task) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -108,7 +112,7 @@ func (allocator *AllocatorFIFO) requestResource(task Task) NodeStatus {
 	return res
 }
 
-func (allocator *AllocatorFIFO) returnResource(agent NodeStatus) {
+func (scheduler *SchedulerFCFS) ReleaseResource(agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	nodes := pool.nodes[agent.ClientID]
@@ -121,35 +125,35 @@ func (allocator *AllocatorFIFO) returnResource(agent NodeStatus) {
 	}
 }
 
-func (allocator *AllocatorFIFO) status(jobName string) MsgJobStatus {
-	jm, ok := allocator.jobs[jobName]
+func (scheduler *SchedulerFCFS) QueryState(jobName string) MsgJobStatus {
+	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
 	}
 	return jm.status()
 }
 
-func (allocator *AllocatorFIFO) stop(jobName string) MsgStop {
-	jm, ok := allocator.jobs[jobName]
+func (scheduler *SchedulerFCFS) Stop(jobName string) MsgStop {
+	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
 	return jm.stop()
 }
 
-func (allocator *AllocatorFIFO) logs(jobName string, taskName string) MsgLog {
-	jm, ok := allocator.jobs[jobName]
+func (scheduler *SchedulerFCFS) QueryLogs(jobName string, taskName string) MsgLog {
+	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}
 	}
 	return jm.logs(taskName)
 }
 
-func (allocator *AllocatorFIFO) listJobs() MsgJobList {
-	return MsgJobList{Code: 0, Jobs: allocator.history}
+func (scheduler *SchedulerFCFS) ListJobs() MsgJobList {
+	return MsgJobList{Code: 0, Jobs: scheduler.history}
 }
 
-func (allocator *AllocatorFIFO) summary() MsgSummary {
+func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 	summary := MsgSummary{}
 	summary.Code = 0
 
@@ -157,7 +161,7 @@ func (allocator *AllocatorFIFO) summary() MsgSummary {
 	runningJobsCounter := 0
 	pendingJobsCounter := 0
 
-	for _, job := range allocator.history {
+	for _, job := range scheduler.history {
 		switch job.Status {
 		case Created:
 			pendingJobsCounter++
@@ -195,10 +199,10 @@ func (allocator *AllocatorFIFO) summary() MsgSummary {
 	return summary
 }
 
-func (allocator *AllocatorFIFO) acquireNetwork() string {
+func (scheduler *SchedulerFCFS) AcquireNetwork() string {
 	return pool.acquireNetwork()
 }
 
-func (allocator *AllocatorFIFO) releaseNetwork(network string) {
+func (scheduler *SchedulerFCFS) ReleaseNetwork(network string) {
 	pool.releaseNetwork(network)
 }

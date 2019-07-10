@@ -2,41 +2,41 @@ package main
 
 import (
 	"time"
-	"log"
 	"net/url"
 	"strings"
 	"io/ioutil"
 	"encoding/json"
 	"fmt"
 	"strconv"
+	log "github.com/sirupsen/logrus"
 )
 
 type JobManager struct {
-	allocator *AllocatorFIFO
+	scheduler Scheduler
 	job       Job
 	jobStatus JobStatus
 	resources []NodeStatus
 }
 
 func (jm *JobManager) start() {
-	log.Println("start job ", jm.job.Name)
+	log.Info("start job ", jm.job.Name)
 	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
 
-	network := allocator.acquireNetwork()
+	network := jm.scheduler.AcquireNetwork()
 
 	/* request for resources */
 	for i := range jm.job.Tasks {
 		var resource NodeStatus
 		for {
-			resource = jm.allocator.requestResource(jm.job.Tasks[i])
+			resource = jm.scheduler.AcquireResource(jm.job.Tasks[i])
 			if len(resource.Status) > 0 {
 				break
 			}
 		}
-		log.Println("Receive resource", resource)
+		log.Info("Receive resource", resource)
 		jm.resources = append(jm.resources, resource)
 	}
-	jm.allocator.ack(&jm.job)
+	jm.scheduler.UpdateProgress(jm.job.Name, Running)
 
 	/* bring up containers */
 	for i := range jm.job.Tasks {
@@ -57,28 +57,26 @@ func (jm *JobManager) start() {
 
 		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
-			log.Println(err.Error())
+			log.Warn(err.Error())
 			return
 		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Println(err)
+			log.Warn(err)
 			return
 		}
 
 		var res MsgCreate
 		err = json.Unmarshal([]byte(string(body)), &res)
 		if err != nil {
-			log.Println(err)
+			log.Warn(err)
 			return
 		}
 
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
 	}
-
-	jm.allocator.running(&jm.job)
 
 	/* monitor job execution */
 	for {
@@ -86,7 +84,7 @@ func (jm *JobManager) start() {
 		flag := false
 		for i := range res.Status {
 			if res.Status[i].Status == "running" {
-				log.Println(jm.job.Name, "-", i, " is running")
+				log.Info(jm.job.Name, "-", i, " is running")
 				flag = true
 			} else {
 				log.Println(jm.job.Name, "-", i, " ", res.Status[i].Status)
@@ -94,7 +92,7 @@ func (jm *JobManager) start() {
 				/* save logs etc. */
 
 				/* return resource */
-				jm.allocator.returnResource(jm.resources[i])
+				jm.scheduler.ReleaseResource(jm.resources[i])
 				fmt.Println("return resource ", jm.resources[i].ClientID)
 			}
 		}
@@ -104,10 +102,10 @@ func (jm *JobManager) start() {
 		time.Sleep(time.Second * 10)
 	}
 
-	allocator.releaseNetwork(network)
+	jm.scheduler.ReleaseNetwork(network)
 
-	jm.allocator.finish(&jm.job)
-	log.Println("finish job", jm.job.Name)
+	jm.scheduler.UpdateProgress(jm.job.Name, Finished)
+	log.Info("finish job", jm.job.Name)
 }
 
 func (jm *JobManager) logs(taskName string) MsgLog {
@@ -177,8 +175,8 @@ func (jm *JobManager) stop() MsgStop {
 	}
 
 	for i := range jm.resources {
-		jm.allocator.returnResource(jm.resources[i])
+		jm.scheduler.ReleaseResource(jm.resources[i])
 	}
-	jm.allocator.finish(&jm.job)
+	jm.scheduler.UpdateProgress(jm.job.Name, Stopped)
 	return MsgStop{Code: 0}
 }

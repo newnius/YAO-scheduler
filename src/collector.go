@@ -4,8 +4,8 @@ import (
 	"sync"
 	"github.com/Shopify/sarama"
 	"encoding/json"
-	"log"
-	"fmt"
+	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 var (
@@ -14,10 +14,13 @@ var (
 
 func start(pool *ResourcePool) {
 	consumer, err := sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-		//panic(err)
+	for {
+		if err == nil {
+			break
+		}
+		log.Warn(err)
+		time.Sleep(time.Second * 5)
+		consumer, err = sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
 	}
 
 	partitionList, err := consumer.Partitions("yao")
