@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
-	"fmt"
 )
 
 type SchedulerPriority struct {
@@ -34,11 +33,8 @@ func (scheduler *SchedulerPriority) Start() {
 				jm.scheduler = scheduler
 				scheduler.jobs[jm.job.Name] = &jm
 
-				for i := range scheduler.history {
-					if scheduler.history[i].Name == jm.job.Name {
-						scheduler.history[i].Status = Starting
-					}
-				}
+				jm.job.Status = Starting
+				scheduler.history = append(scheduler.history, &jm.job)
 
 				go func() {
 					jm.start()
@@ -89,28 +85,25 @@ func (scheduler *SchedulerPriority) Schedule(job Job) {
 	right := len(scheduler.queue) - 1
 	for ; left <= right; {
 		mid := (left + right) / 2
-		if scheduler.queue[left].Priority > job.Priority {
+		if scheduler.queue[left].Priority < job.Priority {
 			index = left
 			break
 		}
-		if scheduler.queue[right].Priority <= job.Priority {
+		if scheduler.queue[right].Priority >= job.Priority {
 			index = right + 1
 			break
 		}
-		if scheduler.queue[mid].Priority <= job.Priority {
+		if scheduler.queue[mid].Priority >= job.Priority {
 			left = mid + 1
 		} else {
 			right = mid - 1
 		}
 	}
-	fmt.Println(index)
 	scheduler.queue = append(scheduler.queue, Job{})
 
 	copy(scheduler.queue[index+1:], scheduler.queue[index:])
 	scheduler.queue[index] = job
-	fmt.Println(scheduler.queue)
 
-	scheduler.history = append(scheduler.history, &job)
 	job.Status = Created
 }
 
@@ -183,7 +176,12 @@ func (scheduler *SchedulerPriority) QueryLogs(jobName string, taskName string) M
 }
 
 func (scheduler *SchedulerPriority) ListJobs() MsgJobList {
-	return MsgJobList{Code: 0, Jobs: scheduler.history}
+	var tmp []Job
+	for _, job := range scheduler.history {
+		tmp = append(tmp, *job)
+	}
+	tmp = append(tmp, scheduler.queue...)
+	return MsgJobList{Code: 0, Jobs: tmp}
 }
 
 func (scheduler *SchedulerPriority) Summary() MsgSummary {
@@ -194,7 +192,13 @@ func (scheduler *SchedulerPriority) Summary() MsgSummary {
 	runningJobsCounter := 0
 	pendingJobsCounter := 0
 
+	var tmp []Job
 	for _, job := range scheduler.history {
+		tmp = append(tmp, *job)
+	}
+	tmp = append(tmp, scheduler.queue...)
+
+	for _, job := range tmp {
 		switch job.Status {
 		case Created:
 			pendingJobsCounter++

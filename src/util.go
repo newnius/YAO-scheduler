@@ -43,7 +43,7 @@ type MsgResource struct {
 type MsgJobList struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
-	Jobs  []*Job `json:"jobs"`
+	Jobs  []Job `json:"jobs"`
 }
 
 type MsgLog struct {

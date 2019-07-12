@@ -33,11 +33,8 @@ func (scheduler *SchedulerFCFS) Start() {
 				jm.scheduler = scheduler
 				scheduler.jobs[jm.job.Name] = &jm
 
-				for i := range scheduler.history {
-					if scheduler.history[i].Name == jm.job.Name {
-						scheduler.history[i].Status = Starting
-					}
-				}
+				jm.job.Status = Starting
+				scheduler.history = append(scheduler.history, &jm.job)
 
 				go func() {
 					jm.start()
@@ -83,7 +80,6 @@ func (scheduler *SchedulerFCFS) Schedule(job Job) {
 	defer scheduler.mu.Unlock()
 
 	scheduler.queue = append(scheduler.queue, job)
-	scheduler.history = append(scheduler.history, &job)
 	job.Status = Created
 }
 
@@ -156,7 +152,12 @@ func (scheduler *SchedulerFCFS) QueryLogs(jobName string, taskName string) MsgLo
 }
 
 func (scheduler *SchedulerFCFS) ListJobs() MsgJobList {
-	return MsgJobList{Code: 0, Jobs: scheduler.history}
+	var tmp []Job
+	for _, job := range scheduler.history {
+		tmp = append(tmp, *job)
+	}
+	tmp = append(tmp, scheduler.queue...)
+	return MsgJobList{Code: 0, Jobs: tmp}
 }
 
 func (scheduler *SchedulerFCFS) Summary() MsgSummary {
@@ -167,7 +168,13 @@ func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 	runningJobsCounter := 0
 	pendingJobsCounter := 0
 
+	var tmp []Job
 	for _, job := range scheduler.history {
+		tmp = append(tmp, *job)
+	}
+	tmp = append(tmp, scheduler.queue...)
+
+	for _, job := range tmp {
 		switch job.Status {
 		case Created:
 			pendingJobsCounter++
