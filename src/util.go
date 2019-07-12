@@ -113,17 +113,17 @@ type NodeStatus struct {
 }
 
 type Job struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Tasks     []Task `json:"tasks"`
-	Workspace string `json:"workspace"`
-	Cluster   int    `json:"virtual_cluster"`
-	Priority  int    `json:"priority"`
-	RunBefore int    `json:"run_before"`
-	CreatedAt int    `json:"created_at"`
-	UpdatedAt int    `json:"updated_at"`
-	CreatedBy int    `json:"created_by"`
-	Status    State  `json:"status"`
+	ID        int         `json:"id"`
+	Name      string      `json:"name"`
+	Tasks     []Task      `json:"tasks"`
+	Workspace string      `json:"workspace"`
+	Cluster   int         `json:"virtual_cluster"`
+	Priority  JobPriority `json:"priority"`
+	RunBefore int         `json:"run_before"`
+	CreatedAt int         `json:"created_at"`
+	UpdatedAt int         `json:"updated_at"`
+	CreatedBy int         `json:"created_by"`
+	Status    State       `json:"status"`
 }
 
 type Task struct {

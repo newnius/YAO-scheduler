@@ -103,6 +103,7 @@ func (scheduler *SchedulerPriority) Schedule(job Job) {
 			right = mid - 1
 		}
 	}
+	fmt.Println(index)
 	scheduler.queue = append(scheduler.queue, Job{})
 
 	copy(scheduler.queue[index+1:], scheduler.queue[index:])
