@@ -98,7 +98,8 @@ func main() {
 	pool.nodes = make(map[string]NodeStatus)
 	pool.start()
 
-	scheduler = &SchedulerFCFS{}
+	//scheduler = &SchedulerFCFS{}
+	scheduler = &SchedulerPriority{}
 	scheduler.Start()
 
 	go func() {
