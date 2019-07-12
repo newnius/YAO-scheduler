@@ -4,9 +4,10 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
-type SchedulerFCFS struct {
+type SchedulerPriority struct {
 	history    []*Job
 	queue      []Job
 	mu         sync.Mutex
@@ -15,7 +16,7 @@ type SchedulerFCFS struct {
 	jobs map[string]*JobManager
 }
 
-func (scheduler *SchedulerFCFS) Start() {
+func (scheduler *SchedulerPriority) Start() {
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 
@@ -50,7 +51,7 @@ func (scheduler *SchedulerFCFS) Start() {
 	}()
 }
 
-func (scheduler *SchedulerFCFS) UpdateProgress(jobName string, state State) {
+func (scheduler *SchedulerPriority) UpdateProgress(jobName string, state State) {
 	switch state {
 	case Running:
 		scheduler.scheduling.Unlock()
@@ -78,16 +79,41 @@ func (scheduler *SchedulerFCFS) UpdateProgress(jobName string, state State) {
 	}
 }
 
-func (scheduler *SchedulerFCFS) Schedule(job Job) {
+func (scheduler *SchedulerPriority) Schedule(job Job) {
 	scheduler.mu.Lock()
 	defer scheduler.mu.Unlock()
 
-	scheduler.queue = append(scheduler.queue, job)
+	index := 0
+
+	left := 0
+	right := len(scheduler.queue) - 1
+	for ; left <= right; {
+		mid := (left + right) / 2
+		if scheduler.queue[left].Priority > job.Priority {
+			index = left
+			break
+		}
+		if scheduler.queue[right].Priority <= job.Priority {
+			index = right + 1
+			break
+		}
+		if scheduler.queue[mid].Priority <= job.Priority {
+			left = mid + 1
+		} else {
+			right = mid - 1
+		}
+	}
+	scheduler.queue = append(scheduler.queue, Job{})
+
+	copy(scheduler.queue[index+1:], scheduler.queue[index:])
+	scheduler.queue[index] = job
+	fmt.Println(scheduler.queue)
+
 	scheduler.history = append(scheduler.history, &job)
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFCFS) AcquireResource(task Task) NodeStatus {
+func (scheduler *SchedulerPriority) AcquireResource(task Task) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -118,7 +144,7 @@ func (scheduler *SchedulerFCFS) AcquireResource(task Task) NodeStatus {
 	return res
 }
 
-func (scheduler *SchedulerFCFS) ReleaseResource(agent NodeStatus) {
+func (scheduler *SchedulerPriority) ReleaseResource(agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	nodes := pool.nodes[agent.ClientID]
@@ -131,7 +157,7 @@ func (scheduler *SchedulerFCFS) ReleaseResource(agent NodeStatus) {
 	}
 }
 
-func (scheduler *SchedulerFCFS) QueryState(jobName string) MsgJobStatus {
+func (scheduler *SchedulerPriority) QueryState(jobName string) MsgJobStatus {
 	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
@@ -139,7 +165,7 @@ func (scheduler *SchedulerFCFS) QueryState(jobName string) MsgJobStatus {
 	return jm.status()
 }
 
-func (scheduler *SchedulerFCFS) Stop(jobName string) MsgStop {
+func (scheduler *SchedulerPriority) Stop(jobName string) MsgStop {
 	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
@@ -147,7 +173,7 @@ func (scheduler *SchedulerFCFS) Stop(jobName string) MsgStop {
 	return jm.stop()
 }
 
-func (scheduler *SchedulerFCFS) QueryLogs(jobName string, taskName string) MsgLog {
+func (scheduler *SchedulerPriority) QueryLogs(jobName string, taskName string) MsgLog {
 	jm, ok := scheduler.jobs[jobName]
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}
@@ -155,11 +181,11 @@ func (scheduler *SchedulerFCFS) QueryLogs(jobName string, taskName string) MsgLo
 	return jm.logs(taskName)
 }
 
-func (scheduler *SchedulerFCFS) ListJobs() MsgJobList {
+func (scheduler *SchedulerPriority) ListJobs() MsgJobList {
 	return MsgJobList{Code: 0, Jobs: scheduler.history}
 }
 
-func (scheduler *SchedulerFCFS) Summary() MsgSummary {
+func (scheduler *SchedulerPriority) Summary() MsgSummary {
 	summary := MsgSummary{}
 	summary.Code = 0
 
@@ -205,10 +231,10 @@ func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 	return summary
 }
 
-func (scheduler *SchedulerFCFS) AcquireNetwork() string {
+func (scheduler *SchedulerPriority) AcquireNetwork() string {
 	return pool.acquireNetwork()
 }
 
-func (scheduler *SchedulerFCFS) ReleaseNetwork(network string) {
+func (scheduler *SchedulerPriority) ReleaseNetwork(network string) {
 	pool.releaseNetwork(network)
 }
