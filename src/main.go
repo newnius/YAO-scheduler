@@ -5,7 +5,6 @@ import (
 	"net/http"
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
-	"fmt"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -31,7 +30,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "job_submit":
 		var job Job
-		fmt.Println("job_submit")
+		log.Debug("job_submit")
 		msgSubmit := MsgSubmit{Code: 0}
 		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
 		if err != nil {
@@ -46,43 +45,98 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		break
 
 	case "job_status":
-		fmt.Println("job_status")
+		log.Debug("job_status")
 		js, _ := json.Marshal(scheduler.QueryState(r.URL.Query().Get("id")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "job_stop":
-		fmt.Println("job_stop")
+		log.Debug("job_stop")
 		js, _ := json.Marshal(scheduler.Stop(string(r.PostFormValue("id"))))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "task_logs":
-		fmt.Println("task_logs")
+		log.Debug("task_logs")
 		js, _ := json.Marshal(scheduler.QueryLogs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "jobs":
-		fmt.Println("job_list")
+		log.Debug("job_list")
 		js, _ := json.Marshal(scheduler.ListJobs())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "summary":
-		fmt.Println("summary")
+		log.Debug("summary")
 		js, _ := json.Marshal(scheduler.Summary())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "pool_status_history":
-		fmt.Println("pool_status_history")
+		log.Debug("pool_status_history")
 		js, _ := json.Marshal(pool.statusHistory())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "group_list":
+		log.Debug("group_list")
+		js, _ := json.Marshal(InstanceOfGroupManager().List())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "group_add":
+		log.Debug("group_add")
+		var group Group
+		msg := MsgGroupCreate{Code: 0}
+		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &group)
+		if err != nil {
+			msg.Code = 1
+			msg.Error = err.Error()
+		} else {
+			msg = InstanceOfGroupManager().Add(group)
+		}
+		js, _ := json.Marshal(msg)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "group_update":
+		log.Debug("group_update")
+		var group Group
+		msg := MsgGroupCreate{Code: 0}
+		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &group)
+		if err != nil {
+			msg.Code = 1
+			msg.Error = err.Error()
+		} else {
+			msg = InstanceOfGroupManager().Update(group)
+		}
+		js, _ := json.Marshal(msg)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "group_remove":
+		log.Debug("group_remove")
+		var group Group
+		msg := MsgGroupCreate{Code: 0}
+		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &group)
+		if err != nil {
+			msg.Code = 1
+			msg.Error = err.Error()
+		} else {
+			msg = InstanceOfGroupManager().Remove(group)
+		}
+		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

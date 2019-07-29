@@ -43,7 +43,7 @@ type MsgResource struct {
 type MsgJobList struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
-	Jobs  []Job `json:"jobs"`
+	Jobs  []Job  `json:"jobs"`
 }
 
 type MsgLog struct {
@@ -134,6 +134,23 @@ type Task struct {
 	Memory    int    `json:"memory"`
 	NumberGPU int    `json:"gpu_number"`
 	MemoryGPU int    `json:"gpu_memory"`
+}
+
+type Group struct {
+	Name   string `json:"name"`
+	Weight int    `json:"weight"`
+	NumGPU int    `json:"gpu_number"`
+}
+
+type MsgGroupCreate struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
+type MsgGroupList struct {
+	Code   int     `json:"code"`
+	Error  string  `json:"error"`
+	Groups []Group `json:"groups"`
 }
 
 func str2int(str string, defaultValue int) int {
