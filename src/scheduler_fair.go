@@ -11,7 +11,6 @@ type SchedulerFair struct {
 	queue      []Job
 	mu         sync.Mutex
 	scheduling sync.Mutex
-
 	jobs map[string]*JobManager
 }
 
