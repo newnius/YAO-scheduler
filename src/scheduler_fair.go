@@ -5,15 +5,23 @@ import (
 	"time"
 	log "github.com/sirupsen/logrus"
 	"sort"
-	)
+)
+
+type ResourceCount struct {
+	NumberGPU int
+	MemoryGPU int
+	CPU       int
+	Memory    int
+}
 
 type SchedulerFair struct {
-	history    []*Job
-	queues     map[string][]Job
-	mu         sync.Mutex
-	scheduling sync.Mutex
-	jobs       map[string]*JobManager
-	nextQueue  string
+	history             []*Job
+	queues              map[string][]Job
+	mu                  sync.Mutex
+	scheduling          sync.Mutex
+	jobs                map[string]*JobManager
+	nextQueue           string
+	resourceAllocations map[string]ResourceCount
 }
 
 type FairJobSorter []Job
@@ -37,16 +45,16 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.nextQueue = "default"
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
+	scheduler.resourceAllocations = map[string]ResourceCount{}
 
 	go func() {
 		for {
-			log.Info("Scheduling")
+			log.Debug("Scheduling")
 			time.Sleep(time.Second * 5)
 			scheduler.scheduling.Lock()
 			scheduler.mu.Lock()
 			queue := scheduler.nextQueue
 			if len(scheduler.queues[queue]) > 0 {
-
 				jm := JobManager{}
 				jm.job = scheduler.queues[queue][0]
 
@@ -59,10 +67,12 @@ func (scheduler *SchedulerFair) Start() {
 
 				go func() {
 					jm.start()
-					scheduler.UpdateNextQueue()
 				}()
 			} else {
 				scheduler.scheduling.Unlock()
+				go func() {
+					scheduler.UpdateNextQueue()
+				}()
 			}
 			scheduler.mu.Unlock()
 		}
@@ -140,7 +150,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFair) AcquireResource(task Task) NodeStatus {
+func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -156,6 +166,8 @@ func (scheduler *SchedulerFair) AcquireResource(task Task) NodeStatus {
 			res.ClientID = id
 			res.ClientHost = node.ClientHost
 			res.Status = available[0:task.NumberGPU]
+			res.NumCPU = task.NumberCPU
+			res.MemTotal = task.Memory
 
 			for i := range res.Status {
 				for j := range node.Status {
@@ -168,10 +180,23 @@ func (scheduler *SchedulerFair) AcquireResource(task Task) NodeStatus {
 			break
 		}
 	}
+	go func(res NodeStatus) {
+		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
+			scheduler.resourceAllocations[job.Group] = ResourceCount{}
+		}
+		cnt, _ := scheduler.resourceAllocations[job.Group]
+		cnt.CPU += res.MemTotal
+		cnt.Memory += res.NumCPU
+		for _, v := range res.Status {
+			cnt.NumberGPU ++
+			cnt.MemoryGPU += v.MemoryTotal
+		}
+		scheduler.UpdateNextQueue()
+	}(res)
 	return res
 }
 
-func (scheduler *SchedulerFair) ReleaseResource(agent NodeStatus) {
+func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	nodes := pool.nodes[agent.ClientID]
@@ -182,6 +207,19 @@ func (scheduler *SchedulerFair) ReleaseResource(agent NodeStatus) {
 			}
 		}
 	}
+	go func(res NodeStatus) {
+		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
+			scheduler.resourceAllocations[job.Group] = ResourceCount{}
+		}
+		cnt, _ := scheduler.resourceAllocations[job.Group]
+		cnt.CPU -= res.MemTotal
+		cnt.Memory -= res.NumCPU
+		for _, v := range res.Status {
+			cnt.NumberGPU --
+			cnt.MemoryGPU -= v.MemoryTotal
+		}
+		scheduler.UpdateNextQueue()
+	}(agent)
 }
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
@@ -285,15 +323,36 @@ func (scheduler *SchedulerFair) ReleaseNetwork(network string) {
 }
 
 func (scheduler *SchedulerFair) UpdateNextQueue() {
-	flag := false
-	for k := range scheduler.queues {
-		if flag {
-			scheduler.nextQueue = k
-			return
-		}
-		if k == scheduler.nextQueue {
-			flag = true
+	next := "default"
+	quota := 9999.0
+
+	NumberGPU := 0.00001
+	MemoryGPU := 0.00001
+	CPU := 0.00001
+	Memory := 0.0001
+	for _, node := range pool.nodes {
+		CPU += float64(node.NumCPU)
+		Memory += float64(node.MemTotal)
+		for _, card := range node.Status {
+			NumberGPU += 1.0
+			MemoryGPU += float64(card.MemoryTotal)
 		}
 	}
-	scheduler.nextQueue = "default"
+
+	for k, v := range scheduler.resourceAllocations {
+		tmp := 0.0
+		tmp += float64(v.CPU) / CPU
+		tmp += float64(v.Memory) / Memory
+		tmp += float64(v.NumberGPU) / NumberGPU
+		tmp += float64(v.MemoryGPU) / MemoryGPU
+		tmp /= 4
+		if tmp < quota {
+			quota = tmp
+			next = k
+		}
+	}
+	scheduler.nextQueue = next
+	log.Info("updateNextQueue")
+	log.Info(scheduler.resourceAllocations)
+	log.Info("updateNextQueue ->", next)
 }

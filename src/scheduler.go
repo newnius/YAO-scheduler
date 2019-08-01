@@ -7,9 +7,9 @@ type Scheduler interface {
 
 	UpdateProgress(jobName string, state State)
 
-	AcquireResource(Task) NodeStatus
+	AcquireResource(Job, Task) NodeStatus
 
-	ReleaseResource(NodeStatus)
+	ReleaseResource(Job, NodeStatus)
 
 	AcquireNetwork() string
 

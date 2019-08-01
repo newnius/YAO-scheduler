@@ -28,7 +28,7 @@ func (jm *JobManager) start() {
 	for i := range jm.job.Tasks {
 		var resource NodeStatus
 		for {
-			resource = jm.scheduler.AcquireResource(jm.job.Tasks[i])
+			resource = jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i])
 			if len(resource.Status) > 0 {
 				break
 			}
@@ -92,7 +92,7 @@ func (jm *JobManager) start() {
 				/* save logs etc. */
 
 				/* return resource */
-				jm.scheduler.ReleaseResource(jm.resources[i])
+				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				fmt.Println("return resource ", jm.resources[i].ClientID)
 			}
 		}
@@ -175,7 +175,7 @@ func (jm *JobManager) stop() MsgStop {
 	}
 
 	for i := range jm.resources {
-		jm.scheduler.ReleaseResource(jm.resources[i])
+		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 	}
 	jm.scheduler.UpdateProgress(jm.job.Name, Stopped)
 	return MsgStop{Code: 0}

@@ -83,7 +83,7 @@ func (scheduler *SchedulerFCFS) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFCFS) AcquireResource(task Task) NodeStatus {
+func (scheduler *SchedulerFCFS) AcquireResource(job Job, task Task) NodeStatus {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
@@ -114,7 +114,7 @@ func (scheduler *SchedulerFCFS) AcquireResource(task Task) NodeStatus {
 	return res
 }
 
-func (scheduler *SchedulerFCFS) ReleaseResource(agent NodeStatus) {
+func (scheduler *SchedulerFCFS) ReleaseResource(job Job, agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	nodes := pool.nodes[agent.ClientID]

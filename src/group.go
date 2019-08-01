@@ -54,8 +54,7 @@ func (gm *GroupManager) Remove(group Group) MsgGroupCreate {
 func (gm *GroupManager) List() MsgGroupList {
 	defer gm.mu.Unlock()
 	gm.mu.Lock()
-	// cannot change to `var`, since it would be json_encoded to null
-	result := []Group{}
+	var result []Group
 	for _, v := range gm.groups {
 		result = append(result, v)
 	}
