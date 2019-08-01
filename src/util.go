@@ -117,7 +117,7 @@ type Job struct {
 	Name      string      `json:"name"`
 	Tasks     []Task      `json:"tasks"`
 	Workspace string      `json:"workspace"`
-	Cluster   int         `json:"virtual_cluster"`
+	Group     string      `json:"group"`
 	Priority  JobPriority `json:"priority"`
 	RunBefore int         `json:"run_before"`
 	CreatedAt int         `json:"created_at"`

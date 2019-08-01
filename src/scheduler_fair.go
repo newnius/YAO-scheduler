@@ -8,10 +8,10 @@ import (
 
 type SchedulerFair struct {
 	history    []*Job
-	queue      []Job
+	queues     map[string][]Job
 	mu         sync.Mutex
 	scheduling sync.Mutex
-	jobs map[string]*JobManager
+	jobs       map[string]*JobManager
 }
 
 func (scheduler *SchedulerFair) Start() {
@@ -19,17 +19,18 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.history = []*Job{}
 
 	go func() {
+		queue := "default"
 		for {
 			log.Info("Scheduling")
 			time.Sleep(time.Second * 5)
 			scheduler.scheduling.Lock()
 			scheduler.mu.Lock()
-			if len(scheduler.queue) > 0 {
+			if len(scheduler.queues[queue]) > 0 {
 
 				jm := JobManager{}
-				jm.job = scheduler.queue[0]
+				jm.job = scheduler.queues[queue][0]
 
-				scheduler.queue = scheduler.queue[1:]
+				scheduler.queues[queue] = scheduler.queues[queue][1:]
 				jm.scheduler = scheduler
 				scheduler.jobs[jm.job.Name] = &jm
 
@@ -79,30 +80,39 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	scheduler.mu.Lock()
 	defer scheduler.mu.Unlock()
 
-	index := 0
+	queue := "default"
+	_, ok := scheduler.queues[queue]
+	if !ok {
+		if InstanceOfGroupManager().get(queue) != nil {
+			scheduler.queues[queue] = []Job{}
+		} else {
+			queue = "default"
+		}
+	}
 
+	index := 0
 	left := 0
-	right := len(scheduler.queue) - 1
+	right := len(queue) - 1
 	for ; left <= right; {
 		mid := (left + right) / 2
-		if scheduler.queue[left].Priority < job.Priority {
+		if scheduler.queues[queue][left].Priority < job.Priority {
 			index = left
 			break
 		}
-		if scheduler.queue[right].Priority >= job.Priority {
+		if scheduler.queues[queue][right].Priority >= job.Priority {
 			index = right + 1
 			break
 		}
-		if scheduler.queue[mid].Priority >= job.Priority {
+		if scheduler.queues[queue][mid].Priority >= job.Priority {
 			left = mid + 1
 		} else {
 			right = mid - 1
 		}
 	}
-	scheduler.queue = append(scheduler.queue, Job{})
+	scheduler.queues[queue] = append(scheduler.queues[queue], Job{})
 
-	copy(scheduler.queue[index+1:], scheduler.queue[index:])
-	scheduler.queue[index] = job
+	copy(scheduler.queues[queue][index+1:], scheduler.queues[queue][index:])
+	scheduler.queues[queue][index] = job
 
 	job.Status = Created
 }
@@ -180,7 +190,7 @@ func (scheduler *SchedulerFair) ListJobs() MsgJobList {
 	for _, job := range scheduler.history {
 		tmp = append(tmp, *job)
 	}
-	tmp = append(tmp, scheduler.queue...)
+	tmp = append(tmp, scheduler.queues["default"]...)
 	return MsgJobList{Code: 0, Jobs: tmp}
 }
 
@@ -196,7 +206,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 	for _, job := range scheduler.history {
 		tmp = append(tmp, *job)
 	}
-	tmp = append(tmp, scheduler.queue...)
+	tmp = append(tmp, scheduler.queues["default"]...)
 
 	for _, job := range tmp {
 		switch job.Status {

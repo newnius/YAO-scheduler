@@ -61,3 +61,15 @@ func (gm *GroupManager) List() MsgGroupList {
 	}
 	return MsgGroupList{Groups: result}
 }
+
+func (gm *GroupManager) get(name string) *Group {
+	defer gm.mu.Unlock()
+	gm.mu.Lock()
+
+	for _, v := range gm.groups {
+		if v.Name == name {
+			return &v
+		}
+	}
+	return nil
+}
