@@ -33,10 +33,7 @@ func (s FairJobSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s FairJobSorter) Less(i, j int) bool {
-	if s[i].Priority > s[j].Priority {
-		return true
-	}
-	return s[i].CreatedAt > s[j].CreatedAt
+	return s[i].CreatedAt < s[j].CreatedAt
 }
 
 func (scheduler *SchedulerFair) Start() {
@@ -362,7 +359,5 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 		}
 	}
 	scheduler.nextQueue = next
-	log.Info("updateNextQueue")
-	log.Info(scheduler.resourceAllocations)
 	log.Info("updateNextQueue ->", next)
 }

@@ -12,10 +12,11 @@ import (
 )
 
 type JobManager struct {
-	scheduler Scheduler
-	job       Job
-	jobStatus JobStatus
-	resources []NodeStatus
+	scheduler  Scheduler
+	job        Job
+	jobStatus  JobStatus
+	resources  []NodeStatus
+	killedFlag bool
 }
 
 func (jm *JobManager) start() {
@@ -28,6 +29,9 @@ func (jm *JobManager) start() {
 	for i := range jm.job.Tasks {
 		var resource NodeStatus
 		for {
+			if jm.killedFlag {
+				break
+			}
 			resource = jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i])
 			if len(resource.Status) > 0 {
 				break
@@ -41,6 +45,9 @@ func (jm *JobManager) start() {
 
 	/* bring up containers */
 	for i := range jm.job.Tasks {
+		if jm.killedFlag {
+			break
+		}
 		var GPUs []string
 		for _, GPU := range jm.resources[i].Status {
 			GPUs = append(GPUs, GPU.UUID)
