@@ -5,8 +5,7 @@ import (
 	"time"
 	log "github.com/sirupsen/logrus"
 	"sort"
-	"fmt"
-)
+	)
 
 type SchedulerFair struct {
 	history    []*Job
@@ -113,11 +112,10 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 			queue = "default"
 		}
 	}
-	fmt.Print(queue)
 
 	index := 0
 	left := 0
-	right := len(queue) - 1
+	right := len(scheduler.queues[queue]) - 1
 	for ; left <= right; {
 		mid := (left + right) / 2
 		if scheduler.queues[queue][left].Priority < job.Priority {
