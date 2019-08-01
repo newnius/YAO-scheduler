@@ -32,6 +32,7 @@ func (jm *JobManager) start() {
 			if len(resource.Status) > 0 {
 				break
 			}
+			time.Sleep(time.Second * 1)
 		}
 		log.Info("Receive resource", resource)
 		jm.resources = append(jm.resources, resource)

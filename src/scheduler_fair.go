@@ -179,6 +179,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		}
 	}
 	go func(res NodeStatus) {
+		if len(res.Status) == 0 {
+			return
+		}
 		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
 			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
 		}
@@ -189,10 +192,8 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 			cnt.NumberGPU ++
 			cnt.MemoryGPU += v.MemoryTotal
 		}
-		log.Info(job.Group, cnt)
-		if len(res.Status) != 0 {
-			scheduler.UpdateNextQueue()
-		}
+		scheduler.UpdateNextQueue()
+
 	}(res)
 	return res
 }
