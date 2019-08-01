@@ -184,7 +184,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
 			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
 		}
-		cnt, _ :=scheduler.resourceAllocations[job.Group]
+		cnt, _ := scheduler.resourceAllocations[job.Group]
 		cnt.CPU += res.MemTotal
 		cnt.Memory += res.NumCPU
 		for _, v := range res.Status {
@@ -341,6 +341,9 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	}
 
 	for k, v := range scheduler.resourceAllocations {
+		if t, ok := scheduler.queues[k]; !ok || len(t) == 0 {
+			continue
+		}
 		tmp := 0.0
 		tmp += float64(v.CPU) / CPU
 		tmp += float64(v.Memory) / Memory
