@@ -191,6 +191,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 			cnt.NumberGPU ++
 			cnt.MemoryGPU += v.MemoryTotal
 		}
+		log.Info(job.Group, cnt)
 		scheduler.UpdateNextQueue()
 	}(res)
 	return res
