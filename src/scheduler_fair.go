@@ -35,6 +35,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.nextQueue = "default"
+	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
 
 	go func() {
