@@ -21,7 +21,7 @@ type SchedulerFair struct {
 	scheduling          sync.Mutex
 	jobs                map[string]*JobManager
 	nextQueue           string
-	resourceAllocations map[string]ResourceCount
+	resourceAllocations map[string]*ResourceCount
 }
 
 type FairJobSorter []Job
@@ -45,7 +45,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.nextQueue = "default"
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
-	scheduler.resourceAllocations = map[string]ResourceCount{}
+	scheduler.resourceAllocations = map[string]*ResourceCount{}
 
 	go func() {
 		for {
@@ -182,9 +182,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	}
 	go func(res NodeStatus) {
 		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-			scheduler.resourceAllocations[job.Group] = ResourceCount{}
+			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
 		}
-		cnt, _ := scheduler.resourceAllocations[job.Group]
+		cnt, _ :=scheduler.resourceAllocations[job.Group]
 		cnt.CPU += res.MemTotal
 		cnt.Memory += res.NumCPU
 		for _, v := range res.Status {
@@ -210,7 +210,7 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	}
 	go func(res NodeStatus) {
 		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-			scheduler.resourceAllocations[job.Group] = ResourceCount{}
+			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
 		}
 		cnt, _ := scheduler.resourceAllocations[job.Group]
 		cnt.CPU -= res.MemTotal
