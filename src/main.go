@@ -113,7 +113,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		log.Debug("group_update")
 		var group Group
 		msg := MsgGroupCreate{Code: 0}
-		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &group)
+		err := json.Unmarshal([]byte(string(r.PostFormValue("group"))), &group)
 		if err != nil {
 			msg.Code = 1
 			msg.Error = err.Error()
@@ -129,7 +129,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		log.Debug("group_remove")
 		var group Group
 		msg := MsgGroupCreate{Code: 0}
-		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &group)
+		err := json.Unmarshal([]byte(string(r.PostFormValue("group"))), &group)
 		if err != nil {
 			msg.Code = 1
 			msg.Error = err.Error()

@@ -16,6 +16,7 @@ func InstanceOfGroupManager() *GroupManager {
 
 	if groupManagerInstance == nil {
 		groupManagerInstance = &GroupManager{groups: map[string]Group{}}
+		groupManagerInstance.groups["default"] = Group{Name: "default", Weight: 10, Reserved: false}
 	}
 	return groupManagerInstance
 }
@@ -53,7 +54,8 @@ func (gm *GroupManager) Remove(group Group) MsgGroupCreate {
 func (gm *GroupManager) List() MsgGroupList {
 	defer gm.mu.Unlock()
 	gm.mu.Lock()
-	var result []Group
+	// cannot change to `var`, since it would be json_encoded to null
+	result := []Group{}
 	for _, v := range gm.groups {
 		result = append(result, v)
 	}
