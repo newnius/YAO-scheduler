@@ -153,7 +153,8 @@ func main() {
 	pool.start()
 
 	//scheduler = &SchedulerFCFS{}
-	scheduler = &SchedulerPriority{}
+	//scheduler = &SchedulerPriority{}
+	scheduler = &SchedulerFair{}
 	scheduler.Start()
 
 	go func() {
