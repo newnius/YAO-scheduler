@@ -96,7 +96,6 @@ func (scheduler *SchedulerFair) UpdateProgress(jobName string, state State) {
 				scheduler.history[i].Status = Finished
 			}
 		}
-		scheduler.UpdateNextQueue()
 		break
 	case Stopped:
 		for i := range scheduler.history {
@@ -104,7 +103,6 @@ func (scheduler *SchedulerFair) UpdateProgress(jobName string, state State) {
 				scheduler.history[i].Status = Stopped
 			}
 		}
-		scheduler.UpdateNextQueue()
 		break
 	}
 }
@@ -192,7 +190,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 			cnt.MemoryGPU += v.MemoryTotal
 		}
 		log.Info(job.Group, cnt)
-		scheduler.UpdateNextQueue()
+		if len(res.Status) != 0 {
+			scheduler.UpdateNextQueue()
+		}
 	}(res)
 	return res
 }
