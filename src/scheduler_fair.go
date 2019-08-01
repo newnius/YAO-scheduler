@@ -340,10 +340,15 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 		}
 	}
 
-	for k, v := range scheduler.resourceAllocations {
-		if t, ok := scheduler.queues[k]; !ok || len(t) == 0 {
+	for k, t := range scheduler.queues {
+		if len(t) == 0 {
 			continue
 		}
+		if _, ok := scheduler.resourceAllocations[k]; !ok {
+			scheduler.resourceAllocations[k] = &ResourceCount{}
+		}
+		v := scheduler.resourceAllocations[k]
+
 		tmp := 0.0
 		tmp += float64(v.CPU) / CPU
 		tmp += float64(v.Memory) / Memory
