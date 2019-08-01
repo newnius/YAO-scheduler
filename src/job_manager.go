@@ -116,7 +116,7 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 
 	task, ok := jm.jobStatus.tasks[taskName]
 	if !ok {
-		log.Warn(task)
+		log.Warn(taskName, task)
 	}
 
 	err := spider.do()
