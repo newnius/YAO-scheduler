@@ -114,6 +114,11 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 	spider.Method = "GET"
 	spider.URL = "http://" + jm.jobStatus.tasks[taskName].Node + ":8000/logs?id=" + jm.jobStatus.tasks[taskName].Id
 
+	task, ok := jm.jobStatus.tasks[taskName]
+	if !ok {
+		log.Warn(task)
+	}
+
 	err := spider.do()
 	if err != nil {
 		return MsgLog{Code: 1, Error: err.Error()}
