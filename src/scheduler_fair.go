@@ -5,6 +5,7 @@ import (
 	"time"
 	log "github.com/sirupsen/logrus"
 	"sort"
+	"fmt"
 )
 
 type SchedulerFair struct {
@@ -112,6 +113,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 			queue = "default"
 		}
 	}
+	fmt.Print(queue)
 
 	index := 0
 	left := 0
