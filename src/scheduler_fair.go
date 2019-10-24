@@ -353,6 +353,11 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 		tmp += float64(v.NumberGPU) / NumberGPU
 		tmp += float64(v.MemoryGPU) / MemoryGPU
 		tmp /= 4
+		weight := 10
+		if g, ok2 := InstanceOfGroupManager().groups[k]; !ok2 {
+			weight = g.Weight
+		}
+		tmp /= float64(weight)
 		if tmp < quota {
 			quota = tmp
 			next = k
