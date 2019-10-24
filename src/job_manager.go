@@ -169,8 +169,6 @@ func (jm *JobManager) status() MsgJobStatus {
 
 		var res MsgTaskStatus
 		err = json.Unmarshal([]byte(string(body)), &res)
-		log.Info(res)
-		log.Info(string(body))
 		if err != nil {
 			continue
 		}

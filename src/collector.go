@@ -12,24 +12,24 @@ var (
 	wg sync.WaitGroup
 )
 
-func start(pool *ResourcePool) {
-	consumer, err := sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
+func start(pool *ResourcePool, config Configuration) {
+	consumer, err := sarama.NewConsumer(config.KafkaBrokers, nil)
 	for {
 		if err == nil {
 			break
 		}
 		log.Warn(err)
 		time.Sleep(time.Second * 5)
-		consumer, err = sarama.NewConsumer([]string{"kafka-nod21:9092", "kafka-node2:9092", "kafka-node3:9092"}, nil)
+		consumer, err = sarama.NewConsumer(config.KafkaBrokers, nil)
 	}
 
-	partitionList, err := consumer.Partitions("yao")
+	partitionList, err := consumer.Partitions(config.KafkaTopic)
 	if err != nil {
 		panic(err)
 	}
 
 	for partition := range partitionList {
-		pc, err := consumer.ConsumePartition("yao", int32(partition), sarama.OffsetNewest)
+		pc, err := consumer.ConsumePartition(config.KafkaTopic, int32(partition), sarama.OffsetNewest)
 		if err != nil {
 			panic(err)
 		}
@@ -43,7 +43,7 @@ func start(pool *ResourcePool) {
 				var nodeStatus NodeStatus
 				err = json.Unmarshal([]byte(string(msg.Value)), &nodeStatus)
 				if err != nil {
-					log.Println(err)
+					log.Warn(err)
 					continue
 				}
 				pool.update(nodeStatus)

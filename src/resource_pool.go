@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
-	)
+)
 
 type ResourcePool struct {
 	mu    sync.Mutex

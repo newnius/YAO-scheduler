@@ -5,6 +5,7 @@ import (
 	"net/http"
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
+	"os"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -148,17 +149,50 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var confFile = "conf/config.json"
+	for i := 0; i < (len(os.Args)-1)/2; i++ {
+		if os.Args[i*2+1] == "-c" {
+			confFile = os.Args[i*2+2]
+		}
+	}
+
+	/* read configuration */
+	file, err := os.Open(confFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	/* parse configuration */
+	decoder := json.NewDecoder(file)
+	config := Configuration{}
+	err = decoder.Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	pool = &ResourcePool{}
 	pool.nodes = make(map[string]NodeStatus)
 	pool.start()
 
-	//scheduler = &SchedulerFCFS{}
-	//scheduler = &SchedulerPriority{}
-	scheduler = &SchedulerFair{}
+	switch config.SchedulerPolicy {
+	case "FCFS":
+		scheduler = &SchedulerFCFS{}
+		break
+	case "fair":
+		scheduler = &SchedulerFair{}
+		break
+	case "priority":
+		scheduler = &SchedulerPriority{}
+		break
+	default:
+		scheduler = &SchedulerFCFS{}
+	}
+
 	scheduler.Start()
 
 	go func() {
-		start(pool)
+		start(pool, config)
 	}()
 
 	flag.Parse()
@@ -167,7 +201,7 @@ func main() {
 		serverAPI(w, r)
 	})
 
-	err := http.ListenAndServe(*addr, nil)
+	err = http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

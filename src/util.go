@@ -8,6 +8,12 @@ import (
 	"net/http"
 )
 
+type Configuration struct {
+	KafkaBrokers    []string `json:"kafkaBrokers"`
+	KafkaTopic      string   `json:"kafkaTopic"`
+	SchedulerPolicy string   `json:"schedulerPolicy"`
+}
+
 type MsgSubmit struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`
