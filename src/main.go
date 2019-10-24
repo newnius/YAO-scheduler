@@ -8,7 +8,8 @@ import (
 	"os"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
+var confFile = flag.String("conf", "conf/config.json", "configuration file path")
 
 var pool *ResourcePool
 
@@ -149,15 +150,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var confFile = "conf/config.json"
-	for i := 0; i < (len(os.Args)-1)/2; i++ {
-		if os.Args[i*2+1] == "-c" {
-			confFile = os.Args[i*2+2]
-		}
-	}
-
+	flag.Parse()
 	/* read configuration */
-	file, err := os.Open(confFile)
+	file, err := os.Open(*confFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,8 +189,6 @@ func main() {
 	go func() {
 		start(pool, config)
 	}()
-
-	flag.Parse()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serverAPI(w, r)
