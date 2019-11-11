@@ -66,21 +66,21 @@ func (jm *JobManager) start() {
 		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
 			log.Warn(err.Error())
-			return
+			continue
 		}
-		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			log.Warn(err)
-			return
+			continue
 		}
 
 		var res MsgCreate
 		err = json.Unmarshal([]byte(string(body)), &res)
 		if err != nil {
 			log.Warn(err)
-			return
+			continue
 		}
 
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
@@ -160,9 +160,8 @@ func (jm *JobManager) status() MsgJobStatus {
 		}
 
 		resp := spider.getResponse()
-		defer resp.Body.Close()
-
 		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			continue
 		}
@@ -180,10 +179,15 @@ func (jm *JobManager) status() MsgJobStatus {
 
 func (jm *JobManager) stop() MsgStop {
 	for _, taskStatus := range jm.jobStatus.tasks {
-		spider := Spider{}
-		spider.Method = "POST"
-		spider.URL = "http://" + taskStatus.Node + ":8000/stop?id=" + taskStatus.Id
-		spider.do()
+
+		v := url.Values{}
+		v.Set("id", taskStatus.Id)
+
+		_, err := doRequest("POST", "http://"+taskStatus.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+		if err != nil {
+			log.Warn(err.Error())
+			continue
+		}
 	}
 
 	for i := range jm.resources {
