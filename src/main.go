@@ -9,7 +9,7 @@ import (
 )
 
 var addr = flag.String("addr", "127.0.0.1:8080", "http service address")
-var confFile = flag.String("conf", "conf/config.json", "configuration file path")
+var confFile = flag.String("conf", "/etc/yao/config.json", "configuration file path")
 
 var pool *ResourcePool
 
