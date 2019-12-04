@@ -99,6 +99,16 @@ func (jm *JobManager) start() {
 
 				/* save logs etc. */
 
+				/* remove exited containers */
+				//v := url.Values{}
+				//v.Set("id", res.Status[i].Id)
+				//
+				//_, err := doRequest("POST", "http://"+res.Status[i].Node+":8000/remove", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+				//if err != nil {
+				//	log.Warn(err.Error())
+				//	continue
+				//}
+
 				/* return resource */
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				fmt.Println("return resource ", jm.resources[i].ClientID)
@@ -112,8 +122,10 @@ func (jm *JobManager) start() {
 
 	jm.scheduler.ReleaseNetwork(network)
 
-	jm.scheduler.UpdateProgress(jm.job.Name, Finished)
-	log.Info("finish job", jm.job.Name)
+	if !jm.killedFlag {
+		jm.scheduler.UpdateProgress(jm.job.Name, Finished)
+		log.Info("finish job", jm.job.Name)
+	}
 }
 
 func (jm *JobManager) logs(taskName string) MsgLog {
@@ -178,21 +190,21 @@ func (jm *JobManager) status() MsgJobStatus {
 }
 
 func (jm *JobManager) stop() MsgStop {
-	for _, taskStatus := range jm.jobStatus.tasks {
+	jm.killedFlag = true
+	go func() { /* kill at background */
+		for _, taskStatus := range jm.jobStatus.tasks {
+			v := url.Values{}
+			v.Set("id", taskStatus.Id)
 
-		v := url.Values{}
-		v.Set("id", taskStatus.Id)
-
-		_, err := doRequest("POST", "http://"+taskStatus.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
-		if err != nil {
-			log.Warn(err.Error())
-			continue
+			_, err := doRequest("POST", "http://"+taskStatus.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			if err != nil {
+				log.Warn(err.Error())
+				continue
+			}
 		}
-	}
+	}()
 
-	for i := range jm.resources {
-		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-	}
 	jm.scheduler.UpdateProgress(jm.job.Name, Stopped)
+	log.Info("kill job", jm.job.Name)
 	return MsgStop{Code: 0}
 }
