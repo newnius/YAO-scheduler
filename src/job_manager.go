@@ -25,6 +25,8 @@ func (jm *JobManager) start() {
 
 	network := jm.scheduler.AcquireNetwork()
 
+	InstanceJobHistoryLogger().submitJob(jm.job)
+
 	/* request for resources */
 	for i := range jm.job.Tasks {
 		var resource NodeStatus
@@ -112,6 +114,8 @@ func (jm *JobManager) start() {
 				/* return resource */
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				fmt.Println("return resource ", jm.resources[i].ClientID)
+
+				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			}
 		}
 		if !flag {
@@ -183,6 +187,7 @@ func (jm *JobManager) status() MsgJobStatus {
 		if err != nil {
 			continue
 		}
+		res.Status.Node = taskStatus.Node
 		tasksStatus = append(tasksStatus, res.Status)
 	}
 

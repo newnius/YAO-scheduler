@@ -21,12 +21,18 @@ type ResourcePool struct {
 	networks     map[string]bool
 	networksFree map[string]bool
 	networkMu    sync.Mutex
+
+	versions map[string]string
+
+	counter      int
+	counterTotal int
 }
 
 func (pool *ResourcePool) start() {
 	//TODO: retrieve networks from yao-agent-master in blocking io
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
+	pool.versions = map[string]string{}
 
 	/* check dead nodes */
 	go func() {
@@ -36,6 +42,7 @@ func (pool *ResourcePool) start() {
 			for k, v := range pool.heartBeat {
 				if v.Add(time.Second * 30).Before(time.Now()) {
 					delete(pool.nodes, k)
+					delete(pool.versions, k)
 				}
 			}
 			time.Sleep(time.Second * 10)
@@ -100,6 +107,12 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	pool.counterTotal++
+	if version, ok := pool.versions[node.ClientID]; ok && version == node.Version {
+		return
+	}
+
+	pool.counter++
 	status, ok := pool.nodes[node.ClientID]
 	if ok {
 		for i, GPU := range status.Status {
@@ -110,6 +123,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	}
 	pool.nodes[node.ClientID] = node
 	pool.heartBeat[node.ClientID] = time.Now()
+	pool.versions[node.ClientID] = node.Version
 	log.Debug(pool.nodes)
 }
 
@@ -130,6 +144,10 @@ func (pool *ResourcePool) list() MsgResource {
 
 func (pool *ResourcePool) statusHistory() MsgPoolStatusHistory {
 	return MsgPoolStatusHistory{Code: 0, Data: pool.history}
+}
+
+func (pool *ResourcePool) getCounter() map[string]int {
+	return map[string]int{"counter": pool.counter, "counterTotal": pool.counterTotal}
 }
 
 func (pool *ResourcePool) acquireNetwork() string {

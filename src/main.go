@@ -88,6 +88,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "get_counter":
+		log.Debug("get_counters")
+		js, _ := json.Marshal(pool.getCounter())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "group_list":
 		log.Debug("group_list")
 		js, _ := json.Marshal(InstanceOfGroupManager().List())

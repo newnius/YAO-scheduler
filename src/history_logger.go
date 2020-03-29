@@ -1,2 +1,55 @@
 package main
 
+import (
+	log "github.com/sirupsen/logrus"
+	"sync"
+)
+
+type JobHistoryLogger struct {
+	scheduler  Scheduler
+	jobs       map[string]Job
+	tasks      map[string][]TaskStatus
+	jobStatus  JobStatus
+	resources  []NodeStatus
+	killedFlag bool
+}
+
+var jobHistoryLoggerInstance *JobHistoryLogger
+var jobHistoryLoggerInstanceLock sync.Mutex
+
+func InstanceJobHistoryLogger() *JobHistoryLogger {
+	defer jobHistoryLoggerInstanceLock.Unlock()
+	jobHistoryLoggerInstanceLock.Lock()
+
+	if jobHistoryLoggerInstance == nil {
+		jobHistoryLoggerInstance = &JobHistoryLogger{}
+	}
+	return jobHistoryLoggerInstance
+}
+
+func (jhl *JobHistoryLogger) init() {
+	log.Info("jhl init")
+	jhl.jobs = map[string]Job{}
+	jhl.tasks = map[string][]TaskStatus{}
+	/* retrieve list */
+}
+
+func (jhl *JobHistoryLogger) submitJob(job Job) {
+	log.Info("submit job", job.Name)
+	jhl.jobs[job.Name] = job
+	jhl.tasks[job.Name] = []TaskStatus{}
+}
+
+func (jhl *JobHistoryLogger) updateJobStatus(jobName string, state State) {
+	log.Info("update job status", jobName)
+	if job, ok := jhl.jobs[jobName]; ok {
+		job.Status = state
+	}
+}
+
+func (jhl *JobHistoryLogger) submitTaskStatus(jobName string, task TaskStatus) {
+	log.Info("submit job task", jobName)
+	if tasks, ok := jhl.tasks[jobName]; ok {
+		jhl.tasks[jobName] = append(tasks, task)
+	}
+}
