@@ -93,9 +93,13 @@ func (jm *JobManager) start() {
 		res := jm.status()
 		flag := false
 		for i := range res.Status {
-			if res.Status[i].Status == "running" {
+			if res.Status[i].Status == "ready" {
+				log.Info(jm.job.Name, "-", i, " is ready to run")
+				flag = true
+			} else if res.Status[i].Status == "running" {
 				log.Info(jm.job.Name, "-", i, " is running")
 				flag = true
+				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			} else {
 				log.Println(jm.job.Name, "-", i, " ", res.Status[i].Status)
 

@@ -53,3 +53,10 @@ func (jhl *JobHistoryLogger) submitTaskStatus(jobName string, task TaskStatus) {
 		jhl.tasks[jobName] = append(tasks, task)
 	}
 }
+
+func (jhl *JobHistoryLogger) getTaskStatus(jobName string) []TaskStatus {
+	if _, ok := jhl.tasks[jobName]; ok {
+		return jhl.tasks[jobName]
+	}
+	return []TaskStatus{}
+}
