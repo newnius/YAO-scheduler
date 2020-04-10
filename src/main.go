@@ -173,6 +173,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	/* init jhl */
+	InstanceJobHistoryLogger().init()
+
 	pool = &ResourcePool{}
 	pool.nodes = make(map[string]NodeStatus)
 	pool.start()
