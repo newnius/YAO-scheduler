@@ -22,7 +22,7 @@ type ResourcePool struct {
 	networksFree map[string]bool
 	networkMu    sync.Mutex
 
-	versions map[string]string
+	versions map[string]float64
 
 	counter      int
 	counterTotal int
@@ -32,7 +32,7 @@ func (pool *ResourcePool) start() {
 	//TODO: retrieve networks from yao-agent-master in blocking io
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
-	pool.versions = map[string]string{}
+	pool.versions = map[string]float64{}
 
 	/* check dead nodes */
 	go func() {
