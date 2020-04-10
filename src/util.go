@@ -111,7 +111,7 @@ type GPUStatus struct {
 type NodeStatus struct {
 	ClientID     string      `json:"id"`
 	ClientHost   string      `json:"host"`
-	Version      string      `json:"version"`
+	Version      float64      `json:"version"`
 	NumCPU       int         `json:"cpu_num"`
 	UtilCPU      float64     `json:"cpu_load"`
 	MemTotal     int         `json:"mem_total"`
