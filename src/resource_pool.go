@@ -111,6 +111,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	pool.heartBeat[node.ClientID] = time.Now()
+
 	pool.counterTotal++
 	if version, ok := pool.versions[node.ClientID]; ok && version == node.Version {
 		return
@@ -128,7 +130,6 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		}
 	}
 	pool.nodes[node.ClientID] = node
-	pool.heartBeat[node.ClientID] = time.Now()
 	pool.versions[node.ClientID] = node.Version
 	log.Debug(pool.nodes)
 }
