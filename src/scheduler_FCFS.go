@@ -219,3 +219,11 @@ func (scheduler *SchedulerFCFS) AcquireNetwork() string {
 func (scheduler *SchedulerFCFS) ReleaseNetwork(network string) {
 	pool.releaseNetwork(network)
 }
+
+func (scheduler *SchedulerFCFS) Attach(GPU string, job string) {
+	pool.attach(GPU, job)
+}
+
+func (scheduler *SchedulerFCFS) Detach(GPU string, job string) {
+	pool.detach(GPU, job)
+}

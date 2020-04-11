@@ -24,4 +24,8 @@ type Scheduler interface {
 	ListJobs() MsgJobList
 
 	Summary() MsgSummary
+
+	Attach(GPU string, job string)
+
+	Detach(GPU string, job string)
 }

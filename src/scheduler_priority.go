@@ -243,3 +243,11 @@ func (scheduler *SchedulerPriority) AcquireNetwork() string {
 func (scheduler *SchedulerPriority) ReleaseNetwork(network string) {
 	pool.releaseNetwork(network)
 }
+
+func (scheduler *SchedulerPriority) Attach(GPU string, job string) {
+	pool.attach(GPU, job)
+}
+
+func (scheduler *SchedulerPriority) Detach(GPU string, job string) {
+	pool.detach(GPU, job)
+}

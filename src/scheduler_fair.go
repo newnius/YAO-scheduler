@@ -366,3 +366,11 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	scheduler.nextQueue = next
 	log.Info("updateNextQueue ->", next)
 }
+
+func (scheduler *SchedulerFair) Attach(GPU string, job string) {
+	pool.attach(GPU, job)
+}
+
+func (scheduler *SchedulerFair) Detach(GPU string, job string) {
+	pool.detach(GPU, job)
+}

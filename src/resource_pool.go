@@ -26,6 +26,8 @@ type ResourcePool struct {
 
 	counter      int
 	counterTotal int
+
+	bindings map[string]map[string]bool
 }
 
 func (pool *ResourcePool) start() {
@@ -33,6 +35,8 @@ func (pool *ResourcePool) start() {
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
 	pool.versions = map[string]float64{}
+
+	pool.bindings = map[string]map[string]bool{}
 
 	/* check dead nodes */
 	go func() {
@@ -112,6 +116,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		return
 	}
 
+	log.Info(node.Version, "!=", pool.versions[node.ClientID])
+
 	pool.counter++
 	status, ok := pool.nodes[node.ClientID]
 	if ok {
@@ -188,4 +194,16 @@ func (pool *ResourcePool) releaseNetwork(network string) {
 	pool.networkMu.Lock()
 	pool.networksFree[network] = true
 	pool.networkMu.Unlock()
+}
+
+func (pool *ResourcePool) attach(GPU string, job string) {
+	if _, ok := pool.bindings[GPU]; ok {
+		pool.bindings[GPU][job] = true
+	}
+}
+
+func (pool *ResourcePool) detach(GPU string, job string) {
+	if list, ok := pool.bindings[GPU]; ok {
+		delete(list, job)
+	}
 }

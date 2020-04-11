@@ -42,6 +42,11 @@ func (jm *JobManager) start() {
 		}
 		log.Info("Receive resource", resource)
 		jm.resources = append(jm.resources, resource)
+
+		for _, t := range resource.Status {
+			jm.scheduler.Attach(t.UUID, jm.job.Name)
+		}
+
 	}
 	jm.scheduler.UpdateProgress(jm.job.Name, Running)
 
@@ -118,6 +123,10 @@ func (jm *JobManager) start() {
 				/* return resource */
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				fmt.Println("return resource ", jm.resources[i].ClientID)
+
+				for _, t := range jm.resources[i].Status {
+					jm.scheduler.Attach(t.UUID, jm.job.Name)
+				}
 
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			}
