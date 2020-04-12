@@ -206,6 +206,10 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 		for j := range nodes.Status {
 			if gpu.UUID == nodes.Status[j].UUID {
 				nodes.Status[j].MemoryAllocated -= gpu.MemoryTotal
+				if nodes.Status[j].MemoryAllocated < 0 {
+					// in case error
+					nodes.Status[j].MemoryAllocated = 0
+				}
 			}
 		}
 	}

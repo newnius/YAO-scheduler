@@ -27,8 +27,9 @@ type ResourcePool struct {
 	counter      int
 	counterTotal int
 
-	bindings map[string]map[string]bool
-	utils    map[string][]int
+	bindings  map[string]map[string]bool
+	utils     map[string][]int
+	bindingMu sync.Mutex
 }
 
 func (pool *ResourcePool) start() {
@@ -210,6 +211,8 @@ func (pool *ResourcePool) releaseNetwork(network string) {
 }
 
 func (pool *ResourcePool) attach(GPU string, job string) {
+	pool.bindingMu.Lock()
+	defer pool.bindingMu.Unlock()
 	if _, ok := pool.bindings[GPU]; !ok {
 		pool.bindings[GPU] = map[string]bool{}
 	}
@@ -221,6 +224,8 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 }
 
 func (pool *ResourcePool) detach(GPU string, jobName string) {
+	pool.bindingMu.Lock()
+	defer pool.bindingMu.Unlock()
 	if _, ok := pool.bindings[GPU]; ok {
 		if len(pool.bindings[GPU]) == 1 {
 			InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
