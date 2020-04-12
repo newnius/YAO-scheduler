@@ -364,7 +364,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 		}
 	}
 	scheduler.nextQueue = next
-	log.Info("updateNextQueue ->", next)
+	log.Debug("updateNextQueue ->", next)
 }
 
 func (scheduler *SchedulerFair) Attach(GPU string, job string) {
