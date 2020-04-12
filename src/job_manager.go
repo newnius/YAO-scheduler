@@ -6,7 +6,6 @@ import (
 	"strings"
 	"io/ioutil"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	log "github.com/sirupsen/logrus"
 )
@@ -101,14 +100,14 @@ func (jm *JobManager) start() {
 		flag := false
 		for i := range res.Status {
 			if res.Status[i].Status == "ready" {
-				log.Info(jm.job.Name, "-", i, " is ready to run")
+				log.Debug(jm.job.Name, "-", i, " is ready to run")
 				flag = true
 			} else if res.Status[i].Status == "running" {
-				log.Info(jm.job.Name, "-", i, " is running")
+				log.Debug(jm.job.Name, "-", i, " is running")
 				flag = true
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			} else {
-				log.Println(jm.job.Name, "-", i, " ", res.Status[i].Status)
+				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
 
 				/* save logs etc. */
 
@@ -124,10 +123,10 @@ func (jm *JobManager) start() {
 
 				/* return resource */
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-				fmt.Println("return resource ", jm.resources[i].ClientID)
+				log.Info("return resource ", jm.resources[i].ClientID)
 
 				for _, t := range jm.resources[i].Status {
-					jm.scheduler.Attach(t.UUID, jm.job.Name)
+					jm.scheduler.Detach(t.UUID, jm.job.Name)
 				}
 
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])

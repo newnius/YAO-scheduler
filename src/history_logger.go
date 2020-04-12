@@ -35,7 +35,7 @@ func (jhl *JobHistoryLogger) init() {
 }
 
 func (jhl *JobHistoryLogger) submitJob(job Job) {
-	log.Info("submit job", job.Name)
+	log.Debug("submit job task status", job.Name)
 	jhl.jobs[job.Name] = job
 	jhl.tasks[job.Name] = []TaskStatus{}
 }
