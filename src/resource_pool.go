@@ -38,6 +38,7 @@ func (pool *ResourcePool) start() {
 	pool.versions = map[string]float64{}
 
 	pool.bindings = map[string]map[string]bool{}
+	pool.utils = map[string][]int{}
 
 	/* check dead nodes */
 	go func() {
