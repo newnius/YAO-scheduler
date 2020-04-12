@@ -222,7 +222,7 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 func (pool *ResourcePool) detach(GPU string, jobName string) {
 	if _, ok := pool.bindings[GPU]; ok {
 		if len(pool.bindings[GPU]) == 1 {
-			InstanceOptimizer().feed(jobName, pool.utils[GPU])
+			InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
 			pool.utils[GPU] = []int{}
 		}
 	}
