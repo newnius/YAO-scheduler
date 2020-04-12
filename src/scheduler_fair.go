@@ -47,7 +47,7 @@ func (scheduler *SchedulerFair) Start() {
 	go func() {
 		for {
 			log.Debug("Scheduling")
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Millisecond * 100)
 			scheduler.scheduling.Lock()
 			scheduler.mu.Lock()
 			queue := scheduler.nextQueue

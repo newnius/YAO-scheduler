@@ -28,6 +28,7 @@ type ResourcePool struct {
 	counterTotal int
 
 	bindings map[string]map[string]bool
+	utils    map[string][]int
 }
 
 func (pool *ResourcePool) start() {
@@ -110,6 +111,16 @@ func (pool *ResourcePool) start() {
 func (pool *ResourcePool) update(node NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+
+	go func(node NodeStatus) {
+		for _, gpu := range node.Status {
+			if _, ok := pool.bindings[gpu.UUID]; ok {
+				if len(pool.bindings[gpu.UUID]) == 1 {
+					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID], gpu.UtilizationGPU)
+				}
+			}
+		}
+	}(node)
 
 	pool.heartBeat[node.ClientID] = time.Now()
 
@@ -198,17 +209,29 @@ func (pool *ResourcePool) releaseNetwork(network string) {
 }
 
 func (pool *ResourcePool) attach(GPU string, job string) {
+	if _, ok := pool.bindings[GPU]; !ok {
+		pool.bindings[GPU] = map[string]bool{}
+	}
+	pool.bindings[GPU][job] = true
+
+	if _, ok := pool.utils[GPU]; !ok {
+		pool.utils[GPU] = []int{}
+	}
+}
+
+func (pool *ResourcePool) detach(GPU string, jobName string) {
 	if _, ok := pool.bindings[GPU]; ok {
-		pool.bindings[GPU][job] = true
+		if len(pool.bindings[GPU]) == 1 {
+			InstanceOptimizer().feed(jobName, pool.utils[GPU])
+			pool.utils[GPU] = []int{}
+		}
 	}
-}
 
-func (pool *ResourcePool) detach(GPU string, job string) {
 	if list, ok := pool.bindings[GPU]; ok {
-		delete(list, job)
+		delete(list, jobName)
 	}
 }
 
-func (pool *ResourcePool) getBindings() map[string]map[string]bool{
+func (pool *ResourcePool) getBindings() map[string]map[string]bool {
 	return pool.bindings
 }
