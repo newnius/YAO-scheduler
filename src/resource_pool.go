@@ -118,7 +118,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		return
 	}
 
-	log.Info(node.Version, "!=", pool.versions[node.ClientID])
+	log.Debug(node.Version, "!=", pool.versions[node.ClientID])
 
 	pool.counter++
 	status, ok := pool.nodes[node.ClientID]
@@ -207,4 +207,8 @@ func (pool *ResourcePool) detach(GPU string, job string) {
 	if list, ok := pool.bindings[GPU]; ok {
 		delete(list, job)
 	}
+}
+
+func (pool *ResourcePool) getBindings() map[string]map[string]bool{
+	return pool.bindings
 }

@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"os"
+	"time"
 )
 
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
@@ -35,6 +36,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		log.Debug("job_submit")
 		msgSubmit := MsgSubmit{Code: 0}
 		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
+		log.Info("Submit job", job.Name, time.Now())
 		if err != nil {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
@@ -91,6 +93,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 	case "get_counter":
 		log.Debug("get_counters")
 		js, _ := json.Marshal(pool.getCounter())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "get_bindings":
+		log.Debug("get_bindings")
+		js, _ := json.Marshal(pool.getBindings())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
