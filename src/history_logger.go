@@ -35,7 +35,7 @@ func (jhl *JobHistoryLogger) init() {
 }
 
 func (jhl *JobHistoryLogger) submitJob(job Job) {
-	log.Debug("submit job task status", job.Name)
+	log.Debug("submit job", job.Name)
 	jhl.jobs[job.Name] = job
 	jhl.tasks[job.Name] = []TaskStatus{}
 }
@@ -48,7 +48,7 @@ func (jhl *JobHistoryLogger) updateJobStatus(jobName string, state State) {
 }
 
 func (jhl *JobHistoryLogger) submitTaskStatus(jobName string, task TaskStatus) {
-	log.Info("submit job task", jobName)
+	log.Info("submit job task status", jobName)
 	if tasks, ok := jhl.tasks[jobName]; ok {
 		jhl.tasks[jobName] = append(tasks, task)
 	}

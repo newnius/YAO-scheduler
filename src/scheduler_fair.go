@@ -84,6 +84,7 @@ func (scheduler *SchedulerFair) UpdateProgress(jobName string, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == jobName {
 				scheduler.history[i].Status = Running
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
@@ -91,6 +92,7 @@ func (scheduler *SchedulerFair) UpdateProgress(jobName string, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == jobName {
 				scheduler.history[i].Status = Finished
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
@@ -98,6 +100,7 @@ func (scheduler *SchedulerFair) UpdateProgress(jobName string, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == jobName {
 				scheduler.history[i].Status = Stopped
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
