@@ -313,6 +313,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 	FreeGPU := 0
 	UsingGPU := 0
 
+	pool.mu.Lock()
 	for _, node := range pool.nodes {
 		for j := range node.Status {
 			if node.Status[j].MemoryAllocated == 0 {
@@ -322,6 +323,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 			}
 		}
 	}
+	pool.mu.Unlock()
 	summary.FreeGPU = FreeGPU
 	summary.UsingGPU = UsingGPU
 
@@ -344,6 +346,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	MemoryGPU := 0.00001
 	CPU := 0.00001
 	Memory := 0.0001
+	pool.mu.Lock()
 	for _, node := range pool.nodes {
 		CPU += float64(node.NumCPU)
 		Memory += float64(node.MemTotal)
@@ -352,6 +355,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 			MemoryGPU += float64(card.MemoryTotal)
 		}
 	}
+	pool.mu.Unlock()
 
 	for k, t := range scheduler.queues {
 		if len(t) == 0 {
