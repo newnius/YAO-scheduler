@@ -391,10 +391,12 @@ func (scheduler *SchedulerFair) Detach(GPU string, job string) {
 
 func (scheduler *SchedulerFair) Enable() bool {
 	scheduler.enabled = true
+	log.Info("scheduler is enabled")
 	return true
 }
 
 func (scheduler *SchedulerFair) Disable() bool {
 	scheduler.enabled = false
+	log.Info("scheduler is disabled")
 	return true
 }
