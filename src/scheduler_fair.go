@@ -82,6 +82,9 @@ func (scheduler *SchedulerFair) Start() {
 				}()
 			} else {
 				log.Info("No more jobs to scheduling", time.Now())
+				scheduler.schedulingMu.Lock()
+				scheduler.schedulingJobsCnt--
+				scheduler.schedulingMu.Unlock()
 				go func() {
 					scheduler.UpdateNextQueue()
 				}()
