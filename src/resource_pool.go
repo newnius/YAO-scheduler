@@ -16,7 +16,8 @@ type ResourcePool struct {
 
 	history []PoolStatus
 
-	heartBeat map[string]time.Time
+	heartBeat   map[string]time.Time
+	heartBeatMu sync.Mutex
 
 	networks     map[string]bool
 	networksFree map[string]bool
@@ -27,9 +28,9 @@ type ResourcePool struct {
 	counter      int
 	counterTotal int
 
-	bindings  map[string]map[string]bool
-	utils     map[string][]int
-	bindingMu sync.Mutex
+	bindings   map[string]map[string]bool
+	bindingsMu sync.Mutex
+	utils      map[string][]int
 }
 
 func (pool *ResourcePool) start() {
@@ -46,12 +47,16 @@ func (pool *ResourcePool) start() {
 		pool.heartBeat = map[string]time.Time{}
 
 		for {
+			pool.heartBeatMu.Lock()
 			for k, v := range pool.heartBeat {
 				if v.Add(time.Second * 30).Before(time.Now()) {
+					pool.mu.Lock()
 					delete(pool.nodes, k)
 					delete(pool.versions, k)
+					pool.mu.Unlock()
 				}
 			}
+			pool.heartBeatMu.Unlock()
 			time.Sleep(time.Second * 10)
 		}
 	}()
@@ -73,6 +78,7 @@ func (pool *ResourcePool) start() {
 			UtilGPU := 0
 			TotalMemGPU := 0
 			AvailableMemGPU := 0
+			pool.mu.Lock()
 			for _, node := range pool.nodes {
 				UtilCPU += node.UtilCPU
 				TotalCPU += node.NumCPU
@@ -86,8 +92,10 @@ func (pool *ResourcePool) start() {
 					AvailableMemGPU += GPU.MemoryFree
 				}
 			}
+			size := len(pool.nodes)
+			pool.mu.Unlock()
 			summary.TimeStamp = time.Now().Format("2006-01-02 15:04:05")
-			summary.UtilCPU = UtilCPU / (float64(len(pool.nodes)) + 0.001)
+			summary.UtilCPU = UtilCPU / (float64(size) + 0.001)
 			summary.TotalCPU = TotalCPU
 			summary.TotalMem = TotalMem
 			summary.AvailableMem = AvailableMem
@@ -115,6 +123,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	defer pool.mu.Unlock()
 
 	go func(node NodeStatus) {
+		pool.bindingsMu.Lock()
+		defer pool.bindingsMu.Unlock()
 		for _, gpu := range node.Status {
 			if _, ok := pool.bindings[gpu.UUID]; ok {
 				if len(pool.bindings[gpu.UUID]) == 1 {
@@ -122,9 +132,10 @@ func (pool *ResourcePool) update(node NodeStatus) {
 				}
 			}
 		}
+		pool.heartBeatMu.Lock()
+		pool.heartBeat[node.ClientID] = time.Now()
+		pool.heartBeatMu.Unlock()
 	}(node)
-
-	pool.heartBeat[node.ClientID] = time.Now()
 
 	pool.counterTotal++
 	if version, ok := pool.versions[node.ClientID]; ok && version == node.Version {
@@ -211,8 +222,8 @@ func (pool *ResourcePool) releaseNetwork(network string) {
 }
 
 func (pool *ResourcePool) attach(GPU string, job string) {
-	pool.bindingMu.Lock()
-	defer pool.bindingMu.Unlock()
+	pool.bindingsMu.Lock()
+	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; !ok {
 		pool.bindings[GPU] = map[string]bool{}
 	}
@@ -224,8 +235,8 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 }
 
 func (pool *ResourcePool) detach(GPU string, jobName string) {
-	pool.bindingMu.Lock()
-	defer pool.bindingMu.Unlock()
+	pool.bindingsMu.Lock()
+	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; ok {
 		if len(pool.bindings[GPU]) == 1 {
 			InstanceOfOptimizer().feed(jobName, pool.utils[GPU])

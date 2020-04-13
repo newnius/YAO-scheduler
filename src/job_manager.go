@@ -19,7 +19,7 @@ type JobManager struct {
 }
 
 func (jm *JobManager) start() {
-	log.Info("start job ", jm.job.Name, time.Now())
+	log.Debug("start job ", jm.job.Name, time.Now())
 	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
 
 	network := jm.scheduler.AcquireNetwork()
@@ -49,7 +49,7 @@ func (jm *JobManager) start() {
 	}
 	jm.scheduler.UpdateProgress(jm.job.Name, Running)
 
-	log.Info("ready to run job ", jm.job.Name, time.Now())
+	log.Debug("ready to run job ", jm.job.Name, time.Now())
 
 	/* bring up containers */
 	for i := range jm.job.Tasks {

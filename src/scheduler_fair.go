@@ -23,6 +23,7 @@ type SchedulerFair struct {
 	nextQueue           string
 	resourceAllocations map[string]*ResourceCount
 	enabled             bool
+	latestPoolIndex     int
 }
 
 type FairJobSorter []Job
@@ -71,6 +72,7 @@ func (scheduler *SchedulerFair) Start() {
 					jm.start()
 				}()
 			} else {
+				log.Info("No more jobs to scheduling")
 				scheduler.scheduling.Unlock()
 				go func() {
 					scheduler.UpdateNextQueue()
