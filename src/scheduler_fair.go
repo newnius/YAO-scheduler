@@ -53,13 +53,14 @@ func (scheduler *SchedulerFair) Start() {
 	go func() {
 		for {
 			log.Debug("Scheduling")
-			time.Sleep(time.Millisecond * 100)
 			if !scheduler.enabled {
+				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 			scheduler.schedulingMu.Lock()
 			if scheduler.schedulingJobsCnt >= pool.poolsCount/10 {
 				scheduler.schedulingMu.Unlock()
+				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 			scheduler.schedulingJobsCnt++
@@ -85,6 +86,7 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.schedulingMu.Lock()
 				scheduler.schedulingJobsCnt--
 				scheduler.schedulingMu.Unlock()
+				time.Sleep(time.Millisecond * 100)
 				go func() {
 					scheduler.UpdateNextQueue()
 				}()
