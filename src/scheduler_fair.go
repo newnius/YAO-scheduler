@@ -22,6 +22,7 @@ type SchedulerFair struct {
 	jobs                map[string]*JobManager
 	nextQueue           string
 	resourceAllocations map[string]*ResourceCount
+	enabled             bool
 }
 
 type FairJobSorter []Job
@@ -48,6 +49,9 @@ func (scheduler *SchedulerFair) Start() {
 		for {
 			log.Debug("Scheduling")
 			time.Sleep(time.Millisecond * 100)
+			if !scheduler.enabled {
+				continue
+			}
 			scheduler.scheduling.Lock()
 			scheduler.mu.Lock()
 			queue := scheduler.nextQueue
@@ -207,7 +211,7 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 			if gpu.UUID == nodes.Status[j].UUID {
 				nodes.Status[j].MemoryAllocated -= gpu.MemoryTotal
 				if nodes.Status[j].MemoryAllocated < 0 {
-					// in case error
+					// in case of error
 					nodes.Status[j].MemoryAllocated = 0
 				}
 			}
@@ -380,4 +384,12 @@ func (scheduler *SchedulerFair) Attach(GPU string, job string) {
 
 func (scheduler *SchedulerFair) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
+}
+
+func (scheduler *SchedulerFair) Enable() {
+	scheduler.enabled = true
+}
+
+func (scheduler *SchedulerFair) Disable() {
+	scheduler.enabled = false
 }
