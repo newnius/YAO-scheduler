@@ -174,7 +174,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 	pool.networkMu.Lock()
 	defer pool.networkMu.Unlock()
 	var network string
-	log.Info(pool.networksFree)
+	log.Debug(pool.networksFree)
 	if len(pool.networksFree) == 0 {
 		for {
 			for {

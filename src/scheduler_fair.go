@@ -71,6 +71,7 @@ func (scheduler *SchedulerFair) Start() {
 					jm.start()
 				}()
 			} else {
+				log.Info("No more jobs to schedule", time.Now())
 				scheduler.scheduling.Unlock()
 				go func() {
 					scheduler.UpdateNextQueue()
@@ -206,14 +207,15 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	nodes := pool.nodes[agent.ClientID]
+	node := pool.nodes[agent.ClientID]
 	for _, gpu := range agent.Status {
-		for j := range nodes.Status {
-			if gpu.UUID == nodes.Status[j].UUID {
-				nodes.Status[j].MemoryAllocated -= gpu.MemoryTotal
-				if nodes.Status[j].MemoryAllocated < 0 {
+		for j := range node.Status {
+			if gpu.UUID == node.Status[j].UUID {
+				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
+				if node.Status[j].MemoryAllocated < 0 {
 					// in case of error
-					nodes.Status[j].MemoryAllocated = 0
+					log.Warn(node.ClientID, "More Memory Allocated")
+					node.Status[j].MemoryAllocated = 0
 				}
 			}
 		}
