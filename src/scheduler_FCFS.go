@@ -12,7 +12,8 @@ type SchedulerFCFS struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobs map[string]*JobManager
+	jobs    map[string]*JobManager
+	enabled bool
 }
 
 func (scheduler *SchedulerFCFS) Start() {
@@ -226,4 +227,12 @@ func (scheduler *SchedulerFCFS) Attach(GPU string, job string) {
 
 func (scheduler *SchedulerFCFS) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
+}
+
+func (scheduler *SchedulerFCFS) Enable() {
+	scheduler.enabled = true
+}
+
+func (scheduler *SchedulerFCFS) Disable() {
+	scheduler.enabled = false
 }

@@ -12,7 +12,8 @@ type SchedulerPriority struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobs map[string]*JobManager
+	jobs    map[string]*JobManager
+	enabled bool
 }
 
 func (scheduler *SchedulerPriority) Start() {
@@ -250,4 +251,12 @@ func (scheduler *SchedulerPriority) Attach(GPU string, job string) {
 
 func (scheduler *SchedulerPriority) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
+}
+
+func (scheduler *SchedulerPriority) Enable() {
+	scheduler.enabled = true
+}
+
+func (scheduler *SchedulerPriority) Disable() {
+	scheduler.enabled = false
 }
