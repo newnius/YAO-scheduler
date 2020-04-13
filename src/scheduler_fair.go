@@ -58,7 +58,7 @@ func (scheduler *SchedulerFair) Start() {
 				continue
 			}
 			scheduler.schedulingMu.Lock()
-			if scheduler.schedulingJobsCnt >= pool.poolsCount {
+			if scheduler.schedulingJobsCnt >= pool.poolsCount/10 {
 				scheduler.schedulingMu.Unlock()
 				continue
 			}
