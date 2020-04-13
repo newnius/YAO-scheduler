@@ -13,8 +13,9 @@ type SchedulerFCFS struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobs    map[string]*JobManager
-	enabled bool
+	jobs        map[string]*JobManager
+	enabled     bool
+	parallelism int
 }
 
 func (scheduler *SchedulerFCFS) Start() {
@@ -252,5 +253,11 @@ func (scheduler *SchedulerFCFS) Enable() bool {
 
 func (scheduler *SchedulerFCFS) Disable() bool {
 	scheduler.enabled = false
+	return true
+}
+
+func (scheduler *SchedulerFCFS) UpdateParallelism(parallelism int) bool {
+	scheduler.parallelism = parallelism
+	log.Info("parallelism is updated to", parallelism)
 	return true
 }

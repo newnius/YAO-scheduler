@@ -26,6 +26,7 @@ type SchedulerFair struct {
 	resourceAllocations map[string]*ResourceCount
 	enabled             bool
 	latestPoolIndex     int
+	parallelism         int
 }
 
 type FairJobSorter []Job
@@ -50,6 +51,8 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.enabled = true
 	scheduler.schedulingJobsCnt = 0
 
+	scheduler.parallelism = 1
+
 	go func() {
 		for {
 			log.Debug("Scheduling")
@@ -58,7 +61,7 @@ func (scheduler *SchedulerFair) Start() {
 				continue
 			}
 			scheduler.schedulingMu.Lock()
-			if scheduler.schedulingJobsCnt >= pool.poolsCount/10 {
+			if scheduler.schedulingJobsCnt >= scheduler.parallelism {
 				scheduler.schedulingMu.Unlock()
 				time.Sleep(time.Millisecond * 100)
 				continue
@@ -432,5 +435,11 @@ func (scheduler *SchedulerFair) Enable() bool {
 func (scheduler *SchedulerFair) Disable() bool {
 	scheduler.enabled = false
 	log.Info("scheduler is disabled", time.Now())
+	return true
+}
+
+func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
+	scheduler.parallelism = parallelism
+	log.Info("parallelism is updated to", parallelism)
 	return true
 }

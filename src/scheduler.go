@@ -32,4 +32,6 @@ type Scheduler interface {
 	Enable() bool
 
 	Disable() bool
+
+	UpdateParallelism(parallelism int) bool
 }

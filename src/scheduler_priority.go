@@ -13,8 +13,9 @@ type SchedulerPriority struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobs    map[string]*JobManager
-	enabled bool
+	jobs        map[string]*JobManager
+	enabled     bool
+	parallelism int
 }
 
 func (scheduler *SchedulerPriority) Start() {
@@ -276,5 +277,11 @@ func (scheduler *SchedulerPriority) Enable() bool {
 
 func (scheduler *SchedulerPriority) Disable() bool {
 	scheduler.enabled = false
+	return true
+}
+
+func (scheduler *SchedulerPriority) UpdateParallelism(parallelism int) bool {
+	scheduler.parallelism = parallelism
+	log.Info("parallelism is updated to", parallelism)
 	return true
 }

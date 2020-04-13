@@ -32,3 +32,8 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_disable
 ```
+
+**UpdateMaxParallelism**
+```
+?action=debug_update_parallelism&parallelism=5
+```

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"time"
+	"strconv"
 )
 
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
@@ -176,6 +177,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 	case "debug_disable":
 		log.Debug("disable schedule")
 		js, _ := json.Marshal(scheduler.Disable())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_update_parallelism":
+		log.Debug("update_parallelism")
+		parallelism, _ := strconv.Atoi(r.URL.Query().Get("parallelism"))
+		js, _ := json.Marshal(scheduler.UpdateParallelism(parallelism))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
