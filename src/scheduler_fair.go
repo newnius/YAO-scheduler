@@ -170,32 +170,39 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 
 func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	poolID := rand.Intn(pool.poolsCount)
-	pool.poolsMu[poolID].Lock()
-	defer pool.poolsMu[poolID].Unlock()
-
 	res := NodeStatus{}
-	for id, node := range pool.pools[poolID] {
-		var available []GPUStatus
-		for _, status := range node.Status {
-			if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
-				available = append(available, status)
-			}
-		}
-		if len(available) >= task.NumberGPU {
-			res.ClientID = id
-			res.ClientHost = node.ClientHost
-			res.Status = available[0:task.NumberGPU]
-			res.NumCPU = task.NumberCPU
-			res.MemTotal = task.Memory
 
-			for i := range res.Status {
-				for j := range node.Status {
-					if res.Status[i].UUID == node.Status[j].UUID {
-						node.Status[j].MemoryAllocated += task.MemoryGPU
-						res.Status[i].MemoryTotal = task.MemoryGPU
-					}
+	for i := poolID; i < pool.poolsCount; i++ {
+		pool.poolsMu[i].Lock()
+		flag := false
+		for id, node := range pool.pools[i] {
+			var available []GPUStatus
+			for _, status := range node.Status {
+				if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
+					available = append(available, status)
 				}
 			}
+			if len(available) >= task.NumberGPU {
+				res.ClientID = id
+				res.ClientHost = node.ClientHost
+				res.Status = available[0:task.NumberGPU]
+				res.NumCPU = task.NumberCPU
+				res.MemTotal = task.Memory
+
+				for i := range res.Status {
+					for j := range node.Status {
+						if res.Status[i].UUID == node.Status[j].UUID {
+							node.Status[j].MemoryAllocated += task.MemoryGPU
+							res.Status[i].MemoryTotal = task.MemoryGPU
+						}
+					}
+				}
+				flag = true
+				break
+			}
+		}
+		pool.poolsMu[i].Unlock()
+		if flag {
 			break
 		}
 	}

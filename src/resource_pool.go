@@ -52,7 +52,7 @@ func (pool *ResourcePool) start() {
 	pool.bindings = map[string]map[string]bool{}
 	pool.utils = map[string][]int{}
 
-	pool.poolsCount = 10
+	pool.poolsCount = 100
 	for i := 0; i < pool.poolsCount; i++ {
 		pool.pools = append(pool.pools, map[string]NodeStatus{})
 		pool.poolsMu = append(pool.poolsMu, sync.Mutex{})
