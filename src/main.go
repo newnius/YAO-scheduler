@@ -168,14 +168,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "debug_enable":
 		log.Debug("enable schedule")
-		js, _ := json.Marshal(scheduler.Enable)
+		js, _ := json.Marshal(scheduler.Enable())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "debug_disable":
 		log.Debug("disable schedule")
-		js, _ := json.Marshal(scheduler.Disable)
+		js, _ := json.Marshal(scheduler.Disable())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

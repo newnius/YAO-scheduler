@@ -44,6 +44,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
+	scheduler.enabled = true
 
 	go func() {
 		for {
@@ -386,10 +387,12 @@ func (scheduler *SchedulerFair) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
 }
 
-func (scheduler *SchedulerFair) Enable() {
+func (scheduler *SchedulerFair) Enable() bool {
 	scheduler.enabled = true
+	return true
 }
 
-func (scheduler *SchedulerFair) Disable() {
+func (scheduler *SchedulerFair) Disable() bool {
 	scheduler.enabled = false
+	return true
 }

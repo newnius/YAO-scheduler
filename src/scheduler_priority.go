@@ -19,6 +19,7 @@ type SchedulerPriority struct {
 func (scheduler *SchedulerPriority) Start() {
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
+	scheduler.enabled = true
 
 	go func() {
 		for {
@@ -253,10 +254,12 @@ func (scheduler *SchedulerPriority) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
 }
 
-func (scheduler *SchedulerPriority) Enable() {
+func (scheduler *SchedulerPriority) Enable() bool {
 	scheduler.enabled = true
+	return true
 }
 
-func (scheduler *SchedulerPriority) Disable() {
+func (scheduler *SchedulerPriority) Disable() bool {
 	scheduler.enabled = false
+	return true
 }

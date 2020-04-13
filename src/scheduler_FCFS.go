@@ -19,6 +19,7 @@ type SchedulerFCFS struct {
 func (scheduler *SchedulerFCFS) Start() {
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
+	scheduler.enabled = true
 
 	go func() {
 		for {
@@ -229,10 +230,12 @@ func (scheduler *SchedulerFCFS) Detach(GPU string, job string) {
 	pool.detach(GPU, job)
 }
 
-func (scheduler *SchedulerFCFS) Enable() {
+func (scheduler *SchedulerFCFS) Enable() bool {
 	scheduler.enabled = true
+	return true
 }
 
-func (scheduler *SchedulerFCFS) Disable() {
+func (scheduler *SchedulerFCFS) Disable() bool {
 	scheduler.enabled = false
+	return true
 }
