@@ -71,7 +71,6 @@ func (scheduler *SchedulerFair) Start() {
 					jm.start()
 				}()
 			} else {
-				log.Info("No more jobs to schedule", time.Now())
 				scheduler.scheduling.Unlock()
 				go func() {
 					scheduler.UpdateNextQueue()
