@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
+	"math/rand"
 )
 
 type SchedulerPriority struct {
@@ -110,11 +111,12 @@ func (scheduler *SchedulerPriority) Schedule(job Job) {
 }
 
 func (scheduler *SchedulerPriority) AcquireResource(job Job, task Task) NodeStatus {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	poolID := rand.Intn(pool.poolsCount)
+	pool.poolsMu[poolID].Lock()
+	defer pool.poolsMu[poolID].Unlock()
 
 	res := NodeStatus{}
-	for id, node := range pool.nodes {
+	for id, node := range pool.pools[poolID] {
 		var available []GPUStatus
 		for _, status := range node.Status {
 			if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
@@ -125,6 +127,8 @@ func (scheduler *SchedulerPriority) AcquireResource(job Job, task Task) NodeStat
 			res.ClientID = id
 			res.ClientHost = node.ClientHost
 			res.Status = available[0:task.NumberGPU]
+			res.NumCPU = task.NumberCPU
+			res.MemTotal = task.Memory
 
 			for i := range res.Status {
 				for j := range node.Status {
@@ -141,13 +145,20 @@ func (scheduler *SchedulerPriority) AcquireResource(job Job, task Task) NodeStat
 }
 
 func (scheduler *SchedulerPriority) ReleaseResource(job Job, agent NodeStatus) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-	nodes := pool.nodes[agent.ClientID]
+	poolID := rand.Intn(pool.poolsCount)
+	pool.poolsMu[poolID].Lock()
+	defer pool.poolsMu[poolID].Unlock()
+
+	node := pool.pools[poolID][agent.ClientID]
 	for _, gpu := range agent.Status {
-		for j := range nodes.Status {
-			if gpu.UUID == nodes.Status[j].UUID {
-				nodes.Status[j].MemoryAllocated -= gpu.MemoryTotal
+		for j := range node.Status {
+			if gpu.UUID == node.Status[j].UUID {
+				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
+				if node.Status[j].MemoryAllocated < 0 {
+					// in case of error
+					log.Warn(node.ClientID, "More Memory Allocated")
+					node.Status[j].MemoryAllocated = 0
+				}
 			}
 		}
 	}
@@ -223,14 +234,18 @@ func (scheduler *SchedulerPriority) Summary() MsgSummary {
 	FreeGPU := 0
 	UsingGPU := 0
 
-	for _, node := range pool.nodes {
-		for j := range node.Status {
-			if node.Status[j].MemoryAllocated == 0 {
-				FreeGPU++
-			} else {
-				UsingGPU++
+	for i := 0; i < pool.poolsCount; i++ {
+		pool.poolsMu[i].Lock()
+		for _, node := range pool.pools[i] {
+			for j := range node.Status {
+				if node.Status[j].MemoryAllocated == 0 {
+					FreeGPU++
+				} else {
+					UsingGPU++
+				}
 			}
 		}
+		pool.poolsMu[i].Unlock()
 	}
 	summary.FreeGPU = FreeGPU
 	summary.UsingGPU = UsingGPU

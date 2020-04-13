@@ -8,11 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
+	"hash/fnv"
 )
 
 type ResourcePool struct {
-	mu    sync.Mutex
-	nodes map[string]NodeStatus
+	//mu    sync.Mutex
+	//nodes map[string]NodeStatus
+	pools      []map[string]NodeStatus
+	poolsMu    []sync.Mutex
+	poolsCount int
 
 	history []PoolStatus
 
@@ -33,6 +37,12 @@ type ResourcePool struct {
 	utils      map[string][]int
 }
 
+func (pool *ResourcePool) getNodePool(name string) int {
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return int(h.Sum32()) % pool.poolsCount
+}
+
 func (pool *ResourcePool) start() {
 	//TODO: retrieve networks from yao-agent-master in blocking io
 	pool.networks = map[string]bool{}
@@ -42,6 +52,12 @@ func (pool *ResourcePool) start() {
 	pool.bindings = map[string]map[string]bool{}
 	pool.utils = map[string][]int{}
 
+	pool.poolsCount = 10
+	for i := 0; i < pool.poolsCount; i++ {
+		pool.pools = append(pool.pools, map[string]NodeStatus{})
+		pool.poolsMu = append(pool.poolsMu, sync.Mutex{})
+	}
+
 	/* check dead nodes */
 	go func() {
 		pool.heartBeat = map[string]time.Time{}
@@ -50,10 +66,11 @@ func (pool *ResourcePool) start() {
 			pool.heartBeatMu.Lock()
 			for k, v := range pool.heartBeat {
 				if v.Add(time.Second * 30).Before(time.Now()) {
-					pool.mu.Lock()
-					delete(pool.nodes, k)
+					poolID := pool.getNodePool(k)
+					pool.poolsMu[poolID].Lock()
+					delete(pool.pools[poolID], k)
 					delete(pool.versions, k)
-					pool.mu.Unlock()
+					pool.poolsMu[poolID].Unlock()
 				}
 			}
 			pool.heartBeatMu.Unlock()
@@ -78,24 +95,27 @@ func (pool *ResourcePool) start() {
 			UtilGPU := 0
 			TotalMemGPU := 0
 			AvailableMemGPU := 0
-			pool.mu.Lock()
-			for _, node := range pool.nodes {
-				UtilCPU += node.UtilCPU
-				TotalCPU += node.NumCPU
-				TotalMem += node.MemTotal
-				AvailableMem += node.MemAvailable
+			nodesCount := 0
+			for i := 0; i < pool.poolsCount; i++ {
+				pool.poolsMu[i].Lock()
+				for _, node := range pool.pools[i] {
+					UtilCPU += node.UtilCPU
+					TotalCPU += node.NumCPU
+					TotalMem += node.MemTotal
+					AvailableMem += node.MemAvailable
 
-				for _, GPU := range node.Status {
-					UtilGPU += GPU.UtilizationGPU
-					TotalGPU ++
-					TotalMemGPU += GPU.MemoryTotal
-					AvailableMemGPU += GPU.MemoryFree
+					for _, GPU := range node.Status {
+						UtilGPU += GPU.UtilizationGPU
+						TotalGPU ++
+						TotalMemGPU += GPU.MemoryTotal
+						AvailableMemGPU += GPU.MemoryFree
+					}
 				}
+				nodesCount += len(pool.pools[i])
+				pool.poolsMu[i].Unlock()
 			}
-			size := len(pool.nodes)
-			pool.mu.Unlock()
 			summary.TimeStamp = time.Now().Format("2006-01-02 15:04:05")
-			summary.UtilCPU = UtilCPU / (float64(size) + 0.001)
+			summary.UtilCPU = UtilCPU / (float64(nodesCount) + 0.001)
 			summary.TotalCPU = TotalCPU
 			summary.TotalMem = TotalMem
 			summary.AvailableMem = AvailableMem
@@ -119,8 +139,10 @@ func (pool *ResourcePool) start() {
 }
 
 func (pool *ResourcePool) update(node NodeStatus) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	poolID := pool.getNodePool(node.ClientID)
+
+	pool.poolsMu[poolID].Lock()
+	defer pool.poolsMu[poolID].Unlock()
 
 	go func(node NodeStatus) {
 		pool.bindingsMu.Lock()
@@ -145,7 +167,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 	log.Debug(node.Version, "!=", pool.versions[node.ClientID])
 
 	pool.counter++
-	status, ok := pool.nodes[node.ClientID]
+	status, ok := pool.pools[poolID][node.ClientID]
 	if ok {
 		for i, GPU := range status.Status {
 			if GPU.UUID == node.Status[i].UUID {
@@ -153,16 +175,17 @@ func (pool *ResourcePool) update(node NodeStatus) {
 			}
 		}
 	}
-	pool.nodes[node.ClientID] = node
+	pool.pools[poolID][node.ClientID] = node
 	pool.versions[node.ClientID] = node.Version
-	log.Debug(pool.nodes)
 }
 
 func (pool *ResourcePool) getByID(id string) NodeStatus {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	poolID := pool.getNodePool(id)
 
-	status, ok := pool.nodes[id]
+	pool.poolsMu[poolID].Lock()
+	defer pool.poolsMu[poolID].Unlock()
+
+	status, ok := pool.pools[poolID][id]
 	if ok {
 		return status
 	}
@@ -170,7 +193,15 @@ func (pool *ResourcePool) getByID(id string) NodeStatus {
 }
 
 func (pool *ResourcePool) list() MsgResource {
-	return MsgResource{Code: 0, Resource: pool.nodes}
+	nodes := map[string]NodeStatus{}
+	for i := 0; i < pool.poolsCount; i++ {
+		pool.poolsMu[i].Lock()
+		for k, node := range pool.pools[i] {
+			nodes[k] = node
+		}
+		pool.poolsMu[i].Unlock()
+	}
+	return MsgResource{Code: 0, Resource: nodes}
 }
 
 func (pool *ResourcePool) statusHistory() MsgPoolStatusHistory {

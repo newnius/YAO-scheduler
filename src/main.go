@@ -207,7 +207,6 @@ func main() {
 	InstanceJobHistoryLogger().init()
 
 	pool = &ResourcePool{}
-	pool.nodes = make(map[string]NodeStatus)
 	pool.start()
 
 	switch config.SchedulerPolicy {
