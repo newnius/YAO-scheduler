@@ -43,7 +43,7 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			}
 
 			postCnt := 0
-			for i := len(utils); i >= 0; i-- {
+			for i := len(utils)-1; i >= 0; i-- {
 				if utils[i] > 15 {
 					break
 				}

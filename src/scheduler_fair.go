@@ -88,7 +88,7 @@ func (scheduler *SchedulerFair) Start() {
 					jm.start()
 				}()
 			} else {
-				log.Info("No more jobs to scheduling", time.Now())
+				log.Debug("No more jobs to scheduling", time.Now())
 				scheduler.schedulingMu.Lock()
 				scheduler.schedulingJobsCnt--
 				scheduler.schedulingMu.Unlock()
