@@ -37,6 +37,14 @@ type ResourcePool struct {
 	utils      map[string][]int
 }
 
+func (pool *ResourcePool) GPUModelToPower(model string) int {
+	mapper := map[string]int{"k40": 1, "K80": 2, "P100": 3}
+	if power, err := mapper[model]; !err {
+		return power
+	}
+	return 0
+}
+
 func (pool *ResourcePool) getNodePool(name string) int {
 	h := fnv.New32a()
 	h.Write([]byte(name))

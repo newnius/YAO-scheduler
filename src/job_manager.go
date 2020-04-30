@@ -139,6 +139,7 @@ func (jm *JobManager) start() {
 		if onlyPS {
 			jm.stop()
 			log.Info("Only PS is running, stop", jm.job.Name)
+			jm.killedFlag = false
 			break
 		}
 		if !flag {

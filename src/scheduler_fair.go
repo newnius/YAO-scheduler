@@ -183,39 +183,108 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	poolID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
 
+	var locks []sync.Mutex
+
+	var candidates []NodeStatus
+	/* first round, find vacant gpu */
 	for i := poolID; i < pool.poolsCount; i++ {
 		pool.poolsMu[i].Lock()
-		flag := false
-		for id, node := range pool.pools[i] {
+		locks = append(locks, pool.poolsMu[i])
+		for _, node := range pool.pools[i] {
 			var available []GPUStatus
 			for _, status := range node.Status {
-				if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
+				if status.MemoryTotal >= task.MemoryGPU && status.MemoryUsed < 10 {
 					available = append(available, status)
 				}
 			}
 			if len(available) >= task.NumberGPU {
-				res.ClientID = id
-				res.ClientHost = node.ClientHost
-				res.Status = available[0:task.NumberGPU]
-				res.NumCPU = task.NumberCPU
-				res.MemTotal = task.Memory
+				tmp := NodeStatus{}
+				tmp.ClientID = node.ClientID
+				tmp.ClientHost = node.ClientHost
+				tmp.Status = available
+				tmp.NumCPU = node.NumCPU
+				tmp.MemTotal = node.MemAvailable
+				candidates = append(candidates, tmp)
+				if len(candidates) >= 8 {
+					break
+				}
+			}
+		}
+		if len(candidates) >= 8 {
+			break
+		}
+	}
+	log.Info(candidates)
 
-				for i := range res.Status {
-					for j := range node.Status {
-						if res.Status[i].UUID == node.Status[j].UUID {
-							node.Status[j].MemoryAllocated += task.MemoryGPU
-							res.Status[i].MemoryTotal = task.MemoryGPU
+	/* second round, find sharable gpu */
+	if len(candidates) == 0 {
+		// check sharable
+		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
+
+			for i := poolID; i < pool.poolsCount; i++ {
+				pool.poolsMu[i].Lock()
+				locks = append(locks, pool.poolsMu[i])
+				for _, node := range pool.pools[i] {
+					var available []GPUStatus
+					for _, status := range node.Status {
+						if status.MemoryTotal >= task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
+
+							if jobs, err := pool.bindings[status.UUID]; !err {
+								totalUtil := util
+								for job := range jobs {
+									if utilT, err := InstanceOfOptimizer().predictUtilGPU(job); !err {
+										totalUtil += utilT
+									}
+								}
+								if totalUtil < 100 {
+									available = append(available, status)
+								}
+							}
+						}
+					}
+					if len(available) >= task.NumberGPU {
+						tmp := NodeStatus{}
+						tmp.ClientID = node.ClientID
+						tmp.ClientHost = node.ClientHost
+						tmp.Status = available
+						tmp.NumCPU = node.NumCPU
+						tmp.MemTotal = node.MemAvailable
+						candidates = append(candidates, tmp)
+						if len(candidates) >= 8 {
+							break
 						}
 					}
 				}
-				flag = true
-				break
+				if len(candidates) >= 8 {
+					break
+				}
 			}
 		}
-		pool.poolsMu[i].Unlock()
-		if flag {
-			break
+	}
+	log.Info(candidates)
+
+	/*assign*/
+	if len(candidates) > 0 {
+		node := candidates[0]
+		res := NodeStatus{}
+		res.ClientID = node.ClientID
+		res.ClientHost = node.ClientHost
+		res.Status = candidates[0].Status[0:task.NumberGPU]
+		res.NumCPU = task.NumberCPU
+		res.MemTotal = task.Memory
+
+		for i := range res.Status {
+			for j := range node.Status {
+				if res.Status[i].UUID == node.Status[j].UUID {
+					node.Status[j].MemoryAllocated += task.MemoryGPU
+					res.Status[i].MemoryTotal = task.MemoryGPU
+				}
+			}
 		}
+	}
+
+	for _, lock := range locks {
+		lock.Unlock()
 	}
 	go func(res NodeStatus) {
 		if len(res.Status) == 0 {

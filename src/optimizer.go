@@ -88,7 +88,7 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 	}()
 }
 
-func (optimizer *Optimizer) predictTime(job string, utils []int) (int, bool) {
+func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
 	if _, err := optimizer.jobUtilsGPU[job]; err {
 		return 100, false
 	}
@@ -98,7 +98,7 @@ func (optimizer *Optimizer) predictTime(job string, utils []int) (int, bool) {
 	return optimizer.jobUtilsGPU[job], false
 }
 
-func (optimizer *Optimizer) predictUtilGPU(job string) (OptimizerJobExecutionTime, bool) {
+func (optimizer *Optimizer) predictTime(job string) (OptimizerJobExecutionTime, bool) {
 	if _, err := optimizer.predicts[job]; err {
 		return OptimizerJobExecutionTime{}, false
 	}
