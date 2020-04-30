@@ -48,14 +48,13 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			for i := 0; i < len(utils); i++ {
 				sum += utils[i]
 			}
-			last := 0
-			version := 0
-			if t, err := optimizer.jobUtilsGPU[jobName]; !err {
-				last = t.Util
-				version = t.Version
+			sum /= len(utils)
+			if _, ok := optimizer.jobUtilsGPU[jobName]; !ok {
+				optimizer.jobUtilsGPU[jobName] = &OptimizerUtilGPU{}
 			}
-			optimizer.jobUtilsGPU[jobName].Util = (version*last + sum/len(utils)) / (version + 1)
-			optimizer.jobUtilsGPU[jobName].Version++
+			t := optimizer.jobUtilsGPU[jobName]
+			t.Util = (t.Version*t.Util + sum) / (t.Version + 1)
+			t.Version++
 
 			for i := 0; i < len(utils); i++ {
 				if utils[i] > 15 {
