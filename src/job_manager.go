@@ -104,6 +104,9 @@ func (jm *JobManager) start() {
 			if res.Status[i].Status == "ready" {
 				log.Debug(jm.job.Name, "-", i, " is ready to run")
 				flag = true
+				if !jm.job.Tasks[i].IsPS {
+					onlyPS = false
+				}
 			} else if res.Status[i].Status == "running" {
 				log.Debug(jm.job.Name, "-", i, " is running")
 				flag = true
