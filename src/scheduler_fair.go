@@ -260,13 +260,12 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				}
 			}
 		}
+		log.Info(candidates)
 	}
-	log.Info(candidates)
 
 	/*assign*/
 	if len(candidates) > 0 {
 		node := candidates[0]
-		res := NodeStatus{}
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
 		res.Status = candidates[0].Status[0:task.NumberGPU]

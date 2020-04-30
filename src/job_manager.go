@@ -39,7 +39,7 @@ func (jm *JobManager) start() {
 			}
 			time.Sleep(time.Second * 1)
 		}
-		log.Debug("Receive resource", resource)
+		log.Info("Receive resource", resource)
 		jm.resources = append(jm.resources, resource)
 
 		for _, t := range resource.Status {
