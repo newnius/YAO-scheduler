@@ -142,7 +142,7 @@ type Task struct {
 	NumberGPU int    `json:"gpu_number"`
 	MemoryGPU int    `json:"gpu_memory"`
 	IsPS      bool   `json:"is_ps"`
-	ModelGPU  bool   `json:"gpu_model"`
+	ModelGPU  string `json:"gpu_model"`
 }
 
 type Group struct {
