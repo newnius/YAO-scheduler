@@ -257,10 +257,17 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 
 	/*assign*/
 	if len(candidates) > 0 {
+		var available []GPUStatus
+		for _, status := range candidates[0].Status {
+			if status.MemoryTotal >= task.MemoryGPU && status.MemoryUsed < 10 {
+				available = append(available, status)
+			}
+		}
+
 		node := candidates[0]
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
-		res.Status = candidates[0].Status[0:task.NumberGPU]
+		res.Status = available[0:task.NumberGPU]
 		res.NumCPU = task.NumberCPU
 		res.MemTotal = task.Memory
 
