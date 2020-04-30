@@ -220,6 +220,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	/* second round, find sharable gpu */
 	if len(candidates) == 0 {
 		// check sharable
+		log.Info("dasdsa")
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
 			for i := poolID; i < pool.poolsCount; i++ {
@@ -286,8 +287,8 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		}
 	}
 
-	for _, lock := range locks {
-		log.Info("unlock ", lock)
+	for i, lock := range locks {
+		log.Info("unlock ", i)
 		lock.Unlock()
 	}
 	go func(res NodeStatus) {
