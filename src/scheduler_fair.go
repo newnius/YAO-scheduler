@@ -310,7 +310,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 }
 
 func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
-	poolID := rand.Intn(pool.poolsCount)
+	poolID := pool.getNodePool(agent.ClientID)
 	pool.poolsMu[poolID].Lock()
 	defer pool.poolsMu[poolID].Unlock()
 
