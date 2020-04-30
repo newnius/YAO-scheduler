@@ -254,8 +254,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	if len(candidates) == 0 {
 		allocationType = 2
 		for i := 0; i < pool.poolsCount; i++ {
-			pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
-			locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+			if _, ok := locks[(i+poolID)%pool.poolsCount]; !ok {
+				pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
+				locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+			}
 			for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
 				var available []GPUStatus
 				for _, status := range node.Status {
@@ -289,8 +291,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
 			allocationType = 3
 			for i := 0; i < pool.poolsCount; i++ {
-				pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
-				locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+				if _, ok := locks[(i+poolID)%pool.poolsCount]; !ok {
+					pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
+					locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+				}
 				for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
 					var available []GPUStatus
 					for _, status := range node.Status {
