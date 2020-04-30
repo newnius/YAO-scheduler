@@ -233,10 +233,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 					for _, status := range node.Status {
 						if status.MemoryTotal >= task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
 
-							if jobs, ok := pool.bindings[status.UUID]; !ok {
+							if jobs, ok := pool.bindings[status.UUID]; ok {
 								totalUtil := util
 								for job := range jobs {
-									if utilT, err := InstanceOfOptimizer().predictUtilGPU(job); !err {
+									if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
 										totalUtil += utilT
 									}
 								}
