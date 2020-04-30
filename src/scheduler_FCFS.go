@@ -87,7 +87,7 @@ func (scheduler *SchedulerFCFS) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFCFS) AcquireResource(job Job, task Task) NodeStatus {
+func (scheduler *SchedulerFCFS) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
 	poolID := rand.Intn(pool.poolsCount)
 	pool.poolsMu[poolID].Lock()
 	defer pool.poolsMu[poolID].Unlock()

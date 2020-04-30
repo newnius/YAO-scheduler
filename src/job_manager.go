@@ -33,7 +33,7 @@ func (jm *JobManager) start() {
 			if jm.killedFlag {
 				break
 			}
-			resource = jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i])
+			resource = jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i], jm.resources)
 			if len(resource.Status) > 0 {
 				break
 			}

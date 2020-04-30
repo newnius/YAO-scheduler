@@ -40,7 +40,11 @@ type ResourcePool struct {
 }
 
 func (pool *ResourcePool) GPUModelToPower(model string) int {
-	mapper := map[string]int{"k40": 1, "K80": 2, "P100": 3}
+	mapper := map[string]int{
+		"K40": 1, "Tesla K40": 1,
+		"K80": 2, "Tesla K80": 2,
+		"P100": 3, "Tesla P100": 3,
+	}
 	if power, err := mapper[model]; !err {
 		return power
 	}
@@ -296,4 +300,18 @@ func (pool *ResourcePool) detach(GPU string, jobName string) {
 
 func (pool *ResourcePool) getBindings() map[string]map[string]int {
 	return pool.bindings
+}
+
+func (pool *ResourcePool) pickNode(nodes []*NodeStatus) *NodeStatus {
+
+	/* shuffle */
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	for n := len(nodes); n > 0; n-- {
+		randIndex := r.Intn(n)
+		nodes[n-1], nodes[randIndex] = nodes[randIndex], nodes[n-1]
+	}
+
+	/* sort */
+
+	return nodes[0]
 }

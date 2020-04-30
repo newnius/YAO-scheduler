@@ -35,6 +35,7 @@ type SchedulerFair struct {
 	enablePreScheduleRatio float64
 
 	UsingGPU int
+	UsingGPUMu sync.Mutex
 }
 
 type FairJobSorter []Job
@@ -102,7 +103,7 @@ func (scheduler *SchedulerFair) Start() {
 					jm.start()
 				}()
 			} else {
-				log.Debug("No more jobs to scheduling", time.Now())
+				log.Debug("No more jobs to scheduling ", time.Now())
 				scheduler.schedulingMu.Lock()
 				scheduler.schedulingJobsCnt--
 				scheduler.schedulingMu.Unlock()
@@ -193,7 +194,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
+func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
 	poolID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
 
@@ -202,7 +203,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	allocationType := 0
 	availableGPUs := map[string][]GPUStatus{}
 
-	var candidates []NodeStatus
+	var candidates []*NodeStatus
 
 	/* first, choose sharable GPUs */
 	if scheduler.enableShare && (pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enableShareRatio) {
@@ -236,7 +237,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 						}
 					}
 					if len(available) >= task.NumberGPU {
-						candidates = append(candidates, node)
+						candidates = append(candidates, &node)
 						if len(candidates) >= 8 {
 							break
 						}
@@ -266,7 +267,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 					}
 				}
 				if len(available) >= task.NumberGPU {
-					candidates = append(candidates, node)
+					candidates = append(candidates, &node)
 					availableGPUs[node.ClientID] = available
 					if len(candidates) >= 8 {
 						break
@@ -316,7 +317,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 						}
 					}
 					if len(available) >= task.NumberGPU {
-						candidates = append(candidates, node)
+						candidates = append(candidates, &node)
 						availableGPUs[node.ClientID] = available
 						if len(candidates) >= 8 {
 							break
@@ -338,7 +339,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 
 	/* assign */
 	if len(candidates) > 0 {
-		node := candidates[0]
+		node := pool.pickNode(candidates)
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
 		res.Status = availableGPUs[node.ClientID][0:task.NumberGPU]
@@ -354,9 +355,15 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 			}
 		}
 		if allocationType == 2 {
+			scheduler.UsingGPUMu.Lock()
 			scheduler.UsingGPU += task.NumberGPU
+			scheduler.UsingGPUMu.Unlock()
+			log.Info(res.Status, " is using")
 		}
 	}
+
+
+
 
 	for i := range locks {
 		pool.poolsMu[i].Unlock()
@@ -399,7 +406,10 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 					node.Status[j].MemoryAllocated = 0
 				}
 				if node.Status[j].MemoryAllocated == 0 {
+					scheduler.UsingGPUMu.Lock()
 					scheduler.UsingGPU--
+					scheduler.UsingGPUMu.Unlock()
+					log.Info(node.Status[j].UUID, " is released")
 				}
 				log.Info(node.Status[j].MemoryAllocated)
 			}
@@ -592,30 +602,30 @@ func (scheduler *SchedulerFair) Detach(GPU string, job string) {
 
 func (scheduler *SchedulerFair) Enable() bool {
 	scheduler.enabled = true
-	log.Info("scheduler is enabled", time.Now())
+	log.Info("scheduler is enabled ", time.Now())
 	return true
 }
 
 func (scheduler *SchedulerFair) Disable() bool {
 	scheduler.enabled = false
-	log.Info("scheduler is disabled", time.Now())
+	log.Info("scheduler is disabled ", time.Now())
 	return true
 }
 
 func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
 	scheduler.parallelism = parallelism
-	log.Info("parallelism is updated to", parallelism)
+	log.Info("parallelism is updated to ", parallelism)
 	return true
 }
 
 func (scheduler *SchedulerFair) SetShareRatio(ratio float64) bool {
 	scheduler.enableShareRatio = ratio
-	log.Info("enableShareRatio is updated to", ratio)
+	log.Info("enableShareRatio is updated to ", ratio)
 	return true
 }
 
 func (scheduler *SchedulerFair) SetPreScheduleRatio(ratio float64) bool {
 	scheduler.enablePreScheduleRatio = ratio
-	log.Info("enablePreScheduleRatio is updated to", ratio)
+	log.Info("enablePreScheduleRatio is updated to ", ratio)
 	return true
 }
