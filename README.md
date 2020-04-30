@@ -37,3 +37,15 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_update_parallelism&parallelism=5
 ```
+
+
+**getAllPredicts**
+```
+?action=debug_get_predicts
+```
+
+
+**getAllGPUUtils**
+```
+?action=debug_get_gpu_utils
+```

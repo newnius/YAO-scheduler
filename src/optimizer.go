@@ -84,8 +84,6 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			predict.Main = predict.Total - predict.Pre - predict.Post
 			predict.Version++
 		}
-		log.Info(optimizer.jobUtilsGPU)
-		log.Info(optimizer.predicts)
 	}()
 }
 
@@ -114,4 +112,12 @@ func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime,
 		}
 	}
 	return &OptimizerJobExecutionTime{}, false
+}
+
+func (optimizer *Optimizer) getAllPredicts() map[string]*OptimizerJobExecutionTime {
+	return optimizer.predicts
+}
+
+func (optimizer *Optimizer) getAllGPUUtils() map[string]int {
+	return optimizer.jobUtilsGPU
 }

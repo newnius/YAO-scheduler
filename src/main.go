@@ -189,6 +189,20 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_get_predicts":
+		log.Debug("debug_get_predicts")
+		js, _ := json.Marshal(InstanceOfOptimizer().getAllPredicts())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_get_gpu_utils":
+		log.Debug("debug_get_gpu_utils")
+		js, _ := json.Marshal(InstanceOfOptimizer().getAllGPUUtils())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break
