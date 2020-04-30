@@ -38,6 +38,10 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 	log.Info(optimizer.jobUtilsGPU)
 	log.Info(optimizer.predicts)
 
+	if len(utils) == 0 {
+		return
+	}
+
 	go func() {
 		str := strings.Split(job, "-")
 		if len(str) == 2 {
@@ -48,10 +52,12 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 				sum += utils[i]
 			}
 			last := 0
+			version := 0
 			if t, err := optimizer.jobUtilsGPU[job]; !err {
 				last = t
+				version = optimizer.versions[job]
 			}
-			optimizer.jobUtilsGPU[job] = (optimizer.versions[job]*last + sum/len(utils)) / (optimizer.versions[job] + 1)
+			optimizer.jobUtilsGPU[job] = (version*last + sum/len(utils)) / (version + 1)
 			optimizer.versions[job]++
 
 			for i := 0; i < len(utils); i++ {
