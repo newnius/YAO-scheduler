@@ -188,7 +188,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	var candidates []NodeStatus
 	/* first round, find vacant gpu */
 	for i := 0; i < pool.poolsCount; i++ {
-		log.Info("lock,", (i+poolID)%pool.poolsCount)
 		pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
 		locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
 		for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
@@ -199,13 +198,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				}
 			}
 			if len(available) >= task.NumberGPU {
-				tmp := NodeStatus{}
-				tmp.ClientID = node.ClientID
-				tmp.ClientHost = node.ClientHost
-				tmp.Status = available
-				tmp.NumCPU = node.NumCPU
-				tmp.MemTotal = node.MemAvailable
-				candidates = append(candidates, tmp)
+				candidates = append(candidates, node)
 				if len(candidates) >= 8 {
 					break
 				}
@@ -223,10 +216,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		log.Info("dasdsa")
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
-			for i := poolID; i < pool.poolsCount; i++ {
-				if _, err := locks[i]; err {
-					pool.poolsMu[i].Lock()
-					locks[i] = pool.poolsMu[i]
+			for i := 0; i < pool.poolsCount; i++ {
+				if _, err := locks[(i+poolID)%pool.poolsCount]; err {
+					pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
+					locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
 				}
 
 				for _, node := range pool.pools[i] {
@@ -248,13 +241,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 						}
 					}
 					if len(available) >= task.NumberGPU {
-						tmp := NodeStatus{}
-						tmp.ClientID = node.ClientID
-						tmp.ClientHost = node.ClientHost
-						tmp.Status = available
-						tmp.NumCPU = node.NumCPU
-						tmp.MemTotal = node.MemAvailable
-						candidates = append(candidates, tmp)
+						candidates = append(candidates, node)
 						if len(candidates) >= 8 {
 							break
 						}
@@ -287,9 +274,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		}
 	}
 
-	for i, _ := range locks {
-		log.Info("unlock ", i)
-		//lock.Unlock()
+	for i := range locks {
 		pool.poolsMu[i].Unlock()
 	}
 	go func(res NodeStatus) {
