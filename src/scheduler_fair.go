@@ -350,16 +350,18 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		for i := range res.Status {
 			for j := range node.Status {
 				if res.Status[i].UUID == node.Status[j].UUID {
+					if node.Status[j].MemoryAllocated == 0 {
+						scheduler.UsingGPUMu.Lock()
+						scheduler.UsingGPU ++
+						scheduler.UsingGPUMu.Unlock()
+					}
 					node.Status[j].MemoryAllocated += task.MemoryGPU
 					res.Status[i].MemoryTotal = task.MemoryGPU
 				}
 			}
 		}
-		if allocationType == 2 {
-			scheduler.UsingGPUMu.Lock()
-			scheduler.UsingGPU += task.NumberGPU
-			scheduler.UsingGPUMu.Unlock()
-			log.Info(res.Status, " is using")
+		for _, t := range res.Status {
+			scheduler.Attach(t.UUID, job.Name)
 		}
 	}
 
