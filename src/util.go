@@ -166,6 +166,11 @@ type MsgGroupList struct {
 	Groups []Group `json:"groups"`
 }
 
+type UtilGPUTimeSeries struct {
+	Time int `json:"time"`
+	Util int `json:"util"`
+}
+
 type OptimizerJobExecutionTime struct {
 	Pre     int `json:"pre"`
 	Post    int `json:"post"`

@@ -33,7 +33,7 @@ func InstanceOfOptimizer() *Optimizer {
 	return optimizerInstance
 }
 
-func (optimizer *Optimizer) feed(job string, utils []int) {
+func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
 	log.Info("optimizer feed")
 	log.Info(job, utils)
 
@@ -44,12 +44,11 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 	go func() {
 		str := strings.Split(job, "-")
 		if len(str) == 2 {
-			preCnt := 0
 			jobName := str[0]
 
 			sum := 0
 			for i := 0; i < len(utils); i++ {
-				sum += utils[i]
+				sum += utils[i].Util
 			}
 			sum /= len(utils)
 			if _, ok := optimizer.jobUtilsGPU[jobName]; !ok {
@@ -59,27 +58,26 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			t.Util = (t.Version*t.Util + sum) / (t.Version + 1)
 			t.Version++
 
+			preTime := 0
 			for i := 0; i < len(utils); i++ {
-				if utils[i] > 15 {
+				if utils[i].Util > 15 {
+					preTime = utils[i].Time - utils[0].Time
 					break
 				}
-				preCnt++
 			}
 
-			postCnt := 0
+			postTime := 0
 			for i := len(utils) - 1; i >= 0; i-- {
-				if utils[i] > 15 {
+				if utils[i].Util > 15 {
+					postTime = utils[len(utils)-1].Time - utils[i].Time
 					break
 				}
-				postCnt++
 			}
 
 			if _, ok := optimizer.predicts[jobName]; !ok {
 				optimizer.predicts[jobName] = &OptimizerJobExecutionTime{}
 			}
-			postTime := postCnt * optimizer.heartbeatInterval
-			preTime := preCnt * optimizer.heartbeatInterval
-			totalTime := len(utils) * optimizer.heartbeatInterval
+			totalTime := utils[len(utils)-1].Time - utils[0].Time
 
 			predict := optimizer.predicts[jobName]
 			predict.Pre = ((predict.Pre * predict.Version) + preTime) / (predict.Version + 1)

@@ -36,6 +36,9 @@ type SchedulerFair struct {
 
 	UsingGPU   int
 	UsingGPUMu sync.Mutex
+
+	allocatingGPU   int
+	allocatingGPUMu sync.Mutex
 }
 
 type FairJobSorter []Job
@@ -66,6 +69,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.enablePreScheduleRatio = 0.95
 
 	scheduler.UsingGPU = 0
+	scheduler.allocatingGPU = 0
 
 	scheduler.parallelism = 1
 
@@ -82,6 +86,7 @@ func (scheduler *SchedulerFair) Start() {
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
+
 			scheduler.schedulingJobsCnt++
 			scheduler.schedulingMu.Unlock()
 			scheduler.queueMu.Lock()
@@ -89,6 +94,24 @@ func (scheduler *SchedulerFair) Start() {
 			if len(scheduler.queues[queue]) > 0 {
 				jm := JobManager{}
 				jm.job = scheduler.queues[queue][0]
+
+				cnt := 0
+				for _, task := range jm.job.Tasks {
+					cnt += task.NumberGPU
+				}
+				if scheduler.schedulingJobsCnt > 1 {
+					if (cnt+scheduler.allocatingGPU+1)*13 > (pool.TotalGPU-scheduler.UsingGPU)*10 {
+						scheduler.schedulingMu.Lock()
+						scheduler.schedulingJobsCnt--
+						scheduler.schedulingMu.Unlock()
+						continue
+					}
+				}
+				scheduler.allocatingGPUMu.Lock()
+				scheduler.allocatingGPU += cnt
+				scheduler.allocatingGPUMu.Unlock()
+				log.Info("allocatingGPU is ", scheduler.allocatingGPU)
+				log.Info("schedulingJobsCnt is ", scheduler.schedulingJobsCnt)
 
 				scheduler.queues[queue] = scheduler.queues[queue][1:]
 				jm.scheduler = scheduler
@@ -285,9 +308,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && scheduler.enablePreSchedule {
 		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
 
-		log.Info(pool.TotalGPU)
-		log.Info(estimate, valid)
-		log.Info(scheduler.UsingGPU)
+		//log.Info(pool.TotalGPU)
+		//log.Info(estimate, valid)
+		//log.Info(scheduler.UsingGPU)
 
 		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
 			allocationType = 3
@@ -363,6 +386,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		for _, t := range res.Status {
 			scheduler.Attach(t.UUID, job.Name)
 		}
+		scheduler.allocatingGPUMu.Lock()
+		scheduler.allocatingGPU -= task.NumberGPU
+		scheduler.allocatingGPUMu.Unlock()
+		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
 	}
 
 	for i := range locks {

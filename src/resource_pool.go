@@ -34,7 +34,7 @@ type ResourcePool struct {
 
 	bindings   map[string]map[string]int
 	bindingsMu sync.Mutex
-	utils      map[string][]int
+	utils      map[string][]UtilGPUTimeSeries
 
 	TotalGPU int
 }
@@ -64,7 +64,7 @@ func (pool *ResourcePool) start() {
 	pool.versions = map[string]float64{}
 
 	pool.bindings = map[string]map[string]int{}
-	pool.utils = map[string][]int{}
+	pool.utils = map[string][]UtilGPUTimeSeries{}
 
 	pool.TotalGPU = 0
 
@@ -168,7 +168,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		for _, gpu := range node.Status {
 			if _, ok := pool.bindings[gpu.UUID]; ok {
 				if len(pool.bindings[gpu.UUID]) == 1 {
-					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID], gpu.UtilizationGPU)
+					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID],
+						UtilGPUTimeSeries{Time: (int)(time.Now().Unix()), Util: gpu.UtilizationGPU})
 				}
 			}
 		}
@@ -279,7 +280,7 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 	pool.bindings[GPU][job] = int(time.Now().Unix())
 
 	if _, ok := pool.utils[GPU]; !ok {
-		pool.utils[GPU] = []int{}
+		pool.utils[GPU] = []UtilGPUTimeSeries{}
 	}
 }
 
@@ -289,7 +290,7 @@ func (pool *ResourcePool) detach(GPU string, jobName string) {
 	if _, ok := pool.bindings[GPU]; ok {
 		if len(pool.bindings[GPU]) == 1 {
 			InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
-			pool.utils[GPU] = []int{}
+			pool.utils[GPU] = []UtilGPUTimeSeries{}
 		}
 	}
 
@@ -312,7 +313,6 @@ func (pool *ResourcePool) pickNode(nodes []*NodeStatus) *NodeStatus {
 	}
 
 	/* sort */
-
 
 	return nodes[0]
 }
