@@ -247,7 +247,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				}
 			}
 		}
-		log.Info(candidates)
+		//log.Info(candidates)
 	}
 
 	/* second round, find vacant gpu */
@@ -277,7 +277,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				break
 			}
 		}
-		log.Info(candidates)
+		//log.Info(candidates)
 	}
 
 	/* third round, find gpu to be released */
@@ -327,11 +327,14 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 					break
 				}
 			}
-			log.Info(candidates)
+			//log.Info(candidates)
 		}
 	}
 
-	log.Info("allocationType is ", allocationType)
+	if len(candidates) > 0 {
+		log.Info("allocationType is ", allocationType)
+		log.Info(candidates)
+	}
 
 	/* assign */
 	if len(candidates) > 0 {
