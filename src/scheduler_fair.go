@@ -185,6 +185,8 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 
 	locks := map[int]sync.Mutex{}
 
+	allocationType := 1
+
 	var candidates []NodeStatus
 	/* first round, find vacant gpu */
 	for i := 0; i < pool.poolsCount; i++ {
@@ -193,7 +195,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
 			var available []GPUStatus
 			for _, status := range node.Status {
-				if status.MemoryTotal >= task.MemoryGPU && status.MemoryUsed < 10 {
+				if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
 					available = append(available, status)
 				}
 			}
@@ -213,6 +215,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	/* second round, find sharable gpu */
 	if len(candidates) == 0 {
 		// check sharable
+		allocationType = 2
 		log.Info("dasdsa")
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
@@ -255,11 +258,12 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		log.Info(candidates)
 	}
 
+	log.Info(allocationType)
 	/*assign*/
 	if len(candidates) > 0 {
 		var available []GPUStatus
 		for _, status := range candidates[0].Status {
-			if status.MemoryTotal >= task.MemoryGPU && status.MemoryUsed < 10 {
+			if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
 				available = append(available, status)
 			}
 		}
