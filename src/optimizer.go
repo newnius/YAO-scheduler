@@ -90,21 +90,30 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 }
 
 func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
-	log.Info("predictUtilGPU, ", job)
-	return 49, true
-	if _, err := optimizer.jobUtilsGPU[job]; err {
-		return 100, false
+	str := strings.Split(job, "-")
+	if len(str) == 2 {
+		jobName := str[0]
+
+		log.Info("predictUtilGPU, ", jobName)
+		return 49, true
+		if _, err := optimizer.jobUtilsGPU[jobName]; err {
+			return 100, false
+		}
+		if optimizer.versions[jobName] > 5 {
+			return optimizer.jobUtilsGPU[jobName], true
+		}
 	}
-	if optimizer.versions[job] > 5 {
-		return optimizer.jobUtilsGPU[job], true
-	}
-	return optimizer.jobUtilsGPU[job], false
+	return 100, false
 }
 
 func (optimizer *Optimizer) predictTime(job string) (OptimizerJobExecutionTime, bool) {
-	log.Info("predictTime,", job)
-	if _, err := optimizer.predicts[job]; err {
-		return OptimizerJobExecutionTime{}, false
+	str := strings.Split(job, "-")
+	if len(str) == 2 {
+		jobName := str[0]
+		log.Info("predictTime,", jobName)
+		if _, ok := optimizer.predicts[jobName]; ok {
+			return optimizer.predicts[job], optimizer.predicts[jobName].Version > 5
+		}
 	}
-	return optimizer.predicts[job], optimizer.predicts[job].Version > 5
+	return OptimizerJobExecutionTime{}, false
 }

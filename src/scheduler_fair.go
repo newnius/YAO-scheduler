@@ -267,13 +267,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	log.Info(allocationType)
 	/*assign*/
 	if len(candidates) > 0 {
-		var available []GPUStatus
-		for _, status := range candidates[0].Status {
-			if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
-				available = append(available, status)
-			}
-		}
-
 		node := candidates[0]
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
