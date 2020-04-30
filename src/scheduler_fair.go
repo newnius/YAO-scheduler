@@ -350,6 +350,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				}
 			}
 		}
+		if allocationType == 2 {
+			scheduler.UsingGPU += task.NumberGPU
+		}
 	}
 
 	for i := range locks {
@@ -391,6 +394,9 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 					// in case of error
 					log.Warn(node.ClientID, "More Memory Allocated")
 					node.Status[j].MemoryAllocated = 0
+				}
+				if node.Status[j].MemoryAllocated == 0 {
+					scheduler.UsingGPU--
 				}
 				log.Info(node.Status[j].MemoryAllocated)
 			}
