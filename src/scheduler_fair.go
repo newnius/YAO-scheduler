@@ -190,6 +190,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	locks := map[int]sync.Mutex{}
 
 	allocationType := 1
+	availableGPUs := map[string][]GPUStatus{}
 
 	var candidates []NodeStatus
 	/* first round, find vacant gpu */
@@ -205,6 +206,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 			}
 			if len(available) >= task.NumberGPU {
 				candidates = append(candidates, node)
+				availableGPUs[node.ClientID] = available
 				if len(candidates) >= 8 {
 					break
 				}
@@ -242,6 +244,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 								}
 								if totalUtil < 100 {
 									available = append(available, status)
+									availableGPUs[node.ClientID] = available
 								}
 							}
 						}
@@ -274,7 +277,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		node := candidates[0]
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
-		res.Status = available[0:task.NumberGPU]
+		res.Status = availableGPUs[node.ClientID][0:task.NumberGPU]
 		res.NumCPU = task.NumberCPU
 		res.MemTotal = task.Memory
 
