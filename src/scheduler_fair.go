@@ -223,8 +223,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
 			for i := 0; i < pool.poolsCount; i++ {
-				if _, err := locks[(i+poolID)%pool.poolsCount]; err {
-					log.Info("lock", (i+poolID)%pool.poolsCount)
+				if _, ok := locks[(i+poolID)%pool.poolsCount]; !ok {
 					pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
 					locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
 				}
