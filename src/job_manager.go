@@ -139,7 +139,7 @@ func (jm *JobManager) start() {
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			}
 		}
-		if onlyPS {
+		if flag && onlyPS {
 			jm.stop()
 			log.Info("Only PS is running, stop", jm.job.Name)
 			jm.killedFlag = false

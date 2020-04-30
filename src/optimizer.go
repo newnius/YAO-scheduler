@@ -10,7 +10,7 @@ type Optimizer struct {
 	scheduler  Scheduler
 	killedFlag bool
 
-	predicts map[string]OptimizerJobExecutionTime
+	predicts map[string]*OptimizerJobExecutionTime
 
 	jobUtilsGPU map[string]int
 	versions    map[string]int
@@ -25,7 +25,7 @@ func InstanceOfOptimizer() *Optimizer {
 
 	if optimizerInstance == nil {
 		optimizerInstance = &Optimizer{}
-		optimizerInstance.predicts = map[string]OptimizerJobExecutionTime{}
+		optimizerInstance.predicts = map[string]*OptimizerJobExecutionTime{}
 		optimizerInstance.jobUtilsGPU = map[string]int{}
 		optimizerInstance.versions = map[string]int{}
 	}
@@ -35,8 +35,6 @@ func InstanceOfOptimizer() *Optimizer {
 func (optimizer *Optimizer) feed(job string, utils []int) {
 	log.Info("optimizer feed")
 	log.Info(job, utils)
-	log.Info(optimizer.jobUtilsGPU)
-	log.Info(optimizer.predicts)
 
 	if len(utils) == 0 {
 		return
@@ -76,16 +74,18 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 				postCnt++
 			}
 
-			if _, ok := optimizer.predicts[str[0]]; !ok {
-				optimizer.predicts[str[0]] = OptimizerJobExecutionTime{}
+			if _, ok := optimizer.predicts[jobName]; !ok {
+				optimizer.predicts[jobName] = &OptimizerJobExecutionTime{}
 			}
-			predict := optimizer.predicts[str[0]]
+			predict := optimizer.predicts[jobName]
 			predict.Pre = ((predict.Pre * predict.Version) + preCnt) / (predict.Version + 1)
 			predict.Post = ((predict.Post * predict.Version) + postCnt) / (predict.Version + 1)
 			predict.Total = ((predict.Total * predict.Version) + len(utils)) / (predict.Version + 1)
 			predict.Main = predict.Total - predict.Pre - predict.Post
 			predict.Version++
 		}
+		log.Info(optimizer.jobUtilsGPU)
+		log.Info(optimizer.predicts)
 	}()
 }
 
@@ -93,9 +93,7 @@ func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
 	str := strings.Split(job, "-")
 	if len(str) == 2 {
 		jobName := str[0]
-
 		log.Info("predictUtilGPU, ", jobName)
-		return 49, true
 		if _, err := optimizer.jobUtilsGPU[jobName]; err {
 			return 100, false
 		}
@@ -106,7 +104,7 @@ func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
 	return 100, false
 }
 
-func (optimizer *Optimizer) predictTime(job string) (OptimizerJobExecutionTime, bool) {
+func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime, bool) {
 	str := strings.Split(job, "-")
 	if len(str) == 2 {
 		jobName := str[0]
@@ -115,5 +113,5 @@ func (optimizer *Optimizer) predictTime(job string) (OptimizerJobExecutionTime, 
 			return optimizer.predicts[job], optimizer.predicts[jobName].Version > 5
 		}
 	}
-	return OptimizerJobExecutionTime{}, false
+	return &OptimizerJobExecutionTime{}, false
 }
