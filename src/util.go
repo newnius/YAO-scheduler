@@ -174,6 +174,11 @@ type OptimizerJobExecutionTime struct {
 	Version int `json:"version"`
 }
 
+type OptimizerUtilGPU struct {
+	Util    int `json:"util"`
+	Version int `json:"version"`
+}
+
 func str2int(str string, defaultValue int) int {
 	i, err := strconv.Atoi(str)
 	if err == nil {

@@ -233,7 +233,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
 					var available []GPUStatus
 					for _, status := range node.Status {
-						if status.MemoryTotal >= task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
+						if status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
 
 							if jobs, ok := pool.bindings[status.UUID]; ok {
 								totalUtil := util
@@ -242,7 +242,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 										totalUtil += utilT
 									}
 								}
-								if totalUtil < 100 {
+								if totalUtil < 110 {
 									available = append(available, status)
 									availableGPUs[node.ClientID] = available
 								}
