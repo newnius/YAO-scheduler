@@ -281,6 +281,11 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	/* third round, find gpu to be released */
 	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && scheduler.enablePreSchedule {
 		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
+
+		log.Info(pool.TotalGPU)
+		log.Info(estimate, valid)
+		log.Info(scheduler.UsingGPU)
+
 		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
 			allocationType = 3
 			for i := 0; i < pool.poolsCount; i++ {

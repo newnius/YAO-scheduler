@@ -49,3 +49,15 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_get_gpu_utils
 ```
+
+
+**SetShareRatio**
+```
+?action=debug_update_enable_share_ratio&ratio=0.75
+```
+
+
+**SetPreScheduleRatio**
+```
+?action=debug_update_enable_pre_schedule_ratio&ratio=0.95
+```

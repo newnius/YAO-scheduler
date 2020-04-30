@@ -108,7 +108,7 @@ func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime,
 	if len(str) == 2 {
 		jobName := str[0]
 		if _, ok := optimizer.predicts[jobName]; ok {
-			return optimizer.predicts[job], optimizer.predicts[jobName].Version >= 5
+			return optimizer.predicts[jobName], optimizer.predicts[jobName].Version >= 5
 		}
 	}
 	return &OptimizerJobExecutionTime{}, false
