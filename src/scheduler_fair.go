@@ -314,6 +314,8 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	pool.poolsMu[poolID].Lock()
 	defer pool.poolsMu[poolID].Unlock()
 
+	log.Info(agent)
+
 	node := pool.pools[poolID][agent.ClientID]
 	for _, gpu := range agent.Status {
 		for j := range node.Status {
@@ -324,6 +326,7 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 					log.Warn(node.ClientID, "More Memory Allocated")
 					node.Status[j].MemoryAllocated = 0
 				}
+				log.Info(node.Status[j].MemoryAllocated)
 			}
 		}
 	}
