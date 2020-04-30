@@ -32,7 +32,7 @@ type ResourcePool struct {
 	counter      int
 	counterTotal int
 
-	bindings   map[string]map[string]bool
+	bindings   map[string]map[string]int
 	bindingsMu sync.Mutex
 	utils      map[string][]int
 
@@ -59,7 +59,7 @@ func (pool *ResourcePool) start() {
 	pool.networksFree = map[string]bool{}
 	pool.versions = map[string]float64{}
 
-	pool.bindings = map[string]map[string]bool{}
+	pool.bindings = map[string]map[string]int{}
 	pool.utils = map[string][]int{}
 
 	pool.TotalGPU = 0
@@ -270,9 +270,9 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 	pool.bindingsMu.Lock()
 	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; !ok {
-		pool.bindings[GPU] = map[string]bool{}
+		pool.bindings[GPU] = map[string]int{}
 	}
-	pool.bindings[GPU][job] = true
+	pool.bindings[GPU][job] = int(time.Now().Unix())
 
 	if _, ok := pool.utils[GPU]; !ok {
 		pool.utils[GPU] = []int{}
@@ -294,6 +294,6 @@ func (pool *ResourcePool) detach(GPU string, jobName string) {
 	}
 }
 
-func (pool *ResourcePool) getBindings() map[string]map[string]bool {
+func (pool *ResourcePool) getBindings() map[string]map[string]int {
 	return pool.bindings
 }

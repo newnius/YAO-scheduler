@@ -205,7 +205,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	var candidates []NodeStatus
 
 	/* first, choose sharable GPUs */
-	if scheduler.enableShare && (pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) > scheduler.enableShareRatio) {
+	if scheduler.enableShare && (pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enableShareRatio) {
 		// check sharable
 		allocationType = 1
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
@@ -279,8 +279,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	}
 
 	/* third round, find gpu to be released */
-	if len(candidates) == 0 && len(job.Tasks) == 1 && scheduler.enablePreSchedule {
-		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) > scheduler.enablePreScheduleRatio {
+	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && scheduler.enablePreSchedule {
+		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
+		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
 			allocationType = 3
 			for i := 0; i < pool.poolsCount; i++ {
 				pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
@@ -288,8 +289,21 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 				for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
 					var available []GPUStatus
 					for _, status := range node.Status {
-						if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
-							available = append(available, status)
+						bindings := pool.getBindings()
+						if tasks, ok := bindings[status.UUID]; ok {
+							if len(tasks) > 1 {
+								continue
+							}
+							for task_t, s := range tasks {
+								est, valid2 := InstanceOfOptimizer().predictTime(task_t)
+								if valid2 {
+									t := s
+									now := (int)(time.Now().Unix())
+									if now-t > est.Total-est.Post-estimate.Pre && status.MemoryFree > task.MemoryGPU {
+										available = append(available, status)
+									}
+								}
+							}
 						}
 					}
 					if len(available) >= task.NumberGPU {
