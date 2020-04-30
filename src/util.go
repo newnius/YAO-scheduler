@@ -170,6 +170,7 @@ type OptimizerJobExecutionTime struct {
 	Pre     int `json:"pre"`
 	Post    int `json:"post"`
 	Total   int `json:"total"`
+	Main    int `json:"main"`
 	Version int `json:"version"`
 }
 

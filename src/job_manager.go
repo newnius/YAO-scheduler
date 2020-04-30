@@ -70,6 +70,7 @@ func (jm *JobManager) start() {
 		v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[i].Memory)+"m")
 		v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
 		v.Set("network", network)
+		v.Set("should_wait", "1")
 
 		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 		if err != nil {
@@ -106,7 +107,6 @@ func (jm *JobManager) start() {
 			} else if res.Status[i].Status == "running" {
 				log.Debug(jm.job.Name, "-", i, " is running")
 				flag = true
-				log.Info(jm.job.Tasks[i].IsPS)
 				if !jm.job.Tasks[i].IsPS {
 					onlyPS = false
 				}
@@ -138,6 +138,7 @@ func (jm *JobManager) start() {
 		}
 		if onlyPS {
 			jm.stop()
+			log.Info("Only PS is running, stop", jm.job.Name)
 			break
 		}
 		if !flag {
@@ -232,6 +233,6 @@ func (jm *JobManager) stop() MsgStop {
 	}()
 
 	jm.scheduler.UpdateProgress(jm.job.Name, Stopped)
-	log.Info("kill job", jm.job.Name)
+	log.Info("kill job, ", jm.job.Name)
 	return MsgStop{Code: 0}
 }
