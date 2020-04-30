@@ -77,12 +77,14 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			if _, ok := optimizer.predicts[jobName]; !ok {
 				optimizer.predicts[jobName] = &OptimizerJobExecutionTime{}
 			}
-			postCnt *= optimizer.heartbeatInterval
-			preCnt *= optimizer.heartbeatInterval
+			postTime := postCnt * optimizer.heartbeatInterval
+			preTime := preCnt * optimizer.heartbeatInterval
+			totalTime := len(utils) * optimizer.heartbeatInterval
+
 			predict := optimizer.predicts[jobName]
-			predict.Pre = ((predict.Pre * predict.Version) + preCnt) / (predict.Version + 1)
-			predict.Post = ((predict.Post * predict.Version) + postCnt) / (predict.Version + 1)
-			predict.Total = ((predict.Total * predict.Version) + len(utils)) / (predict.Version + 1)
+			predict.Pre = ((predict.Pre * predict.Version) + preTime) / (predict.Version + 1)
+			predict.Post = ((predict.Post * predict.Version) + postTime) / (predict.Version + 1)
+			predict.Total = ((predict.Total * predict.Version) + totalTime) / (predict.Version + 1)
 			predict.Main = predict.Total - predict.Pre - predict.Post
 			if predict.Main < 0 {
 				predict.Main = 0

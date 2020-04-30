@@ -313,5 +313,6 @@ func (pool *ResourcePool) pickNode(nodes []*NodeStatus) *NodeStatus {
 
 	/* sort */
 
+
 	return nodes[0]
 }
