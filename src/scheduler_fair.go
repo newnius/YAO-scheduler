@@ -287,9 +287,10 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		}
 	}
 
-	for i, lock := range locks {
+	for i, _ := range locks {
 		log.Info("unlock ", i)
-		lock.Unlock()
+		//lock.Unlock()
+		pool.poolsMu[i].Unlock()
 	}
 	go func(res NodeStatus) {
 		if len(res.Status) == 0 {
