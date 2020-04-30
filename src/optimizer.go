@@ -89,6 +89,8 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 }
 
 func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
+	log.Info("predictUtilGPU, ", job)
+	return 49, true
 	if _, err := optimizer.jobUtilsGPU[job]; err {
 		return 100, false
 	}
@@ -99,6 +101,7 @@ func (optimizer *Optimizer) predictUtilGPU(job string) (int, bool) {
 }
 
 func (optimizer *Optimizer) predictTime(job string) (OptimizerJobExecutionTime, bool) {
+	log.Info("predictTime,", job)
 	if _, err := optimizer.predicts[job]; err {
 		return OptimizerJobExecutionTime{}, false
 	}

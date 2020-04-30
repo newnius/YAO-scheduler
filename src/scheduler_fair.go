@@ -28,6 +28,8 @@ type SchedulerFair struct {
 	resourceAllocationsMu sync.Mutex
 	enabled               bool
 	parallelism           int
+	enableShare           bool
+	enablePreSchedule     bool
 }
 
 type FairJobSorter []Job
@@ -51,6 +53,8 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
 	scheduler.enabled = true
 	scheduler.schedulingJobsCnt = 0
+	scheduler.enableShare = true
+	scheduler.enablePreSchedule = true
 
 	scheduler.parallelism = 1
 
@@ -213,10 +217,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	log.Info(candidates)
 
 	/* second round, find sharable gpu */
-	if len(candidates) == 0 {
+	if len(candidates) == 0 && scheduler.enableShare {
 		// check sharable
 		allocationType = 2
-		log.Info("dasdsa")
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
 			for i := 0; i < pool.poolsCount; i++ {
