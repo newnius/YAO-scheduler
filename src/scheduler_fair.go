@@ -34,7 +34,7 @@ type SchedulerFair struct {
 	enablePreSchedule      bool
 	enablePreScheduleRatio float64
 
-	UsingGPU int
+	UsingGPU   int
 	UsingGPUMu sync.Mutex
 }
 
@@ -309,6 +309,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 								if valid2 {
 									t := s
 									now := (int)(time.Now().Unix())
+									log.Info(t, now, estimate, est)
 									if now-t > est.Total-est.Post-estimate.Pre && status.MemoryFree > task.MemoryGPU {
 										available = append(available, status)
 									}
@@ -361,9 +362,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 			log.Info(res.Status, " is using")
 		}
 	}
-
-
-
 
 	for i := range locks {
 		pool.poolsMu[i].Unlock()
