@@ -98,6 +98,7 @@ func (jm *JobManager) start() {
 	for {
 		res := jm.status()
 		flag := false
+		onlyPS := true
 		for i := range res.Status {
 			if res.Status[i].Status == "ready" {
 				log.Debug(jm.job.Name, "-", i, " is ready to run")
@@ -105,10 +106,12 @@ func (jm *JobManager) start() {
 			} else if res.Status[i].Status == "running" {
 				log.Debug(jm.job.Name, "-", i, " is running")
 				flag = true
+				if !jm.job.Tasks[i].IsPS {
+					onlyPS = false
+				}
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			} else {
 				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
-
 				/* save logs etc. */
 
 				/* remove exited containers */
@@ -131,6 +134,10 @@ func (jm *JobManager) start() {
 
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			}
+		}
+		if onlyPS {
+			jm.stop()
+			break
 		}
 		if !flag {
 			break
