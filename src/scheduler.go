@@ -34,4 +34,8 @@ type Scheduler interface {
 	Disable() bool
 
 	UpdateParallelism(parallelism int) bool
+
+	SetShareRatio(ratio float64) bool
+
+	SetPreScheduleRatio(ratio float64) bool
 }

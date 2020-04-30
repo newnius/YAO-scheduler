@@ -28,8 +28,13 @@ type SchedulerFair struct {
 	resourceAllocationsMu sync.Mutex
 	enabled               bool
 	parallelism           int
-	enableShare           bool
-	enablePreSchedule     bool
+
+	enableShare            bool
+	enableShareRatio       float64
+	enablePreSchedule      bool
+	enablePreScheduleRatio float64
+
+	UsingGPU int
 }
 
 type FairJobSorter []Job
@@ -53,8 +58,13 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
 	scheduler.enabled = true
 	scheduler.schedulingJobsCnt = 0
+
 	scheduler.enableShare = true
+	scheduler.enableShareRatio = 0.75
 	scheduler.enablePreSchedule = true
+	scheduler.enablePreScheduleRatio = 0.95
+
+	scheduler.UsingGPU = 0
 
 	scheduler.parallelism = 1
 
@@ -189,39 +199,15 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 
 	locks := map[int]sync.Mutex{}
 
-	allocationType := 1
+	allocationType := 0
 	availableGPUs := map[string][]GPUStatus{}
 
 	var candidates []NodeStatus
-	/* first round, find vacant gpu */
-	for i := 0; i < pool.poolsCount; i++ {
-		pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
-		locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
-		for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
-			var available []GPUStatus
-			for _, status := range node.Status {
-				if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
-					available = append(available, status)
-				}
-			}
-			if len(available) >= task.NumberGPU {
-				candidates = append(candidates, node)
-				availableGPUs[node.ClientID] = available
-				if len(candidates) >= 8 {
-					break
-				}
-			}
-		}
-		if len(candidates) >= 8 {
-			break
-		}
-	}
-	log.Info(candidates)
 
-	/* second round, find sharable gpu */
-	if len(candidates) == 0 && scheduler.enableShare {
+	/* first, choose sharable GPUs */
+	if scheduler.enableShare && (pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) > scheduler.enableShareRatio) {
 		// check sharable
-		allocationType = 2
+		allocationType = 1
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
 			for i := 0; i < pool.poolsCount; i++ {
@@ -242,7 +228,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 										totalUtil += utilT
 									}
 								}
-								if totalUtil < 110 {
+								if totalUtil < 100 {
 									available = append(available, status)
 									availableGPUs[node.ClientID] = available
 								}
@@ -264,8 +250,67 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		log.Info(candidates)
 	}
 
-	log.Info(allocationType)
-	/*assign*/
+	/* second round, find vacant gpu */
+	if len(candidates) == 0 {
+		allocationType = 2
+		for i := 0; i < pool.poolsCount; i++ {
+			pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
+			locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+			for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
+				var available []GPUStatus
+				for _, status := range node.Status {
+					if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
+						available = append(available, status)
+					}
+				}
+				if len(available) >= task.NumberGPU {
+					candidates = append(candidates, node)
+					availableGPUs[node.ClientID] = available
+					if len(candidates) >= 8 {
+						break
+					}
+				}
+			}
+			if len(candidates) >= 8 {
+				break
+			}
+		}
+		log.Info(candidates)
+	}
+
+	/* third round, find gpu to be released */
+	if len(candidates) == 0 && len(job.Tasks) == 1 && scheduler.enablePreSchedule {
+		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) > scheduler.enablePreScheduleRatio {
+			allocationType = 3
+			for i := 0; i < pool.poolsCount; i++ {
+				pool.poolsMu[(i+poolID)%pool.poolsCount].Lock()
+				locks[(i+poolID)%pool.poolsCount] = pool.poolsMu[(i+poolID)%pool.poolsCount]
+				for _, node := range pool.pools[(i+poolID)%pool.poolsCount] {
+					var available []GPUStatus
+					for _, status := range node.Status {
+						if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
+							available = append(available, status)
+						}
+					}
+					if len(available) >= task.NumberGPU {
+						candidates = append(candidates, node)
+						availableGPUs[node.ClientID] = available
+						if len(candidates) >= 8 {
+							break
+						}
+					}
+				}
+				if len(candidates) >= 8 {
+					break
+				}
+			}
+			log.Info(candidates)
+		}
+	}
+
+	log.Info("allocationType is ", allocationType)
+
+	/* assign */
 	if len(candidates) > 0 {
 		node := candidates[0]
 		res.ClientID = node.ClientID
@@ -528,5 +573,17 @@ func (scheduler *SchedulerFair) Disable() bool {
 func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
 	scheduler.parallelism = parallelism
 	log.Info("parallelism is updated to", parallelism)
+	return true
+}
+
+func (scheduler *SchedulerFair) SetShareRatio(ratio float64) bool {
+	scheduler.enableShareRatio = ratio
+	log.Info("enableShareRatio is updated to", ratio)
+	return true
+}
+
+func (scheduler *SchedulerFair) SetPreScheduleRatio(ratio float64) bool {
+	scheduler.enablePreScheduleRatio = ratio
+	log.Info("enablePreScheduleRatio is updated to", ratio)
 	return true
 }

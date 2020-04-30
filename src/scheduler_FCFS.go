@@ -261,3 +261,15 @@ func (scheduler *SchedulerFCFS) UpdateParallelism(parallelism int) bool {
 	log.Info("parallelism is updated to", parallelism)
 	return true
 }
+
+func (scheduler *SchedulerFCFS) SetShareRatio(ratio float64) bool {
+	//scheduler.enableShareRatio = ratio
+	log.Info("enableShareRatio is updated to", ratio)
+	return true
+}
+
+func (scheduler *SchedulerFCFS) SetPreScheduleRatio(ratio float64) bool {
+	//scheduler.enablePreScheduleRatio = ratio
+	log.Info("enablePreScheduleRatio is updated to", ratio)
+	return true
+}

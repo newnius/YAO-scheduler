@@ -35,6 +35,8 @@ type ResourcePool struct {
 	bindings   map[string]map[string]bool
 	bindingsMu sync.Mutex
 	utils      map[string][]int
+
+	TotalGPU int
 }
 
 func (pool *ResourcePool) GPUModelToPower(model string) int {
@@ -59,6 +61,8 @@ func (pool *ResourcePool) start() {
 
 	pool.bindings = map[string]map[string]bool{}
 	pool.utils = map[string][]int{}
+
+	pool.TotalGPU = 0
 
 	pool.poolsCount = 100
 	for i := 0; i < pool.poolsCount; i++ {
@@ -141,6 +145,8 @@ func (pool *ResourcePool) start() {
 			if len(pool.history) > 60 {
 				pool.history = pool.history[len(pool.history)-60:]
 			}
+
+			pool.TotalGPU = TotalGPU
 			time.Sleep(time.Second * 60)
 		}
 	}()

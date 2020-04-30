@@ -189,6 +189,29 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_update_enable_share_ratio":
+		log.Debug("debug_update_enable_share_ratio")
+
+		ratio := 0.75
+		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
+			ratio = t
+		}
+		js, _ := json.Marshal(scheduler.SetShareRatio(ratio))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_update_enable_pre_schedule_ratio":
+		log.Debug("debug_update_enable_pre_schedule_ratio")
+		ratio := 0.95
+		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
+			ratio = t
+		}
+		js, _ := json.Marshal(scheduler.SetPreScheduleRatio(ratio))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "debug_get_predicts":
 		log.Debug("debug_get_predicts")
 		js, _ := json.Marshal(InstanceOfOptimizer().getAllPredicts())

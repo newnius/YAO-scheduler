@@ -13,6 +13,8 @@ type Optimizer struct {
 	predicts map[string]*OptimizerJobExecutionTime
 
 	jobUtilsGPU map[string]*OptimizerUtilGPU
+
+	heartbeatInterval int
 }
 
 var optimizerInstance *Optimizer
@@ -26,6 +28,7 @@ func InstanceOfOptimizer() *Optimizer {
 		optimizerInstance = &Optimizer{}
 		optimizerInstance.predicts = map[string]*OptimizerJobExecutionTime{}
 		optimizerInstance.jobUtilsGPU = map[string]*OptimizerUtilGPU{}
+		optimizerInstance.heartbeatInterval = 3
 	}
 	return optimizerInstance
 }
@@ -74,6 +77,8 @@ func (optimizer *Optimizer) feed(job string, utils []int) {
 			if _, ok := optimizer.predicts[jobName]; !ok {
 				optimizer.predicts[jobName] = &OptimizerJobExecutionTime{}
 			}
+			postCnt *= optimizer.heartbeatInterval
+			preCnt *= optimizer.heartbeatInterval
 			predict := optimizer.predicts[jobName]
 			predict.Pre = ((predict.Pre * predict.Version) + preCnt) / (predict.Version + 1)
 			predict.Post = ((predict.Post * predict.Version) + postCnt) / (predict.Version + 1)
