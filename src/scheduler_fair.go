@@ -183,13 +183,13 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 	poolID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
 
-	var locks []sync.Mutex
+	locks := map[int]sync.Mutex{}
 
 	var candidates []NodeStatus
 	/* first round, find vacant gpu */
 	for i := poolID; i < pool.poolsCount; i++ {
 		pool.poolsMu[i].Lock()
-		locks = append(locks, pool.poolsMu[i])
+		locks[i] = pool.poolsMu[i]
 		for _, node := range pool.pools[i] {
 			var available []GPUStatus
 			for _, status := range node.Status {
@@ -222,8 +222,11 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task) NodeStatus {
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
 			for i := poolID; i < pool.poolsCount; i++ {
-				pool.poolsMu[i].Lock()
-				locks = append(locks, pool.poolsMu[i])
+				if _, err := locks[i]; err {
+					pool.poolsMu[i].Lock()
+					locks[i] = pool.poolsMu[i]
+				}
+
 				for _, node := range pool.pools[i] {
 					var available []GPUStatus
 					for _, status := range node.Status {
