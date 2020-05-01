@@ -148,9 +148,8 @@ func (jm *JobManager) start() {
 		}
 		if flag && onlyPS {
 			jm.stop()
-			log.Info("Only PS is running, stop", jm.job.Name)
+			log.Info("Only PS is running, stop ", jm.job.Name)
 			jm.killedFlag = false
-			break
 		}
 		if !flag {
 			break
@@ -162,7 +161,7 @@ func (jm *JobManager) start() {
 
 	if !jm.killedFlag {
 		jm.scheduler.UpdateProgress(jm.job.Name, Finished)
-		log.Info("finish job", jm.job.Name)
+		log.Info("finish job ", jm.job.Name)
 	}
 }
 
