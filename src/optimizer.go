@@ -80,9 +80,18 @@ func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
 			totalTime := utils[len(utils)-1].Time - utils[0].Time
 
 			predict := optimizer.predicts[jobName]
-			predict.Pre = ((predict.Pre * predict.Version) + preTime) / (predict.Version + 1)
-			predict.Post = ((predict.Post * predict.Version) + postTime) / (predict.Version + 1)
-			predict.Total = ((predict.Total * predict.Version) + totalTime) / (predict.Version + 1)
+			if predict.Version == 0 {
+				predict.Pre = preTime
+				predict.Post = postTime
+				predict.Total = totalTime
+				predict.Main = predict.Total - predict.Pre - predict.Post
+				if predict.Main < 0 {
+					predict.Main = 0
+				}
+			}
+			predict.Pre = (predict.Pre*95 + preTime*5) / 100
+			predict.Post = (predict.Post*95 + postTime*5) / 100
+			predict.Total = (predict.Total*95 + totalTime*5) / 100
 			predict.Main = predict.Total - predict.Pre - predict.Post
 			if predict.Main < 0 {
 				predict.Main = 0
