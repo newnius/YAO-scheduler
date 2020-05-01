@@ -330,10 +330,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 							for task_t, s := range tasks {
 								est, valid2 := InstanceOfOptimizer().predictTime(task_t)
 								if valid2 {
-									t := s
 									now := (int)(time.Now().Unix())
-									log.Info(t, now, estimate, est)
-									if now-t > est.Total-est.Post-estimate.Pre && status.MemoryFree > task.MemoryGPU {
+									log.Info(s, now, estimate, est)
+									if now-s > est.Total-est.Post-estimate.Pre-15 && status.MemoryFree > task.MemoryGPU {
 										available = append(available, status)
 									}
 								}
@@ -363,7 +362,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 
 	/* assign */
 	if len(candidates) > 0 {
-		node := pool.pickNode(candidates)
+		node := pool.pickNode(candidates, availableGPUs, task, job, nodes)
 		res.ClientID = node.ClientID
 		res.ClientHost = node.ClientHost
 		res.Status = availableGPUs[node.ClientID][0:task.NumberGPU]

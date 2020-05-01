@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"strconv"
 	"hash/fnv"
+	"sort"
 )
 
 type ResourcePool struct {
@@ -303,16 +304,82 @@ func (pool *ResourcePool) getBindings() map[string]map[string]int {
 	return pool.bindings
 }
 
-func (pool *ResourcePool) pickNode(nodes []*NodeStatus) *NodeStatus {
+func (pool *ResourcePool) pickNode(candidates []*NodeStatus, availableGPUs map[string][]GPUStatus, task Task, job Job, nodes []NodeStatus) *NodeStatus {
 
 	/* shuffle */
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for n := len(nodes); n > 0; n-- {
+	for n := len(candidates); n > 0; n-- {
 		randIndex := r.Intn(n)
-		nodes[n-1], nodes[randIndex] = nodes[randIndex], nodes[n-1]
+		candidates[n-1], candidates[randIndex] = candidates[randIndex], candidates[n-1]
 	}
 
 	/* sort */
+	// single node, single GPU
+	sort.Slice(candidates, func(a, b int) bool {
+		diffA := pool.GPUModelToPower(candidates[a].Status[0].ProductName) - pool.GPUModelToPower(task.ModelGPU)
+		diffB := pool.GPUModelToPower(candidates[b].Status[0].ProductName) - pool.GPUModelToPower(task.ModelGPU)
 
-	return nodes[0]
+		if diffA > 0 && diffB >= 0 && diffA > diffB {
+			return false //b
+		}
+		if diffA < 0 && diffB < 0 && diffA > diffB {
+			return false
+		}
+		if diffA < 0 && diffB >= 0 {
+			return false
+		}
+		if diffA == diffB {
+			if len(availableGPUs[candidates[a].ClientID]) == len(availableGPUs[candidates[b].ClientID]) {
+				return candidates[a].UtilCPU > candidates[b].UtilCPU
+			}
+			return len(availableGPUs[candidates[a].ClientID]) < len(availableGPUs[candidates[b].ClientID])
+		}
+		return true //a
+	})
+
+	var t []*NodeStatus
+	bestGPU := candidates[0].Status[0].ProductName
+	for _, node := range candidates {
+		if node.Status[0].ProductName != bestGPU {
+			break
+		}
+		t = append(t, node)
+	}
+	candidates = t
+
+	if (len(job.Tasks) == 1) && task.NumberGPU > 1 { //single node, multi GPUs
+		sort.Slice(candidates, func(a, b int) bool {
+			if len(availableGPUs[candidates[a].ClientID]) == len(availableGPUs[candidates[b].ClientID]) {
+				return candidates[a].UtilCPU > candidates[b].UtilCPU
+			}
+			return len(availableGPUs[candidates[a].ClientID]) < len(availableGPUs[candidates[b].ClientID])
+		})
+	}
+
+	if len(job.Tasks) > 1 { //multi nodes, multi GPUs
+		sort.Slice(candidates, func(a, b int) bool {
+			distanceA := 0
+			distanceB := 0
+			for _, node := range nodes {
+				if node.Rack != candidates[a].Rack {
+					distanceA += 10
+				}
+				if node.ClientID != candidates[a].ClientID {
+					distanceA += 1
+				}
+				if node.Rack != candidates[b].Rack {
+					distanceB += 10
+				}
+				if node.ClientID != candidates[b].ClientID {
+					distanceB += 1
+				}
+			}
+			if distanceA == distanceB {
+				return len(availableGPUs[candidates[a].ClientID]) > len(availableGPUs[candidates[b].ClientID])
+			}
+			return distanceA*job.Locality < distanceB*job.Locality
+		})
+	}
+
+	return candidates[0]
 }

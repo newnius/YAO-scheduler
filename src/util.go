@@ -111,6 +111,7 @@ type GPUStatus struct {
 type NodeStatus struct {
 	ClientID     string      `json:"id"`
 	ClientHost   string      `json:"host"`
+	Rack         int         `json:"rack"`
 	Version      float64     `json:"version"`
 	NumCPU       int         `json:"cpu_num"`
 	UtilCPU      float64     `json:"cpu_load"`
@@ -130,6 +131,7 @@ type Job struct {
 	CreatedAt int         `json:"created_at"`
 	UpdatedAt int         `json:"updated_at"`
 	CreatedBy int         `json:"created_by"`
+	Locality  int         `json:"created_by"`
 	Status    State       `json:"status"`
 }
 
