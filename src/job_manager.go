@@ -129,14 +129,17 @@ func (jm *JobManager) start() {
 				//}
 
 				/* return resource */
-				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-				log.Info("return resource ", jm.resources[i].ClientID)
+				if jm.resources[i].ClientID != "null" {
+					jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
+					log.Info("return resource ", jm.resources[i].ClientID)
+					jm.resources[i].ClientID = "null"
 
-				for _, t := range jm.resources[i].Status {
-					jm.scheduler.Detach(t.UUID, jm.job.Name)
+					for _, t := range jm.resources[i].Status {
+						jm.scheduler.Detach(t.UUID, jm.job.Name)
+					}
+
+					InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 				}
-
-				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			}
 		}
 		if flag && onlyPS {
