@@ -27,6 +27,10 @@ func (jm *JobManager) start() {
 	InstanceJobHistoryLogger().submitJob(jm.job)
 
 	/* request for resources */
+	for range jm.job.Tasks {
+		jm.resources = append(jm.resources, NodeStatus{})
+	}
+
 	for i := range jm.job.Tasks {
 		var resource NodeStatus
 		for {
@@ -40,7 +44,7 @@ func (jm *JobManager) start() {
 			time.Sleep(time.Second * 1)
 		}
 		log.Info("Receive resource", resource)
-		jm.resources = append(jm.resources, resource)
+		jm.resources[i] = resource
 
 		for _, t := range resource.Status {
 			jm.scheduler.Attach(t.UUID, jm.job.Name)
@@ -195,7 +199,12 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 
 func (jm *JobManager) status() MsgJobStatus {
 	var tasksStatus []TaskStatus
-	for _, taskStatus := range jm.jobStatus.tasks {
+	for range jm.jobStatus.tasks {
+		tasksStatus = append(tasksStatus, TaskStatus{})
+	}
+
+	for i, task := range jm.job.Tasks {
+		taskStatus := jm.jobStatus.tasks[task.Name]
 		spider := Spider{}
 		spider.Method = "GET"
 		spider.URL = "http://" + taskStatus.Node + ":8000/status?id=" + taskStatus.Id
@@ -218,7 +227,7 @@ func (jm *JobManager) status() MsgJobStatus {
 			continue
 		}
 		res.Status.Node = taskStatus.Node
-		tasksStatus = append(tasksStatus, res.Status)
+		tasksStatus[i] = res.Status
 	}
 
 	return MsgJobStatus{Status: tasksStatus}
