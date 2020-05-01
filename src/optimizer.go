@@ -14,7 +14,7 @@ type Optimizer struct {
 
 	jobUtilsGPU map[string]*OptimizerUtilGPU
 
-	heartbeatInterval int
+	cache map[string]*OptimizerJobExecutionTime
 }
 
 var optimizerInstance *Optimizer
@@ -28,7 +28,7 @@ func InstanceOfOptimizer() *Optimizer {
 		optimizerInstance = &Optimizer{}
 		optimizerInstance.predicts = map[string]*OptimizerJobExecutionTime{}
 		optimizerInstance.jobUtilsGPU = map[string]*OptimizerUtilGPU{}
-		optimizerInstance.heartbeatInterval = 3
+		optimizerInstance.cache = map[string]*OptimizerJobExecutionTime{}
 	}
 	return optimizerInstance
 }
