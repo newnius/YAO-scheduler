@@ -125,7 +125,7 @@ func (jm *JobManager) start() {
 			continue
 		}
 		if res.Code != 0 {
-			log.Warn(err)
+			log.Warn(res)
 		}
 
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
