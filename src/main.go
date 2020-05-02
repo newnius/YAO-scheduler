@@ -226,6 +226,46 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_optimizer_feed_dl":
+		log.Debug("debug_optimizer_feed_dl")
+		var job string
+		var seq int
+		var value int
+		job = r.URL.Query().Get("job")
+		if t, err := strconv.Atoi(r.URL.Query().Get("seq")); err != nil {
+			seq = t
+		}
+		if t, err := strconv.Atoi(r.URL.Query().Get("value")); err != nil {
+			value = t
+		}
+		InstanceOfOptimizer().feedData(job, seq, 0, 0, 0, value)
+		js, _ := json.Marshal(OptimizerJobExecutionTime{})
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_optimizer_train_dl":
+		log.Debug("debug_optimizer_train_dl")
+		InstanceOfOptimizer().train(r.URL.Query().Get("job"))
+		js, _ := json.Marshal(OptimizerJobExecutionTime{})
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_get_predict_dl":
+		log.Debug("debug_get_predict_dl")
+		if seq, err := strconv.Atoi(r.URL.Query().Get("seq")); err != nil {
+			est, _ := InstanceOfOptimizer().predict(r.URL.Query().Get("job"), seq)
+			js, _ := json.Marshal(est)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(js)
+		} else {
+			js, _ := json.Marshal(OptimizerJobExecutionTime{})
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(js)
+		}
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break
