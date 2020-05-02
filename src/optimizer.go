@@ -4,6 +4,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"strings"
+	"io/ioutil"
+	"strconv"
+	"encoding/json"
 )
 
 type Optimizer struct {
@@ -97,6 +100,11 @@ func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
 				predict.Main = 0
 			}
 			predict.Version++
+
+			optimizer.feedData(jobName, predict.Version, 0, 0, 0, predict.Total)
+			if predict.Version%10 == 0 && predict.Version > 30 {
+				optimizer.train(jobName)
+			}
 		}
 	}()
 }
@@ -116,8 +124,20 @@ func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime,
 	str := strings.Split(job, "-")
 	if len(str) == 2 {
 		jobName := str[0]
-		if _, ok := optimizer.predicts[jobName]; ok {
-			return optimizer.predicts[jobName], optimizer.predicts[jobName].Version >= 5
+		if est, ok := optimizer.cache[jobName]; ok {
+			return est, true
+		}
+		if est, ok := optimizer.predicts[jobName]; ok {
+			if est.Version > 40 {
+				if est2, ok := optimizer.predict(jobName, est.Version); ok {
+					est2.Pre = est.Pre * est2.Total / est.Total
+					est2.Main = est.Main * est2.Total / est.Total
+					est2.Post = est.Post * est2.Total / est.Total
+					optimizer.cache[jobName] = &est2
+					return &est2, true
+				}
+			}
+			return est, est.Version >= 5
 		}
 	}
 	return &OptimizerJobExecutionTime{}, false
@@ -129,4 +149,73 @@ func (optimizer *Optimizer) getAllPredicts() map[string]*OptimizerJobExecutionTi
 
 func (optimizer *Optimizer) getAllGPUUtils() map[string]*OptimizerUtilGPU {
 	return optimizer.jobUtilsGPU
+}
+
+func (optimizer *Optimizer) feedData(job string, seq int, pre int, main int, post int, total int) {
+	spider := Spider{}
+	spider.Method = "GET"
+	params := "job=" + job + "&seq=" + strconv.Itoa(seq) + "&value=" + strconv.Itoa(total)
+	spider.URL = "http://yao-optimizer:8080/feed?" + params
+
+	err := spider.do()
+	if err != nil {
+		return
+	}
+
+	resp := spider.getResponse()
+	if _, err := ioutil.ReadAll(resp.Body); err != nil {
+		log.Warn(err)
+	}
+	resp.Body.Close()
+	if err != nil {
+		return
+	}
+}
+
+func (optimizer *Optimizer) train(job string) {
+	spider := Spider{}
+	spider.Method = "GET"
+	params := "job=" + job
+	spider.URL = "http://yao-optimizer:8080/train?" + params
+
+	err := spider.do()
+	if err != nil {
+		return
+	}
+
+	resp := spider.getResponse()
+	if _, err := ioutil.ReadAll(resp.Body); err != nil {
+		log.Warn(err)
+	}
+	resp.Body.Close()
+	if err != nil {
+		return
+	}
+}
+
+func (optimizer *Optimizer) predict(job string, seq int) (OptimizerJobExecutionTime, bool) {
+	spider := Spider{}
+	spider.Method = "GET"
+	params := "job=" + job + "&seq=" + strconv.Itoa(seq)
+	spider.URL = "http://yao-optimizer:8080/predict?" + params
+
+	err := spider.do()
+	if err != nil {
+		return OptimizerJobExecutionTime{}, false
+	}
+
+	resp := spider.getResponse()
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		log.Warn(err)
+		return OptimizerJobExecutionTime{}, false
+	}
+
+	var res MsgOptimizerPredict
+	err = json.Unmarshal([]byte(string(body)), &res)
+	if err != nil {
+		return OptimizerJobExecutionTime{Total: res.Total, Pre: res.Pre, Main: res.Main, Post: res.Post}, true
+	}
+	return OptimizerJobExecutionTime{}, false
 }

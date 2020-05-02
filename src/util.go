@@ -186,6 +186,15 @@ type OptimizerUtilGPU struct {
 	Version int `json:"version"`
 }
 
+type MsgOptimizerPredict struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+	Total int    `json:"total"`
+	Pre   int    `json:"pre"`
+	Main  int    `json:"main"`
+	Post  int    `json:"post"`
+}
+
 func str2int(str string, defaultValue int) int {
 	i, err := strconv.Atoi(str)
 	if err == nil {
