@@ -128,8 +128,11 @@ func (jm *JobManager) start() {
 			if res.Code != 0 {
 				log.Warn(res)
 			}
+			if res.Code == 0 {
+				jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
+				break
+			}
 		}
-		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
 	}
 
 	/* monitor job execution */
