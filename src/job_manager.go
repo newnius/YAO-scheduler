@@ -94,40 +94,41 @@ func (jm *JobManager) start() {
 			GPUs = append(GPUs, GPU.UUID)
 		}
 
-		v := url.Values{}
-		v.Set("image", jm.job.Tasks[i].Image)
-		v.Set("cmd", jm.job.Tasks[i].Cmd)
-		v.Set("name", jm.job.Tasks[i].Name)
-		v.Set("workspace", jm.job.Workspace)
-		v.Set("gpus", strings.Join(GPUs, ","))
-		v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[i].Memory)+"m")
-		v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
-		v.Set("network", network)
-		v.Set("should_wait", "1")
+		for attemp := 0; attemp < 3; attemp++ {
+			v := url.Values{}
+			v.Set("image", jm.job.Tasks[i].Image)
+			v.Set("cmd", jm.job.Tasks[i].Cmd)
+			v.Set("name", jm.job.Tasks[i].Name)
+			v.Set("workspace", jm.job.Workspace)
+			v.Set("gpus", strings.Join(GPUs, ","))
+			v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[i].Memory)+"m")
+			v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
+			v.Set("network", network)
+			v.Set("should_wait", "1")
 
-		resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
-		if err != nil {
-			log.Warn(err.Error())
-			continue
-		}
+			resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			if err != nil {
+				log.Warn(err.Error())
+				continue
+			}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			log.Warn(err)
-			continue
-		}
+			body, err := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
 
-		var res MsgCreate
-		err = json.Unmarshal([]byte(string(body)), &res)
-		if err != nil {
-			log.Warn(err)
-			continue
+			var res MsgCreate
+			err = json.Unmarshal([]byte(string(body)), &res)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+			if res.Code != 0 {
+				log.Warn(res)
+			}
 		}
-		if res.Code != 0 {
-			log.Warn(res)
-		}
-
 		jm.jobStatus.tasks[jm.job.Tasks[i].Name] = TaskStatus{Id: res.Id, Node: jm.resources[i].ClientHost}
 	}
 
