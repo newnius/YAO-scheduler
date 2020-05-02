@@ -214,7 +214,7 @@ func (optimizer *Optimizer) predict(job string, seq int) (OptimizerJobExecutionT
 
 	var res MsgOptimizerPredict
 	err = json.Unmarshal([]byte(string(body)), &res)
-	if err != nil {
+	if err == nil {
 		return OptimizerJobExecutionTime{Total: res.Total, Pre: res.Pre, Main: res.Main, Post: res.Post}, true
 	}
 	return OptimizerJobExecutionTime{}, false
