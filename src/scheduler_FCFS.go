@@ -51,27 +51,27 @@ func (scheduler *SchedulerFCFS) Start() {
 	}()
 }
 
-func (scheduler *SchedulerFCFS) UpdateProgress(jobName string, state State) {
+func (scheduler *SchedulerFCFS) UpdateProgress(job Job, state State) {
 	switch state {
 	case Running:
 		scheduler.scheduling.Unlock()
 
 		for i := range scheduler.history {
-			if scheduler.history[i].Name == jobName {
+			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Running
 			}
 		}
 		break
 	case Finished:
 		for i := range scheduler.history {
-			if scheduler.history[i].Name == jobName {
+			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Finished
 			}
 		}
 		break
 	case Stopped:
 		for i := range scheduler.history {
-			if scheduler.history[i].Name == jobName {
+			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Stopped
 			}
 		}

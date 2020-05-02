@@ -80,7 +80,7 @@ func (jm *JobManager) start() {
 		}
 
 	}
-	jm.scheduler.UpdateProgress(jm.job.Name, Running)
+	jm.scheduler.UpdateProgress(jm.job, Running)
 
 	log.Info("ready to run job ", jm.job.Name, time.Now())
 
@@ -206,7 +206,7 @@ func (jm *JobManager) start() {
 	jm.scheduler.ReleaseNetwork(network)
 
 	if !jm.killedFlag {
-		jm.scheduler.UpdateProgress(jm.job.Name, Finished)
+		jm.scheduler.UpdateProgress(jm.job, Finished)
 		log.Info("finish job ", jm.job.Name)
 	}
 }
@@ -293,7 +293,7 @@ func (jm *JobManager) stop() MsgStop {
 		}
 	}()
 
-	jm.scheduler.UpdateProgress(jm.job.Name, Stopped)
+	jm.scheduler.UpdateProgress(jm.job, Stopped)
 	log.Info("kill job, ", jm.job.Name)
 	return MsgStop{Code: 0}
 }
