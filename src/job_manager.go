@@ -94,7 +94,7 @@ func (jm *JobManager) start() {
 			GPUs = append(GPUs, GPU.UUID)
 		}
 
-		for attempt := 0; attemp < 3; attemp++ {
+		for attempt := 0; attempt < 3; attempt++ {
 			if attempt == 2 { //failed more than once
 				//for {
 				//	resource := jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i], jm.resources)
