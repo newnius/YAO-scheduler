@@ -232,10 +232,10 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		var seq int
 		var value int
 		job = r.URL.Query().Get("job")
-		if t, err := strconv.Atoi(r.URL.Query().Get("seq")); err != nil {
+		if t, err := strconv.Atoi(r.URL.Query().Get("seq")); err == nil {
 			seq = t
 		}
-		if t, err := strconv.Atoi(r.URL.Query().Get("value")); err != nil {
+		if t, err := strconv.Atoi(r.URL.Query().Get("value")); err == nil {
 			value = t
 		}
 		InstanceOfOptimizer().feedData(job, seq, 0, 0, 0, value)
@@ -254,7 +254,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "debug_get_predict_dl":
 		log.Debug("debug_get_predict_dl")
-		if seq, err := strconv.Atoi(r.URL.Query().Get("seq")); err != nil {
+		if seq, err := strconv.Atoi(r.URL.Query().Get("seq")); err == nil {
 			est, _ := InstanceOfOptimizer().predict(r.URL.Query().Get("job"), seq)
 			js, _ := json.Marshal(est)
 			w.Header().Set("Content-Type", "application/json")
