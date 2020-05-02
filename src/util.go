@@ -131,7 +131,7 @@ type Job struct {
 	CreatedAt int         `json:"created_at"`
 	UpdatedAt int         `json:"updated_at"`
 	CreatedBy int         `json:"created_by"`
-	Locality  int         `json:"created_by"`
+	Locality  int         `json:"locality"`
 	Status    State       `json:"status"`
 }
 
