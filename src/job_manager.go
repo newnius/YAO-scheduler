@@ -65,6 +65,9 @@ func (jm *JobManager) start() {
 				i = -1
 				start = time.Now().Unix()
 			}
+			if i == -1 {
+				break
+			}
 			time.Sleep(time.Second * 1)
 		}
 		if len(resource.Status) > 0 {
