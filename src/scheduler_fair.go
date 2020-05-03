@@ -353,7 +353,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 
 			for cur := start; ; {
 				if _, ok := locks[cur.ID]; !ok {
-					log.Info("lock ", cur.ID)
 					cur.Lock.Lock()
 					locks[cur.ID] = &cur.Lock
 				}
@@ -403,7 +402,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		allocationType = 2
 		for cur := start; ; {
 			if _, ok := locks[cur.ID]; !ok {
-				log.Info("lock ", cur.ID)
 				cur.Lock.Lock()
 				locks[cur.ID] = &cur.Lock
 			}
@@ -445,7 +443,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 			allocationType = 3
 			for cur := start; ; {
 				if _, ok := locks[cur.ID]; !ok {
-					log.Info("lock ", cur.ID)
 					cur.Lock.Lock()
 					locks[cur.ID] = &cur.Lock
 				}

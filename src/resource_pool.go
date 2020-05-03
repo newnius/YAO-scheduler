@@ -132,7 +132,7 @@ func (pool *ResourcePool) getNodePool(name string) int {
 /* save pool status periodically */
 func (pool *ResourcePool) saveStatusHistory() {
 	/* waiting for data */
-	time.Sleep(time.Second * 30)
+	//time.Sleep(time.Second * 30)
 	for {
 		summary := PoolStatus{}
 
