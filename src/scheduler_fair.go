@@ -338,7 +338,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		start = start.Next
 	}
 
-	locks := map[int]sync.Mutex{}
+	locks := map[int]*sync.Mutex{}
 
 	allocationType := 0
 	availableGPUs := map[string][]GPUStatus{}
@@ -355,7 +355,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 				if _, ok := locks[cur.ID]; !ok {
 					log.Info("lock ", cur.ID)
 					cur.Lock.Lock()
-					locks[cur.ID] = cur.Lock
+					locks[cur.ID] = &cur.Lock
 				}
 
 				for _, node := range cur.Nodes {
@@ -405,7 +405,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 			if _, ok := locks[cur.ID]; !ok {
 				log.Info("lock ", cur.ID)
 				cur.Lock.Lock()
-				locks[cur.ID] = cur.Lock
+				locks[cur.ID] = &cur.Lock
 			}
 			for _, node := range cur.Nodes {
 				var available []GPUStatus
@@ -447,7 +447,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 				if _, ok := locks[cur.ID]; !ok {
 					log.Info("lock ", cur.ID)
 					cur.Lock.Lock()
-					locks[cur.ID] = cur.Lock
+					locks[cur.ID] = &cur.Lock
 				}
 				for _, node := range cur.Nodes {
 					var available []GPUStatus
