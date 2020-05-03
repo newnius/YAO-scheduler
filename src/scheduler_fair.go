@@ -129,6 +129,7 @@ func (scheduler *SchedulerFair) Start() {
 				} else {
 					cnt *= 13
 				}
+				log.Info(cnt, reserved, pool.TotalGPU, scheduler.UsingGPU)
 				if cnt+(scheduler.allocatingGPU)*13 > (pool.TotalGPU-scheduler.UsingGPU-reserved)*10 {
 					scheduler.schedulingMu.Lock()
 					scheduler.schedulingJobsCnt--
@@ -178,6 +179,7 @@ func (scheduler *SchedulerFair) Start() {
 				if len(t) == 0 || !InstanceOfGroupManager().groups[t[0].Group].Reserved {
 					continue
 				}
+				log.Info(scheduler.queueUsingGPU)
 				scheduler.queuesUsingGPUMu.Lock()
 				if cnt, ok := scheduler.queuesSchedulingCnt[t[0].Group]; ok && cnt > 0 {
 					scheduler.queuesUsingGPUMu.Unlock()
@@ -748,7 +750,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	}
 	scheduler.nextQueue = next
 	scheduler.queueMu.Unlock()
-	log.Debug("updateNextQueue ->", next)
+	log.Info("updateNextQueue ->", next)
 }
 
 func (scheduler *SchedulerFair) Attach(GPU string, job string) {
