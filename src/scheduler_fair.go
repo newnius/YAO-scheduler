@@ -333,7 +333,10 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
 	segID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
-	start := pool.pools[segID].Next
+	start := &pool.pools[segID]
+	if start.Nodes == nil {
+		start = start.Next
+	}
 
 	locks := map[int]sync.Mutex{}
 
@@ -386,7 +389,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 					break
 				}
 				cur = cur.Next
-				if cur == start {
+				if cur.ID == start.ID {
 					break
 				}
 			}
@@ -421,7 +424,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 				break
 			}
 			cur = cur.Next
-			if cur == start {
+			if cur.ID == start.ID {
 				break
 			}
 		}
@@ -706,7 +709,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 		}
 		cur.Lock.Unlock()
 		cur = cur.Next
-		if cur == start {
+		if cur.ID == start.ID {
 			break
 		}
 	}
