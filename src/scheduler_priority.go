@@ -297,3 +297,7 @@ func (scheduler *SchedulerPriority) SetPreScheduleRatio(ratio float64) bool {
 	log.Info("enablePreScheduleRatio is updated to", ratio)
 	return true
 }
+
+func (scheduler *SchedulerPriority) updateGroup(group Group) bool {
+	return true
+}

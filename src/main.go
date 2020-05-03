@@ -122,6 +122,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msg.Error = err.Error()
 		} else {
 			msg = InstanceOfGroupManager().Add(group)
+			scheduler.updateGroup(group)
 		}
 		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
@@ -138,6 +139,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msg.Error = err.Error()
 		} else {
 			msg = InstanceOfGroupManager().Update(group)
+			scheduler.updateGroup(group)
 		}
 		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
@@ -154,6 +156,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msg.Error = err.Error()
 		} else {
 			msg = InstanceOfGroupManager().Remove(group)
+			scheduler.updateGroup(group)
 		}
 		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")

@@ -38,4 +38,6 @@ type Scheduler interface {
 	SetShareRatio(ratio float64) bool
 
 	SetPreScheduleRatio(ratio float64) bool
+
+	updateGroup(group Group) bool
 }

@@ -273,3 +273,7 @@ func (scheduler *SchedulerFCFS) SetPreScheduleRatio(ratio float64) bool {
 	log.Info("enablePreScheduleRatio is updated to", ratio)
 	return true
 }
+
+func (scheduler *SchedulerFCFS) updateGroup(group Group) bool {
+	return true
+}
