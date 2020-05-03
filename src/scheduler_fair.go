@@ -176,12 +176,10 @@ func (scheduler *SchedulerFair) Start() {
 			scheduler.queueMu.Lock()
 			for q, t := range scheduler.queues {
 				if len(t) == 0 || !InstanceOfGroupManager().groups[t[0].Group].Reserved {
-					scheduler.queueMu.Unlock()
 					continue
 				}
 				scheduler.queuesUsingGPUMu.Lock()
 				if cnt, ok := scheduler.queuesSchedulingCnt[t[0].Group]; ok && cnt > 0 {
-					scheduler.queueMu.Unlock()
 					scheduler.queuesUsingGPUMu.Unlock()
 					continue
 				}
@@ -199,7 +197,6 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.queuesUsingGPUMu.Unlock()
 
 				if pool.TotalGPU-scheduler.UsingGPU-scheduler.allocatingGPU*13/10 < 0 {
-					scheduler.queueMu.Unlock()
 					continue
 				}
 
