@@ -36,7 +36,8 @@ type ResourcePool struct {
 	bindingsMu sync.Mutex
 	utils      map[string][]UtilGPUTimeSeries
 
-	TotalGPU int
+	TotalGPU   int
+	TotalGPUMu sync.Mutex
 }
 
 func (pool *ResourcePool) start() {
@@ -97,6 +98,13 @@ func (pool *ResourcePool) checkDeadNodes() {
 				if seg.Nodes == nil {
 					seg = seg.Next
 				}
+
+				pool.TotalGPUMu.Lock()
+				if _, ok := seg.Nodes[k]; ok {
+					pool.TotalGPU -= len(seg.Nodes[k].Status)
+				}
+				pool.TotalGPUMu.Unlock()
+
 				seg.Lock.Lock()
 				delete(seg.Nodes, k)
 				seg.Lock.Unlock()
@@ -131,8 +139,8 @@ func (pool *ResourcePool) getNodePool(name string) int {
 
 /* save pool status periodically */
 func (pool *ResourcePool) saveStatusHistory() {
-	/* waiting for data */
-	//time.Sleep(time.Second * 30)
+	/* waiting for nodes */
+	time.Sleep(time.Second * 30)
 	for {
 		summary := PoolStatus{}
 
@@ -190,7 +198,9 @@ func (pool *ResourcePool) saveStatusHistory() {
 			pool.history = pool.history[len(pool.history)-60:]
 		}
 
+		pool.TotalGPUMu.Lock()
 		pool.TotalGPU = TotalGPU
+		pool.TotalGPUMu.Unlock()
 		time.Sleep(time.Second * 60)
 	}
 }
@@ -240,6 +250,10 @@ func (pool *ResourcePool) update(node NodeStatus) {
 				node.Status[i].MemoryAllocated = GPU.MemoryAllocated
 			}
 		}
+	} else {
+		pool.TotalGPUMu.Lock()
+		pool.TotalGPU += len(node.Status)
+		pool.TotalGPUMu.Unlock()
 	}
 	seg.Nodes[node.ClientID] = &node
 	if len(seg.Nodes) > 10 {
