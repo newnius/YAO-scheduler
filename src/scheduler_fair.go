@@ -202,7 +202,7 @@ func (scheduler *SchedulerFair) Start() {
 					continue
 				}
 
-				if numberGPU < available {
+				if numberGPU <= available {
 					jm := JobManager{}
 					jm.job = scheduler.queues[q][0]
 
