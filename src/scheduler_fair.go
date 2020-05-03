@@ -740,6 +740,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	Memory := 0.0001
 	start := pool.pools[0].Next
 	for cur := start; ; {
+		log.Info(cur.ID)
 		cur.Lock.Lock()
 		for _, node := range cur.Nodes {
 			CPU += float64(node.NumCPU)
@@ -786,7 +787,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	}
 	scheduler.nextQueue = next
 	scheduler.queueMu.Unlock()
-	log.Debug("updateNextQueue ->", next)
+	log.Info("updateNextQueue ->", next)
 }
 
 func (scheduler *SchedulerFair) Attach(GPU string, job string) {
