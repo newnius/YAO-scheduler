@@ -14,7 +14,7 @@ import (
 
 type ResourcePool struct {
 	poolsCount int
-	pools      []PoolSeg
+	//pools      []PoolSeg
 	poolsMu    sync.Mutex
 
 	history []PoolStatus
@@ -165,7 +165,7 @@ func (pool *ResourcePool) saveStatusHistory() {
 			nodesCount += len(cur.Nodes)
 			cur.Lock.Unlock()
 			cur = cur.Next
-			if cur == start {
+			if cur.ID == start.ID {
 				break
 			}
 		}
@@ -249,6 +249,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 
 /* spilt seg */
 func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
+	log.Info("Scaling seg ", seg.ID)
 	go func() {
 		pool.poolsMu.Lock()
 		defer pool.poolsMu.Unlock()
