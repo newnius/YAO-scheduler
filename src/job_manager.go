@@ -115,6 +115,7 @@ func (jm *JobManager) start() {
 			v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
 			v.Set("network", network)
 			v.Set("should_wait", "1")
+			v.Set("HDFS_path", "1")
 
 			resp, err := doRequest("POST", "http://"+jm.resources[i].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 			if err != nil {

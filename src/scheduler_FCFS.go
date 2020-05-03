@@ -88,12 +88,14 @@ func (scheduler *SchedulerFCFS) Schedule(job Job) {
 }
 
 func (scheduler *SchedulerFCFS) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
-	poolID := rand.Intn(pool.poolsCount)
-	pool.poolsMu[poolID].Lock()
-	defer pool.poolsMu[poolID].Unlock()
+	segID := rand.Intn(pool.poolsCount)
+	seg := &pool.pools[segID]
+	if seg.Nodes == nil {
+		seg = seg.Next
+	}
 
 	res := NodeStatus{}
-	for id, node := range pool.pools[poolID] {
+	for id, node := range seg.Nodes {
 		var available []GPUStatus
 		for _, status := range node.Status {
 			if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
@@ -122,11 +124,15 @@ func (scheduler *SchedulerFCFS) AcquireResource(job Job, task Task, nodes []Node
 }
 
 func (scheduler *SchedulerFCFS) ReleaseResource(job Job, agent NodeStatus) {
-	poolID := rand.Intn(pool.poolsCount)
-	pool.poolsMu[poolID].Lock()
-	defer pool.poolsMu[poolID].Unlock()
+	segID := pool.getNodePool(agent.ClientID)
+	seg := &pool.pools[segID]
+	if seg.Nodes == nil {
+		seg = seg.Next
+	}
+	seg.Lock.Lock()
+	defer seg.Lock.Unlock()
 
-	node := pool.pools[poolID][agent.ClientID]
+	node := seg.Nodes[agent.ClientID]
 	for _, gpu := range agent.Status {
 		for j := range node.Status {
 			if gpu.UUID == node.Status[j].UUID {
@@ -211,9 +217,10 @@ func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 	FreeGPU := 0
 	UsingGPU := 0
 
-	for i := 0; i < pool.poolsCount; i++ {
-		pool.poolsMu[i].Lock()
-		for _, node := range pool.pools[i] {
+	start := pool.pools[0].Next
+	for cur := start; ; {
+		cur.Lock.Lock()
+		for _, node := range cur.Nodes {
 			for j := range node.Status {
 				if node.Status[j].MemoryAllocated == 0 {
 					FreeGPU++
@@ -222,7 +229,11 @@ func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 				}
 			}
 		}
-		pool.poolsMu[i].Unlock()
+		cur.Lock.Unlock()
+		cur = cur.Next
+		if cur == start {
+			break
+		}
 	}
 	summary.FreeGPU = FreeGPU
 	summary.UsingGPU = UsingGPU

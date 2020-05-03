@@ -6,6 +6,7 @@ import (
 	"time"
 	"io"
 	"net/http"
+	"sync"
 )
 
 type Configuration struct {
@@ -193,6 +194,14 @@ type MsgOptimizerPredict struct {
 	Pre   int    `json:"pre"`
 	Main  int    `json:"main"`
 	Post  int    `json:"post"`
+}
+
+type PoolSeg struct {
+	ID        int
+	Nodes     map[string]*NodeStatus
+	Lock      sync.Mutex
+	Next      *PoolSeg
+	IsVirtual bool
 }
 
 func str2int(str string, defaultValue int) int {
