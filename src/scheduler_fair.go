@@ -107,6 +107,9 @@ func (scheduler *SchedulerFair) Start() {
 
 			scheduler.queueMu.Lock()
 			queue := scheduler.nextQueue
+			go func() {
+				scheduler.UpdateNextQueue()
+			}()
 			if len(scheduler.queues[queue]) > 0 {
 				jm := JobManager{}
 				jm.job = scheduler.queues[queue][0]
@@ -164,9 +167,6 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.schedulingMu.Unlock()
 			}
 			scheduler.queueMu.Unlock()
-			go func() {
-				scheduler.UpdateNextQueue()
-			}()
 		}
 	}()
 
