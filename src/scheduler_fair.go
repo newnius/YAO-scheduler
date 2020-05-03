@@ -89,7 +89,7 @@ func (scheduler *SchedulerFair) Start() {
 		for {
 			log.Debug("Scheduling")
 			if !flag {
-				time.Sleep(time.Second * 100)
+				time.Sleep(time.Millisecond * 100)
 			}
 			flag = false
 			if !scheduler.enabled {
