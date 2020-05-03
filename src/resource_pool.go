@@ -343,6 +343,7 @@ func (pool *ResourcePool) list() MsgResource {
 
 	start := pool.pools[0].Next
 	for cur := start; ; {
+		log.Info(cur.ID)
 		cur.Lock.Lock()
 		for k, node := range cur.Nodes {
 			nodes[k] = *node
