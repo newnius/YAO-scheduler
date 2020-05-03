@@ -530,9 +530,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		log.Info("Unlock ", segID)
 		lock.Unlock()
 	}
-	pool.pools[0].Lock.Lock()
-	pool.pools[0].Lock.Unlock()
-	log.Info("all locks released")
 
 	go func(res NodeStatus) {
 		if len(res.Status) == 0 {
@@ -744,7 +741,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	start := pool.pools[0].Next
 	for cur := start; ; {
 		log.Info(cur.ID)
-		cur.Lock.Lock()
+		//cur.Lock.Lock()
 		for _, node := range cur.Nodes {
 			CPU += float64(node.NumCPU)
 			Memory += float64(node.MemTotal)
@@ -753,7 +750,7 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 				MemoryGPU += float64(card.MemoryTotal)
 			}
 		}
-		cur.Lock.Unlock()
+		//cur.Lock.Unlock()
 		cur = cur.Next
 		if cur == start {
 			break
