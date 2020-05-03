@@ -333,6 +333,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
 	segID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
+	start := pool.pools[segID].Next
 
 	locks := map[int]sync.Mutex{}
 
@@ -347,7 +348,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		allocationType = 1
 		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
 
-			start := pool.pools[segID].Next
 			for cur := start; ; {
 				if _, ok := locks[cur.ID]; !ok {
 					cur.Lock.Lock()
@@ -397,7 +397,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 	/* second round, find vacant gpu */
 	if len(candidates) == 0 {
 		allocationType = 2
-		start := pool.pools[segID].Next
 		for cur := start; ; {
 			if _, ok := locks[cur.ID]; !ok {
 				cur.Lock.Lock()
@@ -439,7 +438,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 
 		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
 			allocationType = 3
-			start := pool.pools[segID].Next
 			for cur := start; ; {
 				if _, ok := locks[cur.ID]; !ok {
 					cur.Lock.Lock()

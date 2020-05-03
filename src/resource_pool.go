@@ -344,11 +344,10 @@ func (pool *ResourcePool) list() MsgResource {
 	start := pool.pools[0].Next
 	for cur := start; ; {
 		cur.Lock.Lock()
-		cur.Lock.Unlock()
-
 		for k, node := range cur.Nodes {
 			nodes[k] = *node
 		}
+		cur.Lock.Unlock()
 		cur = cur.Next
 		if cur == start {
 			break
