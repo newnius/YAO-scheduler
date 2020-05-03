@@ -162,11 +162,11 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.schedulingMu.Lock()
 				scheduler.schedulingJobsCnt--
 				scheduler.schedulingMu.Unlock()
-				go func() {
-					scheduler.UpdateNextQueue()
-				}()
 			}
 			scheduler.queueMu.Unlock()
+			go func() {
+				scheduler.UpdateNextQueue()
+			}()
 		}
 	}()
 
@@ -180,6 +180,7 @@ func (scheduler *SchedulerFair) Start() {
 					continue
 				}
 				log.Info(scheduler.queueUsingGPU)
+				log.Info(scheduler.queuesSchedulingCnt)
 				scheduler.queuesUsingGPUMu.Lock()
 				if cnt, ok := scheduler.queuesSchedulingCnt[t[0].Group]; ok && cnt > 0 {
 					scheduler.queuesUsingGPUMu.Unlock()
