@@ -14,7 +14,7 @@ import (
 
 type ResourcePool struct {
 	poolsCount int
-	//pools      []PoolSeg
+	pools      []PoolSeg
 	poolsMu    sync.Mutex
 
 	history []PoolStatus
@@ -83,6 +83,19 @@ func (pool *ResourcePool) start() {
 	go func() {
 		pool.saveStatusHistory()
 	}()
+
+	segID := rand.Intn(pool.poolsCount)
+	start := &pool.pools[segID]
+	if start.Nodes == nil {
+		start = start.Next
+	}
+	for cur := start; ; {
+		log.Info(cur.ID)
+		cur = cur.Next
+		if cur.ID == start.ID {
+			break
+		}
+	}
 }
 
 /* check dead nodes periodically */
