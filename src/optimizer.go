@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"strconv"
 	"encoding/json"
+	"time"
 )
 
 type Optimizer struct {
@@ -124,7 +125,7 @@ func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime,
 	str := strings.Split(job, "-")
 	if len(str) == 2 {
 		jobName := str[0]
-		if est, ok := optimizer.cache[jobName]; ok {
+		if est, ok := optimizer.cache[jobName]; ok && est.Version > (int)(time.Now().Unix())-300 {
 			return est, true
 		}
 		if est, ok := optimizer.predicts[jobName]; ok {
@@ -133,6 +134,7 @@ func (optimizer *Optimizer) predictTime(job string) (*OptimizerJobExecutionTime,
 					est2.Pre = est.Pre * est2.Total / est.Total
 					est2.Main = est.Main * est2.Total / est.Total
 					est2.Post = est.Post * est2.Total / est.Total
+					est2.Version = (int)(time.Now().Unix())
 					optimizer.cache[jobName] = &est2
 					return &est2, true
 				}

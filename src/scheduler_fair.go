@@ -363,6 +363,8 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 								for job := range jobs {
 									if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
 										totalUtil += utilT
+									} else {
+										totalUtil += 100
 									}
 								}
 								if totalUtil < 100 {

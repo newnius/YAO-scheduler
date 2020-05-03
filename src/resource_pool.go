@@ -262,6 +262,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 	for k := range pool.networksFree {
 		network = k
 		delete(pool.networksFree, k)
+		break
 	}
 	return network
 }
