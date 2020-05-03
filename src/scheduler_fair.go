@@ -530,6 +530,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		log.Info("Unlock ", segID)
 		lock.Unlock()
 	}
+	pool.pools[0].Lock.Lock()
+	pool.pools[0].Lock.Unlock()
+	log.Info("all locks released")
 
 	go func(res NodeStatus) {
 		if len(res.Status) == 0 {
