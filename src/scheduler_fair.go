@@ -106,7 +106,7 @@ func (scheduler *SchedulerFair) Start() {
 					cnt += task.NumberGPU
 				}
 				if scheduler.schedulingJobsCnt > 1 {
-					if (cnt+scheduler.allocatingGPU+1)*13 > (pool.TotalGPU-scheduler.UsingGPU)*10 {
+					if (cnt+scheduler.allocatingGPU+1)*13 > (pool.TotalGPU-scheduler.UsingGPU-scheduler.reservedGPU)*10 {
 						scheduler.schedulingMu.Lock()
 						scheduler.schedulingJobsCnt--
 						scheduler.schedulingMu.Unlock()
@@ -448,6 +448,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 						scheduler.UsingGPUMu.Lock()
 						scheduler.UsingGPU ++
 						scheduler.queueUsingGPU[job.Group] += task.NumberGPU
+						scheduler.reservedGPU += task.NumberGPU
 						scheduler.UsingGPUMu.Unlock()
 					}
 					node.Status[j].MemoryAllocated += task.MemoryGPU
@@ -510,8 +511,12 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 					scheduler.UsingGPU--
 					if _, ok := scheduler.queueUsingGPU[job.Group]; ok {
 						scheduler.queueUsingGPU[job.Group]--
+						scheduler.reservedGPU--
 						if scheduler.queueUsingGPU[job.Group] < 0 {
 							scheduler.queueUsingGPU[job.Group] = 0
+						}
+						if scheduler.reservedGPU < 0 {
+							scheduler.reservedGPU = 0
 						}
 					}
 					scheduler.UsingGPUMu.Unlock()
