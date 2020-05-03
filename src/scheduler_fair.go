@@ -522,8 +522,8 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
 	}
 
-	for i := range locks {
-		locks[i].Unlock()
+	for _, lock := range locks {
+		lock.Unlock()
 	}
 
 	go func(res NodeStatus) {
