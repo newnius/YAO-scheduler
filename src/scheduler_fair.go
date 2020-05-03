@@ -152,6 +152,10 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.history = append(scheduler.history, &jm.job)
 				scheduler.historyMu.Unlock()
 
+				scheduler.queuesUsingGPUMu.Lock()
+				scheduler.queuesSchedulingCnt[jm.job.Group]++
+				scheduler.queuesUsingGPUMu.Unlock()
+
 				go func() {
 					jm.start()
 				}()
@@ -252,6 +256,10 @@ func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
 		scheduler.queuesUsingGPUMu.Lock()
 		if _, ok := scheduler.queuesSchedulingCnt[job.Group]; ok {
 			scheduler.queuesSchedulingCnt[job.Group]--
+			if scheduler.queuesSchedulingCnt[job.Group] < 0 {
+				scheduler.queuesSchedulingCnt[job.Group] = 0
+				log.Warn("scheduler.queuesSchedulingCnt less than 0", job.Group)
+			}
 		}
 		scheduler.queuesUsingGPUMu.Unlock()
 
