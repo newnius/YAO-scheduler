@@ -85,6 +85,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.parallelism = 1
 
 	go func() {
+		/* fair scheduler */
 		flag := true
 		for {
 			log.Debug("Scheduling")
@@ -282,6 +283,14 @@ func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Stopped
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
+			}
+		}
+		break
+	case Failed:
+		for i := range scheduler.history {
+			if scheduler.history[i].Name == job.Name {
+				scheduler.history[i].Status = Failed
 				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}

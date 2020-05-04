@@ -115,7 +115,7 @@ func (jm *JobManager) start() {
 			v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[i].NumberCPU))
 			v.Set("network", network)
 			v.Set("should_wait", "1")
-			v.Set("output_dir", "/output/")
+			v.Set("output_dir", "/tmp/")
 			v.Set("hdfs_dir", "http://hdfs-master:50070/user/yao/output/"+jm.job.Name)
 			v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[i].MemoryGPU))
 
@@ -170,6 +170,14 @@ func (jm *JobManager) start() {
 			} else {
 				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
 				/* save logs etc. */
+
+				if exitCode, ok := res.Status[i].State["ExitCode"].(int); ok {
+					if exitCode != 0 {
+						log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
+						jm.killedFlag = true
+						jm.scheduler.UpdateProgress(jm.job, Failed)
+					}
+				}
 
 				/* remove exited containers */
 				//v := url.Values{}

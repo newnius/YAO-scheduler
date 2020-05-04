@@ -41,10 +41,12 @@ type ResourcePool struct {
 }
 
 func (pool *ResourcePool) start() {
+	log.Info("RM started ")
+
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
-	pool.versions = map[string]float64{}
 
+	pool.versions = map[string]float64{}
 	pool.bindings = map[string]map[string]int{}
 	pool.utils = map[string][]UtilGPUTimeSeries{}
 
@@ -221,7 +223,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		defer pool.bindingsMu.Unlock()
 		for _, gpu := range node.Status {
 			if _, ok := pool.bindings[gpu.UUID]; ok {
-				if len(pool.bindings[gpu.UUID]) == 1 {
+				if _, ok2 := pool.utils[gpu.UUID]; ok2 {
 					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID],
 						UtilGPUTimeSeries{Time: (int)(time.Now().Unix()), Util: gpu.UtilizationGPU})
 				}
@@ -244,7 +246,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 
 	status, ok := seg.Nodes[node.ClientID]
 	if ok {
-		/* remain allocation info */
+		/* keep allocation info */
 		for i, GPU := range status.Status {
 			if GPU.UUID == node.Status[i].UUID {
 				node.Status[i].MemoryAllocated = GPU.MemoryAllocated
@@ -433,15 +435,21 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 	if _, ok := pool.utils[GPU]; !ok {
 		pool.utils[GPU] = []UtilGPUTimeSeries{}
 	}
+
+	if len(pool.bindings[GPU]) > 1 {
+		delete(pool.utils, GPU)
+	}
 }
 
 func (pool *ResourcePool) detach(GPU string, jobName string) {
 	pool.bindingsMu.Lock()
 	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; ok {
-		if len(pool.bindings[GPU]) == 1 {
-			InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
-			pool.utils[GPU] = []UtilGPUTimeSeries{}
+		if _, ok2 := pool.utils[GPU]; ok2 {
+			if len(pool.bindings[GPU]) == 1 {
+				InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
+			}
+			delete(pool.utils, GPU)
 		}
 	}
 

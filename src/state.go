@@ -13,4 +13,6 @@ const (
 	Stopped
 	// finished successfully
 	Finished
+
+	Failed
 )
