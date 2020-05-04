@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"strconv"
 	log "github.com/sirupsen/logrus"
-	)
+)
 
 type JobManager struct {
 	scheduler  Scheduler
@@ -170,7 +170,7 @@ func (jm *JobManager) start() {
 			} else {
 				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
 				if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok {
-					if exitCode != 0 {
+					if exitCode != 0 && !jm.killedFlag {
 						log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
 						jm.killedFlag = true
 						jm.scheduler.UpdateProgress(jm.job, Failed)
