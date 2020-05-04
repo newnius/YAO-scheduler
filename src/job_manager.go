@@ -151,7 +151,7 @@ func (jm *JobManager) start() {
 
 	/* monitor job execution */
 	for {
-		res := jm.status()
+		//res := jm.status()
 		flag := false
 		onlyPS := true
 		for i := range res.Status {
@@ -266,6 +266,7 @@ func (jm *JobManager) status() MsgJobStatus {
 
 		err := spider.do()
 		if err != nil {
+			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}
 
@@ -273,12 +274,14 @@ func (jm *JobManager) status() MsgJobStatus {
 		body, err := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
+			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}
 
 		var res MsgTaskStatus
 		err = json.Unmarshal([]byte(string(body)), &res)
 		if err != nil {
+			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}
 		res.Status.Node = taskStatus.Node
