@@ -254,12 +254,11 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 
 func (jm *JobManager) status() MsgJobStatus {
 	var tasksStatus []TaskStatus
-	for range jm.jobStatus.tasks {
+	for range jm.job.Tasks {
 		tasksStatus = append(tasksStatus, TaskStatus{})
 	}
 
 	for i, task := range jm.job.Tasks {
-		log.Info(i, jm.job.Tasks)
 		taskStatus := jm.jobStatus.tasks[task.Name]
 		spider := Spider{}
 		spider.Method = "GET"
