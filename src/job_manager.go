@@ -58,7 +58,7 @@ func (jm *JobManager) start() {
 						log.Info("return resource ", tt.ClientID)
 						jm.resources[i].ClientID = "null"
 						for _, t := range tt.Status {
-							jm.scheduler.Detach(t.UUID, jm.job.Name)
+							jm.scheduler.Detach(t.UUID, jm.job)
 						}
 					}
 				}
@@ -170,7 +170,7 @@ func (jm *JobManager) start() {
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			} else {
 				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
-				if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok {
+				if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok && !jm.job.Tasks[i].IsPS {
 					if exitCode != 0 && !jm.killedFlag {
 						log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
 						jm.killedFlag = true
@@ -195,7 +195,7 @@ func (jm *JobManager) start() {
 					jm.resources[i].ClientID = "null"
 
 					for _, t := range jm.resources[i].Status {
-						jm.scheduler.Detach(t.UUID, jm.job.Name)
+						jm.scheduler.Detach(t.UUID, jm.job)
 					}
 
 					InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])

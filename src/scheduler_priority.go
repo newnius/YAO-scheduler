@@ -277,7 +277,7 @@ func (scheduler *SchedulerPriority) Attach(GPU string, job string) {
 	pool.attach(GPU, job)
 }
 
-func (scheduler *SchedulerPriority) Detach(GPU string, job string) {
+func (scheduler *SchedulerPriority) Detach(GPU string, job Job) {
 	pool.detach(GPU, job)
 }
 

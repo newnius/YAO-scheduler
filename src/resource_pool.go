@@ -102,12 +102,12 @@ func (pool *ResourcePool) checkDeadNodes() {
 				}
 
 				pool.TotalGPUMu.Lock()
+				seg.Lock.Lock()
 				if _, ok := seg.Nodes[k]; ok {
 					pool.TotalGPU -= len(seg.Nodes[k].Status)
 				}
 				pool.TotalGPUMu.Unlock()
 
-				seg.Lock.Lock()
 				delete(seg.Nodes, k)
 				seg.Lock.Unlock()
 				pool.versionsMu.Lock()
@@ -361,7 +361,6 @@ func (pool *ResourcePool) list() MsgResource {
 
 	start := pool.pools[0].Next
 	for cur := start; ; {
-		log.Info(cur.ID)
 		cur.Lock.Lock()
 		for k, node := range cur.Nodes {
 			nodes[k] = *node
@@ -441,20 +440,20 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 	}
 }
 
-func (pool *ResourcePool) detach(GPU string, jobName string) {
+func (pool *ResourcePool) detach(GPU string, job Job) {
 	pool.bindingsMu.Lock()
 	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; ok {
 		if _, ok2 := pool.utils[GPU]; ok2 {
-			if len(pool.bindings[GPU]) == 1 {
-				InstanceOfOptimizer().feed(jobName, pool.utils[GPU])
+			if len(pool.bindings[GPU]) == 1 && job.Status == Finished {
+				InstanceOfOptimizer().feed(job.Name, pool.utils[GPU])
 			}
 			delete(pool.utils, GPU)
 		}
 	}
 
 	if list, ok := pool.bindings[GPU]; ok {
-		delete(list, jobName)
+		delete(list, job.Name)
 	}
 }
 

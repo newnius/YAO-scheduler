@@ -181,8 +181,8 @@ func (scheduler *SchedulerFair) Start() {
 				if len(t) == 0 || !InstanceOfGroupManager().groups[t[0].Group].Reserved {
 					continue
 				}
-				log.Info(scheduler.queueUsingGPU)
-				log.Info(scheduler.queuesSchedulingCnt)
+				//log.Info(scheduler.queueUsingGPU)
+				//log.Info(scheduler.queuesSchedulingCnt)
 				scheduler.queuesUsingGPUMu.Lock()
 				if cnt, ok := scheduler.queuesSchedulingCnt[t[0].Group]; ok && cnt > 0 {
 					scheduler.queuesUsingGPUMu.Unlock()
@@ -495,7 +495,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 
 	if len(candidates) > 0 {
 		log.Info("allocationType is ", allocationType)
-		log.Info(candidates)
+		//log.Info(candidates)
 	}
 
 	/* assign */
@@ -586,7 +586,7 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 					scheduler.UsingGPUMu.Unlock()
 					log.Info(node.Status[j].UUID, " is released")
 				}
-				log.Info(node.Status[j].MemoryAllocated)
+				//log.Info(node.Status[j].MemoryAllocated)
 			}
 		}
 	}
@@ -801,7 +801,7 @@ func (scheduler *SchedulerFair) Attach(GPU string, job string) {
 	pool.attach(GPU, job)
 }
 
-func (scheduler *SchedulerFair) Detach(GPU string, job string) {
+func (scheduler *SchedulerFair) Detach(GPU string, job Job) {
 	pool.detach(GPU, job)
 }
 

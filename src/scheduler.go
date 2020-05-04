@@ -27,7 +27,7 @@ type Scheduler interface {
 
 	Attach(GPU string, job string)
 
-	Detach(GPU string, job string)
+	Detach(GPU string, job Job)
 
 	Enable() bool
 

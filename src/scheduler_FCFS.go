@@ -253,7 +253,7 @@ func (scheduler *SchedulerFCFS) Attach(GPU string, job string) {
 	pool.attach(GPU, job)
 }
 
-func (scheduler *SchedulerFCFS) Detach(GPU string, job string) {
+func (scheduler *SchedulerFCFS) Detach(GPU string, job Job) {
 	pool.detach(GPU, job)
 }
 
