@@ -259,6 +259,7 @@ func (jm *JobManager) status() MsgJobStatus {
 	}
 
 	for i, task := range jm.job.Tasks {
+		log.Info(i, jm.job.Tasks)
 		taskStatus := jm.jobStatus.tasks[task.Name]
 		spider := Spider{}
 		spider.Method = "GET"
