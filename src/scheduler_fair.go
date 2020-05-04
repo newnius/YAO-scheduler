@@ -63,6 +63,8 @@ func (s FairJobSorter) Less(i, j int) bool {
 }
 
 func (scheduler *SchedulerFair) Start() {
+	log.Info("JS started")
+
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.nextQueue = "default"

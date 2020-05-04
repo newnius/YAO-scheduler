@@ -169,8 +169,8 @@ func (jm *JobManager) start() {
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
 			} else {
 				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
-				/* save logs etc. */
 
+				log.Info(res.Status[i].State["ExitCode"])
 				if exitCode, ok := res.Status[i].State["ExitCode"].(int); ok {
 					if exitCode != 0 {
 						log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
