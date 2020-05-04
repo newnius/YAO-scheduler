@@ -93,10 +93,11 @@ func (pool *ResourcePool) start() {
 func (pool *ResourcePool) checkDeadNodes() {
 	for {
 		pool.heartBeatMu.Lock()
+		var nodesToDel []string
 		for k, v := range pool.heartBeat {
 			if v.Add(time.Second * 30).Before(time.Now()) {
-				poolID := pool.getNodePool(k)
-				seg := &pool.pools[poolID]
+				segID := pool.getNodePool(k)
+				seg := &pool.pools[segID]
 				if seg.Nodes == nil {
 					seg = seg.Next
 				}
@@ -113,8 +114,17 @@ func (pool *ResourcePool) checkDeadNodes() {
 				pool.versionsMu.Lock()
 				delete(pool.versions, k)
 				pool.versionsMu.Unlock()
+				nodesToDel = append(nodesToDel, k)
 				log.Info(" node ", k, " is offline")
 			}
+		}
+		for _, v := range nodesToDel {
+			segID := pool.getNodePool(v)
+			seg := &pool.pools[segID]
+			if seg.Nodes == nil {
+				seg = seg.Next
+			}
+			delete(seg.Nodes, v)
 		}
 		pool.heartBeatMu.Unlock()
 		time.Sleep(time.Second * 10)
