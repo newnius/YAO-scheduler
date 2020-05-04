@@ -151,7 +151,7 @@ func (jm *JobManager) start() {
 
 	/* monitor job execution */
 	for {
-		//res := jm.status()
+		res := jm.status()
 		flag := false
 		onlyPS := true
 		for i := range res.Status {
