@@ -459,7 +459,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 								if valid2 {
 									now := (int)(time.Now().Unix())
 									log.Info(s, now, estimate, est)
-									if now-s > est.Total-est.Post-estimate.Pre-15 && status.MemoryFree > task.MemoryGPU {
+									if now-s > est.Total-est.Post-estimate.Pre-15 {
 										available = append(available, status)
 									}
 								}
