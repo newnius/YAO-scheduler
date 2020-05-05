@@ -424,7 +424,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 	if task.NumberGPU <= pool.TotalGPU-scheduler.UsingGPU-reserved {
 		flag = true
 	}
-	if len(candidates) == 0 && !flag {
+	if len(candidates) == 0 && flag {
 		allocationType = 2
 		for cur := start; ; {
 			if _, ok := locks[cur.ID]; !ok {
