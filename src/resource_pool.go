@@ -455,7 +455,7 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 	defer pool.bindingsMu.Unlock()
 	if _, ok := pool.bindings[GPU]; ok {
 		if _, ok2 := pool.utils[GPU]; ok2 {
-			if len(pool.bindings[GPU]) == 1 && job.Status == Finished {
+			if len(pool.bindings[GPU]) == 1 && job.Status != Failed && job.Status != Stopped {
 				InstanceOfOptimizer().feed(job.Name, pool.utils[GPU])
 			}
 			delete(pool.utils, GPU)
