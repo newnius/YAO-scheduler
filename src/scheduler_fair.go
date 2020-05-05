@@ -48,6 +48,8 @@ type SchedulerFair struct {
 	queuesSchedulingCnt map[string]int
 	queueUsingGPU       map[string]int
 	queuesUsingGPUMu    sync.Mutex
+
+	mu sync.Mutex
 }
 
 type FairJobSorter []Job
@@ -342,6 +344,8 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 }
 
 func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
+	scheduler.mu.Lock()
+	defer scheduler.mu.Unlock()
 	segID := rand.Intn(pool.poolsCount)
 	res := NodeStatus{}
 	start := &pool.pools[segID]
