@@ -222,6 +222,7 @@ func (jm *JobManager) start() {
 		jm.scheduler.UpdateProgress(jm.job, Finished)
 		log.Info("finish job ", jm.job.Name)
 	}
+	log.Info("JobMaster exited ", jm.job.Name)
 }
 
 func (jm *JobManager) logs(taskName string) MsgLog {
