@@ -39,7 +39,7 @@ func InstanceOfOptimizer() *Optimizer {
 
 func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
 	log.Info("optimizer feed")
-	log.Info(job, utils)
+	//log.Info(job, utils)
 
 	if len(utils) == 0 {
 		return
@@ -161,6 +161,7 @@ func (optimizer *Optimizer) feedData(job string, seq int, pre int, main int, pos
 
 	err := spider.do()
 	if err != nil {
+		log.Warn(err)
 		return
 	}
 
@@ -170,6 +171,7 @@ func (optimizer *Optimizer) feedData(job string, seq int, pre int, main int, pos
 	}
 	resp.Body.Close()
 	if err != nil {
+		log.Warn(err)
 		return
 	}
 }

@@ -131,7 +131,7 @@ func (scheduler *SchedulerFair) Start() {
 				scheduler.queuesUsingGPUMu.Unlock()
 
 				log.Info(cnt, reserved, pool.TotalGPU, scheduler.UsingGPU, scheduler.allocatingGPU)
-				if cnt*10+(scheduler.allocatingGPU)*13 > (pool.TotalGPU-scheduler.UsingGPU-reserved)*10 {
+				if scheduler.schedulingJobsCnt > 1 && (cnt*10+(scheduler.allocatingGPU)*13 > (pool.TotalGPU-scheduler.UsingGPU-reserved)*10) {
 					scheduler.schedulingMu.Lock()
 					scheduler.schedulingJobsCnt--
 					scheduler.schedulingMu.Unlock()
@@ -371,7 +371,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 				for _, node := range cur.Nodes {
 					var available []GPUStatus
 					for _, status := range node.Status {
-						if status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
+						if status.MemoryAllocated > 0 && status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated && status.MemoryFree > task.MemoryGPU {
 
 							if jobs, ok := pool.bindings[status.UUID]; ok {
 								totalUtil := util
@@ -409,7 +409,22 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 	}
 
 	/* second round, find vacant gpu */
-	if len(candidates) == 0 {
+	flag := false
+	reserved := scheduler.reservedGPU
+	scheduler.queuesUsingGPUMu.Lock()
+	for g, v := range scheduler.queueUsingGPU {
+		if InstanceOfGroupManager().groups[g].Reserved {
+			reserved -= v
+		}
+	}
+	scheduler.queuesUsingGPUMu.Unlock()
+	if g, ok := InstanceOfGroupManager().groups[job.Group]; ok && g.Reserved && g.NumGPU > scheduler.queueUsingGPU[job.Group] {
+		flag = true
+	}
+	if task.NumberGPU <= pool.TotalGPU-scheduler.UsingGPU-reserved {
+		flag = true
+	}
+	if len(candidates) == 0 && !flag {
 		allocationType = 2
 		for cur := start; ; {
 			if _, ok := locks[cur.ID]; !ok {
@@ -462,7 +477,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []Node
 					for _, status := range node.Status {
 						bindings := pool.getBindings()
 						if tasks, ok := bindings[status.UUID]; ok {
-							if len(tasks) > 1 {
+							if len(tasks) > 1 || status.MemoryAllocated == 0 {
 								continue
 							}
 							for task_t, s := range tasks {
