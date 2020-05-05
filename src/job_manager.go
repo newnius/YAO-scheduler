@@ -11,8 +11,8 @@ import (
 )
 
 type JobManager struct {
-	scheduler Scheduler
-	job       Job
+	scheduler  Scheduler
+	job        Job
 	jobStatus  JobStatus
 	resources  []NodeStatus
 	killedFlag bool
@@ -80,9 +80,11 @@ func (jm *JobManager) start() {
 		}
 
 	}
-	jm.scheduler.UpdateProgress(jm.job, Running)
+	if !jm.killedFlag {
+		jm.scheduler.UpdateProgress(jm.job, Running)
 
-	log.Info("ready to run job ", jm.job.Name, time.Now())
+		log.Info("ready to run job ", jm.job.Name, time.Now())
+	}
 
 	/* bring up containers */
 	for i := range jm.job.Tasks {
@@ -102,6 +104,7 @@ func (jm *JobManager) start() {
 				//		break
 				//	}
 				time.Sleep(time.Second * 1)
+				break
 				//}
 			}
 
