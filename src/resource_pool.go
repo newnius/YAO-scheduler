@@ -102,13 +102,12 @@ func (pool *ResourcePool) checkDeadNodes() {
 					seg = seg.Next
 				}
 
-				pool.TotalGPUMu.Lock()
 				seg.Lock.Lock()
+				pool.TotalGPUMu.Lock()
 				if _, ok := seg.Nodes[k]; ok {
 					pool.TotalGPU -= len(seg.Nodes[k].Status)
 				}
 				pool.TotalGPUMu.Unlock()
-
 				delete(seg.Nodes, k)
 				seg.Lock.Unlock()
 				pool.versionsMu.Lock()
@@ -124,7 +123,12 @@ func (pool *ResourcePool) checkDeadNodes() {
 			if seg.Nodes == nil {
 				seg = seg.Next
 			}
+			seg.Lock.Lock()
+			if seg.Nodes == nil {
+				seg = seg.Next
+			}
 			delete(seg.Nodes, v)
+			seg.Lock.Unlock()
 		}
 		pool.heartBeatMu.Unlock()
 		time.Sleep(time.Second * 10)
