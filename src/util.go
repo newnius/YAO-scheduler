@@ -112,6 +112,7 @@ type GPUStatus struct {
 type NodeStatus struct {
 	ClientID     string      `json:"id"`
 	ClientHost   string      `json:"host"`
+	Domain       string      `json:"domain"`
 	Rack         int         `json:"rack"`
 	Version      float64     `json:"version"`
 	NumCPU       int         `json:"cpu_num"`
