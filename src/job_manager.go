@@ -157,38 +157,37 @@ func (jm *JobManager) start() {
 
 	/* monitor job execution */
 	for {
-		flag := jm.checkStatus()
-		if !flag {
+		jm.status()
+		if !jm.isRunning {
 			break
 		}
 		time.Sleep(time.Second * 10)
 	}
 }
 
-func (jm *JobManager) checkStatus() bool {
+func (jm *JobManager) checkStatus(status []TaskStatus) bool {
 	if !jm.isRunning {
 		return false
 	}
-	res := jm.status()
 	flag := false
 	onlyPS := true
-	for i := range res.Status {
-		if res.Status[i].Status == "ready" {
+	for i := range status {
+		if status[i].Status == "ready" {
 			log.Debug(jm.job.Name, "-", i, " is ready to run")
 			flag = true
 			if !jm.job.Tasks[i].IsPS {
 				onlyPS = false
 			}
-		} else if res.Status[i].Status == "running" {
+		} else if status[i].Status == "running" {
 			log.Debug(jm.job.Name, "-", i, " is running")
 			flag = true
 			if !jm.job.Tasks[i].IsPS {
 				onlyPS = false
 			}
-			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
+			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else {
-			log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
-			if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok && !jm.job.Tasks[i].IsPS {
+			log.Info(jm.job.Name, "-", i, " ", status[i].Status)
+			if exitCode, ok := status[i].State["ExitCode"].(float64); ok && !jm.job.Tasks[i].IsPS {
 				if exitCode != 0 && !jm.killedFlag {
 					log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
 					jm.killedFlag = true
@@ -216,7 +215,7 @@ func (jm *JobManager) checkStatus() bool {
 					jm.scheduler.Detach(t.UUID, jm.job)
 				}
 
-				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
+				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 			}
 		}
 	}
@@ -306,6 +305,7 @@ func (jm *JobManager) status() MsgJobStatus {
 		tasksStatus[i] = res.Status
 	}
 
+	jm.checkStatus(tasksStatus)
 	return MsgJobStatus{Status: tasksStatus}
 }
 
