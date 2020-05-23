@@ -178,6 +178,13 @@ func (jm *JobManager) checkStatus(status []TaskStatus) bool {
 			if !jm.job.Tasks[i].IsPS {
 				onlyPS = false
 			}
+		} else if status[i].Status == "unknown" {
+			log.Debug(jm.job.Name, "-", i, " is starting")
+			flag = true
+			if !jm.job.Tasks[i].IsPS {
+				onlyPS = false
+			}
+			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else if status[i].Status == "running" {
 			log.Debug(jm.job.Name, "-", i, " is running")
 			flag = true
