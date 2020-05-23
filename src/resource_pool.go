@@ -252,7 +252,9 @@ func (pool *ResourcePool) update(node NodeStatus) {
 
 			if _, ok := pool.subscriptions[gpu.UUID]; ok {
 				for jobName := range pool.subscriptions[gpu.UUID] {
-					scheduler.QueryState(jobName)
+					go func(name string) {
+						scheduler.QueryState(name)
+					}(jobName)
 				}
 			}
 		}
