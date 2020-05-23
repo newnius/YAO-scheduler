@@ -62,11 +62,11 @@ func (pool *ResourcePool) start() {
 	for i := 0; i < pool.poolsCount; i++ {
 		pool.pools = append(pool.pools, PoolSeg{Lock: sync.Mutex{}, IsVirtual: true, ID: i})
 	}
-	/* make non-virtual seg */
+	/* make non-virtual segs */
 	for i := 0; i < pool.poolsCount/3; i++ {
 		pool.pools[rand.Intn(pool.poolsCount)].IsVirtual = false
 	}
-	/* make working srg */
+	/* generate working segs */
 	for i := 0; i < 10; i++ {
 		pool.pools[rand.Intn(pool.poolsCount)].Nodes = map[string]*NodeStatus{}
 	}

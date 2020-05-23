@@ -583,7 +583,7 @@ func VectorFactory(rng *rand.Rand) eaopt.Genome {
 }
 
 func main3() {
-	numTask := 5
+	numTask := 20
 
 	nodesMap = map[string]Node{}
 	tasksMap = map[string]Task{}
@@ -646,7 +646,7 @@ func main3() {
 	ga.EarlyStop = func(ga *eaopt.GA) bool {
 		gap := math.Abs(ga.HallOfFame[0].Fitness - bestFitness)
 		if gap <= 0.000001 || ga.HallOfFame[0].Fitness >= bestFitness {
-			if count >= 50 || time.Since(ts) > time.Second*30 {
+			if count >= 30 || time.Since(ts) > time.Second*30 {
 				fmt.Println("Early Stop")
 				return true
 			} else {

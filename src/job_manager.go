@@ -161,7 +161,7 @@ func (jm *JobManager) start() {
 		if !jm.isRunning {
 			break
 		}
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 25)
 	}
 }
 
