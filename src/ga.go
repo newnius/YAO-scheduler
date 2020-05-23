@@ -121,7 +121,7 @@ type Node struct {
 	//Status     []GPUStatus `json:"status"`
 }
 
-type Task struct {
+type Task3 struct {
 	Name      string `json:"name"`
 	Image     string `json:"image"`
 	Cmd       string `json:"cmd"`
@@ -189,13 +189,13 @@ func fastBestFit(nodes []Node, tasks []Task) Allocation {
 				minCost = cost
 				nodeID = node.ClientID
 			}
-			fmt.Println(cost)
+			//fmt.Println(cost)
 		}
 		if nodeID == "" {
 			allocation.Flags["valid"] = false
 			break
 		} else {
-			fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
+			//fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
 			allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
 			eva.add(nodesMap[nodeID], task)
 		}
@@ -387,7 +387,7 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 	}
 	//fmt.Println("After", X)
 
-	/* exchange tasks */
+	/* move tasks */
 	if !X.Flags["valid"] {
 		//fmt.Println("Invalid allocation")
 		return
@@ -397,10 +397,20 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 		nodeIDs = append(nodeIDs, nodeID)
 	}
 	randIndex1 := rng.Intn(len(nodeIDs))
-	randIndex2 := rng.Intn(len(nodeIDs))
 	nodeID1 := nodeIDs[randIndex1]
-	nodeID2 := nodeIDs[randIndex2]
-	X.TasksOnNode[nodeID1], X.TasksOnNode[nodeID2] = X.TasksOnNode[nodeID2], X.TasksOnNode[nodeID1]
+	if tasks, ok := X.TasksOnNode[nodeID1]; ok && len(tasks) > 0 {
+		idx := rng.Intn(len(tasks))
+		task := tasks[idx]
+		copy(X.TasksOnNode[nodeID1][idx:], X.TasksOnNode[nodeID1][idx+1:])
+		X.TasksOnNode[nodeID1] = X.TasksOnNode[nodeID1][:len(X.TasksOnNode[nodeID1])-1]
+
+		if nodeID, ok := firstFit(X, task); ok {
+			X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
+		} else {
+			X.Flags["valid"] = false
+		}
+	}
+
 }
 
 // Crossover a Vector with another Vector by applying uniform crossover.
@@ -531,7 +541,7 @@ func VectorFactory(rng *rand.Rand) eaopt.Genome {
 	}
 
 	t := rng.Int() % 10
-	if t == 0 {
+	if t == -1 {
 		/* best-fit */
 		ts := time.Now()
 
@@ -572,7 +582,7 @@ func VectorFactory(rng *rand.Rand) eaopt.Genome {
 	return allocation
 }
 
-func main() {
+func main3() {
 	numTask := 5
 
 	nodesMap = map[string]Node{}
@@ -583,12 +593,12 @@ func main() {
 		node.NumCPU = 24
 		node.MemTotal = 188
 		node.TotalBW = 100
-		node.numberGPU = rand.Intn(8) + 1
+		node.numberGPU = rand.Intn(3) + 1
 		nodesMap[strconv.Itoa(i)] = node
 	}
 	for i := 0; i < numTask; i++ {
 		isPS := false
-		if i%5 == 0 {
+		if i>= 3 {
 			isPS = true
 		}
 		task := Task{Name: strconv.Itoa(i), IsPS: isPS}
@@ -608,7 +618,7 @@ func main() {
 		tasks = append(tasks, task)
 	}
 	s := time.Now()
-	fmt.Println(fastBestFit(nodes, tasks))
+	allocation := fastBestFit(nodes, tasks)
 	fmt.Println(time.Since(s))
 
 	// Instantiate a GA with a GAConfig
@@ -635,8 +645,8 @@ func main() {
 
 	ga.EarlyStop = func(ga *eaopt.GA) bool {
 		gap := math.Abs(ga.HallOfFame[0].Fitness - bestFitness)
-		if gap <= 0.000001 {
-			if count >= 30 || time.Since(ts) > time.Second*30 {
+		if gap <= 0.000001 || ga.HallOfFame[0].Fitness >= bestFitness {
+			if count >= 50 || time.Since(ts) > time.Second*30 {
 				fmt.Println("Early Stop")
 				return true
 			} else {
@@ -652,10 +662,12 @@ func main() {
 	// Find the minimum
 	err = ga.Minimize(VectorFactory)
 	fmt.Println(time.Since(ts))
-	//fmt.Println(ga.HallOfFame[0].Genome.(Allocation).TasksOnNode)
+	fmt.Println(ga.HallOfFame[0].Genome.(Allocation).TasksOnNode)
 	//fmt.Println(ga.HallOfFame[0].Genome.(Allocation).Nodes)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	fmt.Println(allocation)
 }

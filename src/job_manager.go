@@ -154,62 +154,7 @@ func (jm *JobManager) start() {
 
 	/* monitor job execution */
 	for {
-		res := jm.status()
-		flag := false
-		onlyPS := true
-		for i := range res.Status {
-			if res.Status[i].Status == "ready" {
-				log.Debug(jm.job.Name, "-", i, " is ready to run")
-				flag = true
-				if !jm.job.Tasks[i].IsPS {
-					onlyPS = false
-				}
-			} else if res.Status[i].Status == "running" {
-				log.Debug(jm.job.Name, "-", i, " is running")
-				flag = true
-				if !jm.job.Tasks[i].IsPS {
-					onlyPS = false
-				}
-				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
-			} else {
-				log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
-				if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok && !jm.job.Tasks[i].IsPS {
-					if exitCode != 0 && !jm.killedFlag {
-						log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
-						jm.killedFlag = true
-						jm.scheduler.UpdateProgress(jm.job, Failed)
-					}
-				}
-
-				/* remove exited containers */
-				//v := url.Values{}
-				//v.Set("id", res.Status[i].Id)
-				//
-				//_, err := doRequest("POST", "http://"+res.Status[i].Node+":8000/remove", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
-				//if err != nil {
-				//	log.Warn(err.Error())
-				//	continue
-				//}
-
-				/* return resource */
-				if jm.resources[i].ClientID != "null" {
-					jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-					log.Info("return resource ", jm.resources[i].ClientID)
-					jm.resources[i].ClientID = "null"
-
-					for _, t := range jm.resources[i].Status {
-						jm.scheduler.Detach(t.UUID, jm.job)
-					}
-
-					InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
-				}
-			}
-		}
-		if flag && onlyPS {
-			jm.stop()
-			log.Info("Only PS is running, stop ", jm.job.Name)
-			jm.killedFlag = false
-		}
+		flag := jm.checkStatus()
 		if !flag {
 			break
 		}
@@ -223,6 +168,66 @@ func (jm *JobManager) start() {
 		log.Info("finish job ", jm.job.Name)
 	}
 	log.Info("JobMaster exited ", jm.job.Name)
+}
+
+func (jm *JobManager) checkStatus() bool {
+	res := jm.status()
+	flag := false
+	onlyPS := true
+	for i := range res.Status {
+		if res.Status[i].Status == "ready" {
+			log.Debug(jm.job.Name, "-", i, " is ready to run")
+			flag = true
+			if !jm.job.Tasks[i].IsPS {
+				onlyPS = false
+			}
+		} else if res.Status[i].Status == "running" {
+			log.Debug(jm.job.Name, "-", i, " is running")
+			flag = true
+			if !jm.job.Tasks[i].IsPS {
+				onlyPS = false
+			}
+			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
+		} else {
+			log.Info(jm.job.Name, "-", i, " ", res.Status[i].Status)
+			if exitCode, ok := res.Status[i].State["ExitCode"].(float64); ok && !jm.job.Tasks[i].IsPS {
+				if exitCode != 0 && !jm.killedFlag {
+					log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
+					jm.killedFlag = true
+					jm.scheduler.UpdateProgress(jm.job, Failed)
+				}
+			}
+
+			/* remove exited containers */
+			//v := url.Values{}
+			//v.Set("id", res.Status[i].Id)
+			//
+			//_, err := doRequest("POST", "http://"+res.Status[i].Node+":8000/remove", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			//if err != nil {
+			//	log.Warn(err.Error())
+			//	continue
+			//}
+
+			/* return resource */
+			if jm.resources[i].ClientID != "null" {
+				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
+				log.Info("return resource ", jm.resources[i].ClientID)
+				jm.resources[i].ClientID = "null"
+
+				for _, t := range jm.resources[i].Status {
+					jm.scheduler.Detach(t.UUID, jm.job)
+				}
+
+				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, res.Status[i])
+			}
+		}
+	}
+	if flag && onlyPS {
+		jm.stop()
+		log.Info("Only PS is running, stop ", jm.job.Name)
+		jm.killedFlag = false
+	}
+	return flag
 }
 
 func (jm *JobManager) logs(taskName string) MsgLog {

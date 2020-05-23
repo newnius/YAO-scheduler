@@ -38,6 +38,9 @@ type ResourcePool struct {
 
 	TotalGPU   int
 	TotalGPUMu sync.Mutex
+
+	subscriptions   map[string]map[string]int
+	subscriptionsMu sync.Mutex
 }
 
 func (pool *ResourcePool) start() {
@@ -49,6 +52,8 @@ func (pool *ResourcePool) start() {
 	pool.versions = map[string]float64{}
 	pool.bindings = map[string]map[string]int{}
 	pool.utils = map[string][]UtilGPUTimeSeries{}
+
+	pool.subscriptions = map[string]map[string]int{}
 
 	pool.TotalGPU = 0
 
@@ -233,6 +238,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 
 	/* init bindings */
 	go func(node NodeStatus) {
+		pool.subscriptionsMu.Lock()
+		defer pool.subscriptionsMu.Unlock()
 		pool.bindingsMu.Lock()
 		defer pool.bindingsMu.Unlock()
 		for _, gpu := range node.Status {
@@ -240,6 +247,12 @@ func (pool *ResourcePool) update(node NodeStatus) {
 				if _, ok2 := pool.utils[gpu.UUID]; ok2 {
 					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID],
 						UtilGPUTimeSeries{Time: (int)(time.Now().Unix()), Util: gpu.UtilizationGPU})
+				}
+			}
+
+			if _, ok := pool.subscriptions[gpu.UUID]; ok {
+				for jobName := range pool.subscriptions[gpu.UUID] {
+					scheduler.QueryState(jobName)
 				}
 			}
 		}
@@ -438,8 +451,16 @@ func (pool *ResourcePool) releaseNetwork(network string) {
 }
 
 func (pool *ResourcePool) attach(GPU string, job string) {
+	pool.subscriptionsMu.Lock()
+	defer pool.subscriptionsMu.Unlock()
 	pool.bindingsMu.Lock()
 	defer pool.bindingsMu.Unlock()
+
+	if _, ok := pool.subscriptions[GPU]; !ok {
+		pool.subscriptions[GPU] = map[string]int{}
+	}
+	pool.subscriptions[GPU][job] = int(time.Now().Unix())
+
 	if _, ok := pool.bindings[GPU]; !ok {
 		pool.bindings[GPU] = map[string]int{}
 	}
@@ -455,8 +476,15 @@ func (pool *ResourcePool) attach(GPU string, job string) {
 }
 
 func (pool *ResourcePool) detach(GPU string, job Job) {
+	pool.subscriptionsMu.Lock()
+	defer pool.subscriptionsMu.Unlock()
 	pool.bindingsMu.Lock()
 	defer pool.bindingsMu.Unlock()
+
+	if _, ok := pool.subscriptions[GPU]; ok {
+		delete(pool.subscriptions[GPU], job.Name)
+	}
+
 	if _, ok := pool.bindings[GPU]; ok {
 		if _, ok2 := pool.utils[GPU]; ok2 {
 			if len(pool.bindings[GPU]) == 1 && job.Status != Failed && job.Status != Stopped {
