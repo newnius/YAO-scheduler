@@ -6,120 +6,12 @@ import (
 	"time"
 	"io"
 	"net/http"
-	"sync"
-)
+	)
 
 type Configuration struct {
 	KafkaBrokers    []string `json:"kafkaBrokers"`
 	KafkaTopic      string   `json:"kafkaTopic"`
 	SchedulerPolicy string   `json:"schedulerPolicy"`
-}
-
-type MsgSubmit struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-}
-
-type MsgPoolStatusHistory struct {
-	Code  int          `json:"code"`
-	Error string       `json:"error"`
-	Data  []PoolStatus `json:"data"`
-}
-
-type MsgStop struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-}
-
-type MsgSummary struct {
-	Code         int    `json:"code"`
-	Error        string `json:"error"`
-	JobsFinished int    `json:"jobs_finished"`
-	JobsRunning  int    `json:"jobs_running"`
-	JobsPending  int    `json:"jobs_pending"`
-	FreeGPU      int    `json:"gpu_free"`
-	UsingGPU     int    `json:"gpu_using"`
-}
-
-type MsgResource struct {
-	Code     int                   `json:"code"`
-	Error    string                `json:"error"`
-	Resource map[string]NodeStatus `json:"resources"`
-}
-
-type MsgJobList struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-	Jobs  []Job  `json:"jobs"`
-}
-
-type MsgLog struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-	Logs  string `json:"logs"`
-}
-
-type MsgTaskStatus struct {
-	Code   int        `json:"code"`
-	Error  string     `json:"error"`
-	Status TaskStatus `json:"status"`
-}
-
-type MsgJobStatus struct {
-	Code   int          `json:"code"`
-	Error  string       `json:"error"`
-	Status []TaskStatus `json:"status"`
-}
-
-type MsgCreate struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-	Id    string `json:"id"`
-}
-
-type TaskStatus struct {
-	Id          string                 `json:"id"`
-	HostName    string                 `json:"hostname"`
-	Node        string                 `json:"node"`
-	Image       string                 `json:"image"`
-	ImageDigest string                 `json:"image_digest"`
-	Command     string                 `json:"command"`
-	CreatedAt   string                 `json:"created_at"`
-	FinishedAt  string                 `json:"finished_at"`
-	Status      string                 `json:"status"`
-	State       map[string]interface{} `json:"state"`
-}
-
-type JobStatus struct {
-	Name  string
-	tasks map[string]TaskStatus
-}
-
-type GPUStatus struct {
-	UUID             string `json:"uuid"`
-	ProductName      string `json:"product_name"`
-	PerformanceState string `json:"performance_state"`
-	MemoryTotal      int    `json:"memory_total"`
-	MemoryFree       int    `json:"memory_free"`
-	MemoryAllocated  int    `json:"memory_allocated"`
-	MemoryUsed       int    `json:"memory_used"`
-	UtilizationGPU   int    `json:"utilization_gpu"`
-	UtilizationMem   int    `json:"utilization_mem"`
-	TemperatureGPU   int    `json:"temperature_gpu"`
-	PowerDraw        int    `json:"power_draw"`
-}
-
-type NodeStatus struct {
-	ClientID     string      `json:"id"`
-	ClientHost   string      `json:"host"`
-	Domain       string      `json:"domain"`
-	Rack         int         `json:"rack"`
-	Version      float64     `json:"version"`
-	NumCPU       int         `json:"cpu_num"`
-	UtilCPU      float64     `json:"cpu_load"`
-	MemTotal     int         `json:"mem_total"`
-	MemAvailable int         `json:"mem_available"`
-	Status       []GPUStatus `json:"status"`
 }
 
 type Job struct {
@@ -149,27 +41,6 @@ type Task struct {
 	ModelGPU  string `json:"gpu_model"`
 }
 
-type Group struct {
-	Name      string `json:"name"`
-	Weight    int    `json:"weight"`
-	Reserved  bool   `json:"reserved"`
-	NumGPU    int    `json:"quota_gpu"`
-	MemoryGPU int    `json:"quota_gpu_mem"`
-	CPU       int    `json:"quota_cpu"`
-	Memory    int    `json:"quota_mem"`
-}
-
-type MsgGroupCreate struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-}
-
-type MsgGroupList struct {
-	Code   int     `json:"code"`
-	Error  string  `json:"error"`
-	Groups []Group `json:"groups"`
-}
-
 type UtilGPUTimeSeries struct {
 	Time int `json:"time"`
 	Util int `json:"util"`
@@ -188,21 +59,11 @@ type OptimizerUtilGPU struct {
 	Version int `json:"version"`
 }
 
-type MsgOptimizerPredict struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
-	Total int    `json:"total"`
-	Pre   int    `json:"pre"`
-	Main  int    `json:"main"`
-	Post  int    `json:"post"`
-}
-
-type PoolSeg struct {
-	ID        int
-	Nodes     map[string]*NodeStatus
-	Lock      sync.Mutex
-	Next      *PoolSeg
-	IsVirtual bool
+type ResourceCount struct {
+	NumberGPU int
+	MemoryGPU int
+	CPU       int
+	Memory    int
 }
 
 func str2int(str string, defaultValue int) int {

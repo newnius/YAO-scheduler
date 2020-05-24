@@ -37,6 +37,10 @@ func InstanceOfOptimizer() *Optimizer {
 	return optimizerInstance
 }
 
+func (optimizer *Optimizer) init(conf Configuration) {
+	log.Info("optimizer started")
+}
+
 func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
 	log.Info("optimizer feed")
 	//log.Info(job, utils)

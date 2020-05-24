@@ -4,8 +4,7 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
-	"math/rand"
-)
+	)
 
 type SchedulerPriority struct {
 	history    []*Job
@@ -111,64 +110,13 @@ func (scheduler *SchedulerPriority) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerPriority) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
-	segID := rand.Intn(pool.poolsCount)
-	seg := &pool.pools[segID]
-	if seg.Nodes == nil {
-		seg = seg.Next
-	}
-
-	res := NodeStatus{}
-	for id, node := range seg.Nodes {
-		var available []GPUStatus
-		for _, status := range node.Status {
-			if status.MemoryTotal-status.MemoryAllocated >= task.MemoryGPU {
-				available = append(available, status)
-			}
-		}
-		if len(available) >= task.NumberGPU {
-			res.ClientID = id
-			res.ClientHost = node.ClientHost
-			res.Status = available[0:task.NumberGPU]
-			res.NumCPU = task.NumberCPU
-			res.MemTotal = task.Memory
-
-			for i := range res.Status {
-				for j := range node.Status {
-					if res.Status[i].UUID == node.Status[j].UUID {
-						node.Status[j].MemoryAllocated += task.MemoryGPU
-						res.Status[i].MemoryTotal = task.MemoryGPU
-					}
-				}
-			}
-			break
-		}
-	}
+func (scheduler *SchedulerPriority) AcquireResource(job Job) []NodeStatus {
+	res := InstanceOfResourcePool().acquireResource(job)
 	return res
 }
 
 func (scheduler *SchedulerPriority) ReleaseResource(job Job, agent NodeStatus) {
-	segID := pool.getNodePool(agent.ClientID)
-	seg := &pool.pools[segID]
-	if seg.Nodes == nil {
-		seg = seg.Next
-	}
-	seg.Lock.Lock()
-	defer seg.Lock.Unlock()
-
-	node := seg.Nodes[agent.ClientID]
-	for _, gpu := range agent.Status {
-		for j := range node.Status {
-			if gpu.UUID == node.Status[j].UUID {
-				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
-				if node.Status[j].MemoryAllocated < 0 {
-					// in case of error
-					log.Warn(node.ClientID, "More Memory Allocated")
-					node.Status[j].MemoryAllocated = 0
-				}
-			}
-		}
-	}
+	InstanceOfResourcePool().releaseResource(job, agent)
 }
 
 func (scheduler *SchedulerPriority) QueryState(jobName string) MsgJobStatus {
@@ -227,7 +175,7 @@ func (scheduler *SchedulerPriority) Summary() MsgSummary {
 			break
 		case Running:
 			runningJobsCounter++
-			break;
+			break
 		case Finished:
 			finishedJobsCounter++
 		case Stopped:
@@ -238,47 +186,8 @@ func (scheduler *SchedulerPriority) Summary() MsgSummary {
 	summary.JobsPending = pendingJobsCounter
 	summary.JobsRunning = runningJobsCounter
 
-	FreeGPU := 0
-	UsingGPU := 0
-
-	start := pool.pools[0].Next
-	for cur := start; ; {
-		cur.Lock.Lock()
-		for _, node := range cur.Nodes {
-			for j := range node.Status {
-				if node.Status[j].MemoryAllocated == 0 {
-					FreeGPU++
-				} else {
-					UsingGPU++
-				}
-			}
-		}
-		cur.Lock.Unlock()
-		cur = cur.Next
-		if cur == start {
-			break
-		}
-	}
-	summary.FreeGPU = FreeGPU
-	summary.UsingGPU = UsingGPU
-
+	summary.FreeGPU, summary.UsingGPU = InstanceOfResourcePool().countGPU()
 	return summary
-}
-
-func (scheduler *SchedulerPriority) AcquireNetwork() string {
-	return pool.acquireNetwork()
-}
-
-func (scheduler *SchedulerPriority) ReleaseNetwork(network string) {
-	pool.releaseNetwork(network)
-}
-
-func (scheduler *SchedulerPriority) Attach(GPU string, job string) {
-	pool.attach(GPU, job)
-}
-
-func (scheduler *SchedulerPriority) Detach(GPU string, job Job) {
-	pool.detach(GPU, job)
 }
 
 func (scheduler *SchedulerPriority) Enable() bool {
@@ -294,18 +203,6 @@ func (scheduler *SchedulerPriority) Disable() bool {
 func (scheduler *SchedulerPriority) UpdateParallelism(parallelism int) bool {
 	scheduler.parallelism = parallelism
 	log.Info("parallelism is updated to", parallelism)
-	return true
-}
-
-func (scheduler *SchedulerPriority) SetShareRatio(ratio float64) bool {
-	//scheduler.enableShareRatio = ratio
-	log.Info("enableShareRatio is updated to", ratio)
-	return true
-}
-
-func (scheduler *SchedulerPriority) SetPreScheduleRatio(ratio float64) bool {
-	//scheduler.enablePreScheduleRatio = ratio
-	log.Info("enablePreScheduleRatio is updated to", ratio)
 	return true
 }
 

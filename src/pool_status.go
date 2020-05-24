@@ -11,3 +11,30 @@ type PoolStatus struct {
 	TotalMemGPU     int     `json:"gpu_mem_total"`
 	AvailableMemGPU int     `json:"gpu_mem_available"`
 }
+
+type GPUStatus struct {
+	UUID             string `json:"uuid"`
+	ProductName      string `json:"product_name"`
+	PerformanceState string `json:"performance_state"`
+	MemoryTotal      int    `json:"memory_total"`
+	MemoryFree       int    `json:"memory_free"`
+	MemoryAllocated  int    `json:"memory_allocated"`
+	MemoryUsed       int    `json:"memory_used"`
+	UtilizationGPU   int    `json:"utilization_gpu"`
+	UtilizationMem   int    `json:"utilization_mem"`
+	TemperatureGPU   int    `json:"temperature_gpu"`
+	PowerDraw        int    `json:"power_draw"`
+}
+
+type NodeStatus struct {
+	ClientID     string      `json:"id"`
+	ClientHost   string      `json:"host"`
+	Domain       string      `json:"domain"`
+	Rack         int         `json:"rack"`
+	Version      float64     `json:"version"`
+	NumCPU       int         `json:"cpu_num"`
+	UtilCPU      float64     `json:"cpu_load"`
+	MemTotal     int         `json:"mem_total"`
+	MemAvailable int         `json:"mem_available"`
+	Status       []GPUStatus `json:"status"`
+}

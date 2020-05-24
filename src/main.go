@@ -13,21 +13,19 @@ import (
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
 var confFile = flag.String("conf", "/etc/yao/config.json", "configuration file path")
 
-var pool *ResourcePool
-
 var scheduler Scheduler
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Query().Get("action") {
 	case "resource_list":
-		js, _ := json.Marshal(pool.list())
+		js, _ := json.Marshal(InstanceOfResourcePool().list())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "resource_get_by_node":
 		id := r.URL.Query().Get("id")
-		js, _ := json.Marshal(pool.getByID(id))
+		js, _ := json.Marshal(InstanceOfResourcePool().getByID(id))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -86,21 +84,21 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "pool_status_history":
 		log.Debug("pool_status_history")
-		js, _ := json.Marshal(pool.statusHistory())
+		js, _ := json.Marshal(InstanceOfResourcePool().statusHistory())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "get_counter":
 		log.Debug("get_counters")
-		js, _ := json.Marshal(pool.getCounter())
+		js, _ := json.Marshal(InstanceOfResourcePool().getCounter())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
 	case "get_bindings":
 		log.Debug("get_bindings")
-		js, _ := json.Marshal(pool.getBindings())
+		js, _ := json.Marshal(InstanceOfResourcePool().getBindings())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -199,7 +197,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
 			ratio = t
 		}
-		js, _ := json.Marshal(scheduler.SetShareRatio(ratio))
+		js, _ := json.Marshal(InstanceOfResourcePool().SetShareRatio(ratio))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -210,7 +208,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
 			ratio = t
 		}
-		js, _ := json.Marshal(scheduler.SetPreScheduleRatio(ratio))
+		js, _ := json.Marshal(InstanceOfResourcePool().SetPreScheduleRatio(ratio))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -292,11 +290,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	/* init jhl */
-	InstanceJobHistoryLogger().init()
-
-	pool = &ResourcePool{}
-	pool.start()
+	/* init components */
+	InstanceOfResourcePool().init(config)
+	InstanceOfColector().init(config)
+	InstanceJobHistoryLogger().init(config)
+	InstanceOfOptimizer().init(config)
+	InstanceOfGroupManager().init(config)
 
 	switch config.SchedulerPolicy {
 	case "FCFS":
@@ -311,12 +310,7 @@ func main() {
 	default:
 		scheduler = &SchedulerFCFS{}
 	}
-
 	scheduler.Start()
-
-	go func() {
-		start(pool, config)
-	}()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serverAPI(w, r)

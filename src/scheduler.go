@@ -7,13 +7,9 @@ type Scheduler interface {
 
 	UpdateProgress(job Job, state State)
 
-	AcquireResource(Job, Task, []NodeStatus) NodeStatus
+	AcquireResource(Job) []NodeStatus
 
 	ReleaseResource(Job, NodeStatus)
-
-	AcquireNetwork() string
-
-	ReleaseNetwork(network string)
 
 	QueryState(jobName string) MsgJobStatus
 
@@ -25,19 +21,11 @@ type Scheduler interface {
 
 	Summary() MsgSummary
 
-	Attach(GPU string, job string)
-
-	Detach(GPU string, job Job)
-
 	Enable() bool
 
 	Disable() bool
 
 	UpdateParallelism(parallelism int) bool
-
-	SetShareRatio(ratio float64) bool
-
-	SetPreScheduleRatio(ratio float64) bool
 
 	updateGroup(group Group) bool
 }

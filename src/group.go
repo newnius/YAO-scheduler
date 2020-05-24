@@ -21,6 +21,10 @@ func InstanceOfGroupManager() *GroupManager {
 	return groupManagerInstance
 }
 
+func (gm *GroupManager) init(conf Configuration) {
+
+}
+
 func (gm *GroupManager) Add(group Group) MsgGroupCreate {
 	defer gm.mu.Unlock()
 	gm.mu.Lock()

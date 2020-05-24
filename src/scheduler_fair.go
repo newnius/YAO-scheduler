@@ -5,15 +5,8 @@ import (
 	"time"
 	log "github.com/sirupsen/logrus"
 	"sort"
-	"math/rand"
+	"math"
 )
-
-type ResourceCount struct {
-	NumberGPU int
-	MemoryGPU int
-	CPU       int
-	Memory    int
-}
 
 type SchedulerFair struct {
 	history   []*Job
@@ -32,14 +25,6 @@ type SchedulerFair struct {
 
 	enabled     bool
 	parallelism int
-
-	enableShare            bool
-	enableShareRatio       float64
-	enablePreSchedule      bool
-	enablePreScheduleRatio float64
-
-	UsingGPU   int
-	UsingGPUMu sync.Mutex
 
 	allocatingGPU   int
 	allocatingGPUMu sync.Mutex
@@ -77,12 +62,6 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.schedulingJobsCnt = 0
 	scheduler.queueUsingGPU = map[string]int{}
 
-	scheduler.enableShare = true
-	scheduler.enableShareRatio = 0.75
-	scheduler.enablePreSchedule = true
-	scheduler.enablePreScheduleRatio = 0.95
-
-	scheduler.UsingGPU = 0
 	scheduler.allocatingGPU = 0
 	scheduler.queuesSchedulingCnt = map[string]int{}
 
@@ -132,8 +111,9 @@ func (scheduler *SchedulerFair) Start() {
 				}
 				scheduler.queuesUsingGPUMu.Unlock()
 
-				log.Info(cnt, reserved, pool.TotalGPU, scheduler.UsingGPU, scheduler.allocatingGPU)
-				if scheduler.schedulingJobsCnt > 1 && (cnt*10+(scheduler.allocatingGPU)*13 > (pool.TotalGPU-scheduler.UsingGPU-reserved)*10) {
+				pool := InstanceOfResourcePool()
+				log.Info(cnt, reserved, pool.TotalGPU, pool.UsingGPU, scheduler.allocatingGPU)
+				if scheduler.schedulingJobsCnt > 1 && (cnt*10+(scheduler.allocatingGPU)*13 > (pool.TotalGPU-pool.UsingGPU-reserved)*10) {
 					scheduler.schedulingMu.Lock()
 					scheduler.schedulingJobsCnt--
 					scheduler.schedulingMu.Unlock()
@@ -203,7 +183,8 @@ func (scheduler *SchedulerFair) Start() {
 				}
 				scheduler.queuesUsingGPUMu.Unlock()
 
-				if pool.TotalGPU-scheduler.UsingGPU-scheduler.allocatingGPU*13/10 < 0 {
+				pool := InstanceOfResourcePool()
+				if pool.TotalGPU-pool.UsingGPU-scheduler.allocatingGPU*13/10 < 0 {
 					continue
 				}
 
@@ -343,273 +324,46 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFair) AcquireResource(job Job, task Task, nodes []NodeStatus) NodeStatus {
-	segID := rand.Intn(pool.poolsCount)
-	if pool.TotalGPU < 100 {
-		segID = 0
-	}
-	res := NodeStatus{}
-	start := &pool.pools[segID]
-	if start.Nodes == nil {
-		start = start.Next
-	}
+func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
+	res := InstanceOfResourcePool().acquireResource(job)
 
-	locks := map[int]*sync.Mutex{}
+	if len(res) != 0 {
+		for _, task := range job.Tasks {
+			scheduler.queuesUsingGPUMu.Lock()
+			scheduler.queueUsingGPU[job.Group] += task.NumberGPU
+			scheduler.queuesUsingGPUMu.Unlock()
 
-	allocationType := 0
-	availableGPUs := map[string][]GPUStatus{}
-
-	var candidates []*NodeStatus
-
-	/* first, choose sharable GPUs */
-	if scheduler.enableShare && (pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enableShareRatio) {
-		// check sharable
-		allocationType = 1
-		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
-
-			for cur := start; cur.ID < cur.Next.ID; {
-				if _, ok := locks[cur.ID]; !ok {
-					cur.Lock.Lock()
-					locks[cur.ID] = &cur.Lock
-				}
-
-				for _, node := range cur.Nodes {
-					var available []GPUStatus
-					for _, status := range node.Status {
-						if status.MemoryAllocated > 0 && status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated {
-
-							if jobs, ok := pool.bindings[status.UUID]; ok {
-								totalUtil := util
-								for job := range jobs {
-									if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
-										totalUtil += utilT
-									} else {
-										totalUtil += 100
-									}
-								}
-								if totalUtil < 100 {
-									available = append(available, status)
-									availableGPUs[node.ClientID] = available
-								}
-							}
-						}
-					}
-					if len(available) >= task.NumberGPU {
-						candidates = append(candidates, node)
-						if len(candidates) >= 8 {
-							break
-						}
-					}
-				}
-				if len(candidates) >= 8 {
-					break
-				}
-				cur = cur.Next
-				if cur.ID == start.ID {
-					break
-				}
-			}
+			scheduler.allocatingGPUMu.Lock()
+			scheduler.allocatingGPU -= task.NumberGPU
+			scheduler.allocatingGPUMu.Unlock()
 		}
-		//log.Info(candidates)
-	}
-
-	/* second round, find vacant gpu */
-	flag := false
-	reserved := scheduler.reservedGPU
-	scheduler.queuesUsingGPUMu.Lock()
-	for g, v := range scheduler.queueUsingGPU {
-		if InstanceOfGroupManager().groups[g].Reserved {
-			reserved -= v
-		}
-	}
-	scheduler.queuesUsingGPUMu.Unlock()
-	if g, ok := InstanceOfGroupManager().groups[job.Group]; ok && g.Reserved && g.NumGPU > scheduler.queueUsingGPU[job.Group] {
-		flag = true
-	}
-	if task.NumberGPU <= pool.TotalGPU-scheduler.UsingGPU-reserved {
-		flag = true
-	}
-	if len(candidates) == 0 && flag {
-		allocationType = 2
-		for cur := start; cur.ID < cur.Next.ID; {
-			if _, ok := locks[cur.ID]; !ok {
-				cur.Lock.Lock()
-				locks[cur.ID] = &cur.Lock
-			}
-			for _, node := range cur.Nodes {
-				var available []GPUStatus
-				for _, status := range node.Status {
-					if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
-						available = append(available, status)
-					}
-				}
-				if len(available) >= task.NumberGPU {
-					candidates = append(candidates, node)
-					availableGPUs[node.ClientID] = available
-					if len(candidates) >= 8 {
-						break
-					}
-				}
-			}
-			if len(candidates) >= 8 {
-				break
-			}
-			cur = cur.Next
-			if cur.ID == start.ID {
-				break
-			}
-		}
-		//log.Info(candidates)
-	}
-
-	/* third round, find gpu to be released */
-	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && scheduler.enablePreSchedule {
-		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
-
-		//log.Info(pool.TotalGPU)
-		//log.Info(estimate, valid)
-		//log.Info(scheduler.UsingGPU)
-
-		if pool.TotalGPU != 0 && float64(scheduler.UsingGPU)/float64(pool.TotalGPU) >= scheduler.enablePreScheduleRatio && valid {
-			allocationType = 3
-			for cur := start; cur.ID < cur.Next.ID; {
-				if _, ok := locks[cur.ID]; !ok {
-					cur.Lock.Lock()
-					locks[cur.ID] = &cur.Lock
-				}
-				for _, node := range cur.Nodes {
-					var available []GPUStatus
-					for _, status := range node.Status {
-						bindings := pool.getBindings()
-						if tasks, ok := bindings[status.UUID]; ok {
-							if len(tasks) > 1 || status.MemoryAllocated == 0 {
-								continue
-							}
-							for task_t, s := range tasks {
-								est, valid2 := InstanceOfOptimizer().predictTime(task_t)
-								if valid2 {
-									now := (int)(time.Now().Unix())
-									log.Info(s, now, estimate, est)
-									if now-s > est.Total-est.Post-estimate.Pre-15 {
-										available = append(available, status)
-									}
-								}
-							}
-						}
-					}
-					if len(available) >= task.NumberGPU {
-						candidates = append(candidates, node)
-						availableGPUs[node.ClientID] = available
-						if len(candidates) >= 8 {
-							break
-						}
-					}
-				}
-				if len(candidates) >= 8 {
-					break
-				}
-			}
-			//log.Info(candidates)
-		}
-	}
-
-	if len(candidates) > 0 {
-		log.Info("allocationType is ", allocationType)
-		//log.Info(candidates)
-	}
-
-	/* assign */
-	if len(candidates) > 0 {
-		node := pool.pickNode(candidates, availableGPUs, task, job, nodes)
-		res.ClientID = node.ClientID
-		res.ClientHost = node.ClientHost
-		res.Status = availableGPUs[node.ClientID][0:task.NumberGPU]
-		res.NumCPU = task.NumberCPU
-		res.MemTotal = task.Memory
-
-		for i := range res.Status {
-			for j := range node.Status {
-				if res.Status[i].UUID == node.Status[j].UUID {
-					if node.Status[j].MemoryAllocated == 0 {
-						scheduler.UsingGPUMu.Lock()
-						scheduler.UsingGPU ++
-						scheduler.UsingGPUMu.Unlock()
-					}
-					node.Status[j].MemoryAllocated += task.MemoryGPU
-					res.Status[i].MemoryTotal = task.MemoryGPU
-				}
-			}
-		}
-		for _, t := range res.Status {
-			scheduler.Attach(t.UUID, job.Name)
-		}
-
-		scheduler.queuesUsingGPUMu.Lock()
-		scheduler.queueUsingGPU[job.Group] += task.NumberGPU
-		scheduler.queuesUsingGPUMu.Unlock()
-
-		scheduler.allocatingGPUMu.Lock()
-		scheduler.allocatingGPU -= task.NumberGPU
-		scheduler.allocatingGPUMu.Unlock()
 		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
+
+		go func(nodes []NodeStatus) {
+			for _, node := range nodes {
+				scheduler.resourceAllocationsMu.Lock()
+				if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
+					scheduler.resourceAllocations[job.Group] = &ResourceCount{}
+				}
+				cnt, _ := scheduler.resourceAllocations[job.Group]
+				cnt.CPU += node.MemTotal
+				cnt.Memory += node.NumCPU
+				for _, v := range node.Status {
+					cnt.NumberGPU ++
+					cnt.MemoryGPU += v.MemoryTotal
+				}
+				scheduler.resourceAllocationsMu.Unlock()
+				scheduler.UpdateNextQueue()
+			}
+
+		}(res)
 	}
 
-	for segID, lock := range locks {
-		log.Debug("Unlock ", segID)
-		lock.Unlock()
-	}
-
-	go func(res NodeStatus) {
-		if len(res.Status) == 0 {
-			return
-		}
-		scheduler.resourceAllocationsMu.Lock()
-		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
-		}
-		cnt, _ := scheduler.resourceAllocations[job.Group]
-		cnt.CPU += res.MemTotal
-		cnt.Memory += res.NumCPU
-		for _, v := range res.Status {
-			cnt.NumberGPU ++
-			cnt.MemoryGPU += v.MemoryTotal
-		}
-		scheduler.resourceAllocationsMu.Unlock()
-		scheduler.UpdateNextQueue()
-
-	}(res)
 	return res
 }
 
 func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
-	segID := pool.getNodePool(agent.ClientID)
-	seg := pool.pools[segID]
-	if seg.Nodes == nil {
-		seg = *seg.Next
-	}
-	seg.Lock.Lock()
-	defer seg.Lock.Unlock()
-
-	node := seg.Nodes[agent.ClientID]
-	for _, gpu := range agent.Status {
-		for j := range node.Status {
-			if gpu.UUID == node.Status[j].UUID {
-				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
-				if node.Status[j].MemoryAllocated < 0 {
-					// in case of error
-					log.Warn(node.ClientID, "More Memory Allocated")
-					node.Status[j].MemoryAllocated = 0
-				}
-				if node.Status[j].MemoryAllocated == 0 {
-					scheduler.UsingGPUMu.Lock()
-					scheduler.UsingGPU--
-					scheduler.UsingGPUMu.Unlock()
-					log.Info(node.Status[j].UUID, " is released")
-				}
-				//log.Info(node.Status[j].MemoryAllocated)
-			}
-		}
-	}
+	InstanceOfResourcePool().releaseResource(job, agent)
 	scheduler.queuesUsingGPUMu.Lock()
 	if _, ok := scheduler.queueUsingGPU[job.Group]; ok {
 		scheduler.queueUsingGPU[job.Group] -= len(agent.Status)
@@ -712,7 +466,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 			break
 		case Running:
 			runningJobsCounter++
-			break;
+			break
 		case Finished:
 			finishedJobsCounter++
 		case Stopped:
@@ -723,66 +477,15 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 	summary.JobsPending = pendingJobsCounter
 	summary.JobsRunning = runningJobsCounter
 
-	FreeGPU := 0
-	UsingGPU := 0
-
-	start := pool.pools[0].Next
-	for cur := start; ; {
-		cur.Lock.Lock()
-		for _, node := range cur.Nodes {
-			for j := range node.Status {
-				if node.Status[j].MemoryAllocated == 0 {
-					FreeGPU++
-				} else {
-					UsingGPU++
-				}
-			}
-		}
-		cur.Lock.Unlock()
-		cur = cur.Next
-		if cur.ID == start.ID {
-			break
-		}
-	}
-	summary.FreeGPU = FreeGPU
-	summary.UsingGPU = UsingGPU
-
+	summary.FreeGPU, summary.UsingGPU = InstanceOfResourcePool().countGPU()
 	return summary
-}
-
-func (scheduler *SchedulerFair) AcquireNetwork() string {
-	return pool.acquireNetwork()
-}
-
-func (scheduler *SchedulerFair) ReleaseNetwork(network string) {
-	pool.releaseNetwork(network)
 }
 
 func (scheduler *SchedulerFair) UpdateNextQueue() {
 	next := "default"
-	quota := 9999.0
+	quota := math.MaxFloat64
 
-	NumberGPU := 0.00001
-	MemoryGPU := 0.00001
-	CPU := 0.00001
-	Memory := 0.0001
-	start := pool.pools[0].Next
-	for cur := start; ; {
-		cur.Lock.Lock()
-		for _, node := range cur.Nodes {
-			CPU += float64(node.NumCPU)
-			Memory += float64(node.MemTotal)
-			for _, card := range node.Status {
-				NumberGPU += 1.0
-				MemoryGPU += float64(card.MemoryTotal)
-			}
-		}
-		cur.Lock.Unlock()
-		cur = cur.Next
-		if cur == start {
-			break
-		}
-	}
+	NumberGPU := float64(InstanceOfResourcePool().TotalGPU) + 0.00001
 
 	scheduler.queueMu.Lock()
 	for k, t := range scheduler.queues {
@@ -795,13 +498,8 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 		}
 		v := scheduler.resourceAllocations[k]
 
-		tmp := 0.0
-		tmp += float64(v.CPU) / CPU
-		tmp += float64(v.Memory) / Memory
-		tmp += float64(v.NumberGPU) / NumberGPU
-		tmp += float64(v.MemoryGPU) / MemoryGPU
+		tmp := float64(v.NumberGPU) / NumberGPU
 		scheduler.resourceAllocationsMu.Unlock()
-		tmp /= 4
 		weight := 10
 		if g, ok2 := InstanceOfGroupManager().groups[k]; !ok2 {
 			weight = g.Weight
@@ -815,14 +513,6 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	scheduler.nextQueue = next
 	scheduler.queueMu.Unlock()
 	log.Debug("updateNextQueue ->", next)
-}
-
-func (scheduler *SchedulerFair) Attach(GPU string, job string) {
-	pool.attach(GPU, job)
-}
-
-func (scheduler *SchedulerFair) Detach(GPU string, job Job) {
-	pool.detach(GPU, job)
 }
 
 func (scheduler *SchedulerFair) Enable() bool {
@@ -840,18 +530,6 @@ func (scheduler *SchedulerFair) Disable() bool {
 func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
 	scheduler.parallelism = parallelism
 	log.Info("parallelism is updated to ", parallelism)
-	return true
-}
-
-func (scheduler *SchedulerFair) SetShareRatio(ratio float64) bool {
-	scheduler.enableShareRatio = ratio
-	log.Info("enableShareRatio is updated to ", ratio)
-	return true
-}
-
-func (scheduler *SchedulerFair) SetPreScheduleRatio(ratio float64) bool {
-	scheduler.enablePreScheduleRatio = ratio
-	log.Info("enablePreScheduleRatio is updated to ", ratio)
 	return true
 }
 

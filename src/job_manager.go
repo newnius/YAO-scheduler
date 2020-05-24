@@ -25,7 +25,7 @@ func (jm *JobManager) start() {
 	jm.isRunning = false
 	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
 
-	jm.network = jm.scheduler.AcquireNetwork()
+	jm.network = InstanceOfResourcePool().acquireNetwork()
 
 	InstanceJobHistoryLogger().submitJob(jm.job)
 
@@ -34,55 +34,26 @@ func (jm *JobManager) start() {
 		jm.resources = append(jm.resources, NodeStatus{ClientID: "null"})
 	}
 
-	start := time.Now().Unix()
-	for i := 0; i < len(jm.job.Tasks); i++ {
-		var resource NodeStatus
-		for {
-			if jm.killedFlag {
-				break
-			}
-
-			var tmp []NodeStatus
-			for _, t := range jm.resources {
-				if t.ClientID != "null" {
-					tmp = append(tmp, t)
-				}
-			}
-			resource = jm.scheduler.AcquireResource(jm.job, jm.job.Tasks[i], tmp)
-			if len(resource.Status) > 0 {
-				break
-			}
-
-			if time.Now().Unix()-start > 30 {
-				log.Info("Wait too long, return all resource and retry")
-				for _, tt := range jm.resources {
-					if tt.ClientID != "null" {
-						jm.scheduler.ReleaseResource(jm.job, tt)
-						log.Info("return resource ", tt.ClientID)
-						jm.resources[i].ClientID = "null"
-						for _, t := range tt.Status {
-							jm.scheduler.Detach(t.UUID, jm.job)
-						}
-					}
-				}
-				i = -1
-				start = time.Now().Unix()
-			}
-			if i == -1 {
-				break
-			}
-			time.Sleep(time.Second * 1)
+	var nodes []NodeStatus
+	for {
+		if jm.killedFlag {
+			break
 		}
-		if len(resource.Status) > 0 {
-			log.Info("Receive resource", resource)
-			jm.resources[i] = resource
-
-			for _, t := range resource.Status {
-				jm.scheduler.Attach(t.UUID, jm.job.Name)
-			}
+		nodes = jm.scheduler.AcquireResource(jm.job)
+		if len(nodes) > 0 {
+			break
 		}
-
+		time.Sleep(time.Second * 1)
 	}
+	log.Info("Receive resource", nodes)
+	jm.resources = nodes
+
+	for _, node := range nodes {
+		for _, t := range node.Status {
+			InstanceOfResourcePool().attach(t.UUID, jm.job.Name)
+		}
+	}
+
 	if !jm.killedFlag {
 		jm.scheduler.UpdateProgress(jm.job, Running)
 		jm.isRunning = true
@@ -218,7 +189,7 @@ func (jm *JobManager) checkStatus(status []TaskStatus) bool {
 				jm.resources[i].ClientID = "null"
 
 				for _, t := range jm.resources[i].Status {
-					jm.scheduler.Detach(t.UUID, jm.job)
+					InstanceOfResourcePool().detach(t.UUID, jm.job)
 				}
 
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
@@ -233,7 +204,7 @@ func (jm *JobManager) checkStatus(status []TaskStatus) bool {
 
 	if !flag {
 		jm.isRunning = false
-		jm.scheduler.ReleaseNetwork(jm.network)
+		InstanceOfResourcePool().releaseNetwork(jm.network)
 
 		if !jm.killedFlag {
 			jm.scheduler.UpdateProgress(jm.job, Finished)

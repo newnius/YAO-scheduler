@@ -12,6 +12,19 @@ import (
 	"hash/fnv"
 )
 
+var resourcePoolInstance *ResourcePool
+var resourcePoolInstanceLock sync.Mutex
+
+func InstanceOfResourcePool() *ResourcePool {
+	defer resourcePoolInstanceLock.Unlock()
+	resourcePoolInstanceLock.Lock()
+
+	if resourcePoolInstance == nil {
+		resourcePoolInstance = &ResourcePool{}
+	}
+	return resourcePoolInstance
+}
+
 type ResourcePool struct {
 	poolsCount int
 	pools      []PoolSeg
@@ -39,11 +52,19 @@ type ResourcePool struct {
 	TotalGPU   int
 	TotalGPUMu sync.Mutex
 
+	UsingGPU   int
+	UsingGPUMu sync.Mutex
+
 	subscriptions   map[string]map[string]int
 	subscriptionsMu sync.Mutex
+
+	enableShare            bool
+	enableShareRatio       float64
+	enablePreSchedule      bool
+	enablePreScheduleRatio float64
 }
 
-func (pool *ResourcePool) start() {
+func (pool *ResourcePool) init(conf Configuration) {
 	log.Info("RM started ")
 
 	pool.networks = map[string]bool{}
@@ -56,6 +77,12 @@ func (pool *ResourcePool) start() {
 	pool.subscriptions = map[string]map[string]int{}
 
 	pool.TotalGPU = 0
+	pool.UsingGPU = 0
+
+	pool.enableShare = true
+	pool.enableShareRatio = 0.75
+	pool.enablePreSchedule = true
+	pool.enablePreScheduleRatio = 0.95
 
 	/* init pools */
 	pool.poolsCount = 300
@@ -134,6 +161,7 @@ func (pool *ResourcePool) checkDeadNodes() {
 			}
 			delete(seg.Nodes, v)
 			seg.Lock.Unlock()
+			delete(pool.heartBeat, v)
 		}
 		pool.heartBeatMu.Unlock()
 		time.Sleep(time.Second * 10)
@@ -253,6 +281,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 			if _, ok := pool.subscriptions[gpu.UUID]; ok {
 				for jobName := range pool.subscriptions[gpu.UUID] {
 					go func(name string) {
+						/* ask to update job status */
 						scheduler.QueryState(name)
 					}(jobName)
 				}
@@ -431,7 +460,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 				log.Println(err.Error())
 				continue
 			}
-			defer resp.Body.Close()
+			resp.Body.Close()
 			pool.networksFree[network] = true
 			pool.networks[network] = true
 			break
@@ -499,6 +528,33 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 	if list, ok := pool.bindings[GPU]; ok {
 		delete(list, job.Name)
 	}
+}
+
+func (pool *ResourcePool) countGPU() (int, int) {
+	FreeGPU := 0
+	UsingGPU := 0
+	start := &pool.pools[0]
+	if start.Nodes == nil {
+		start = start.Next
+	}
+	for cur := start; ; {
+		cur.Lock.Lock()
+		for _, node := range cur.Nodes {
+			for j := range node.Status {
+				if node.Status[j].MemoryAllocated == 0 {
+					FreeGPU++
+				} else {
+					UsingGPU++
+				}
+			}
+		}
+		cur.Lock.Unlock()
+		cur = cur.Next
+		if cur.ID == start.ID {
+			break
+		}
+	}
+	return FreeGPU, UsingGPU
 }
 
 func (pool *ResourcePool) getBindings() map[string]map[string]int {
@@ -583,4 +639,254 @@ func (pool *ResourcePool) pickNode(candidates []*NodeStatus, availableGPUs map[s
 	}
 
 	return candidates[0]
+}
+
+func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
+	if len(job.Tasks) == 0 {
+		return []NodeStatus{}
+	}
+	task := job.Tasks[0]
+	segID := rand.Intn(pool.poolsCount)
+	if pool.TotalGPU < 100 {
+		segID = 0
+	}
+	start := &pool.pools[segID]
+	if start.Nodes == nil {
+		start = start.Next
+	}
+
+	locks := map[int]*sync.Mutex{}
+
+	allocationType := 0
+	availableGPUs := map[string][]GPUStatus{}
+
+	var candidates []*NodeStatus
+
+	/* first, choose sharable GPUs */
+	if pool.enableShare && (pool.TotalGPU != 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && float64(pool.UsingGPU)/float64(pool.TotalGPU) >= pool.enableShareRatio) {
+		// check sharable
+		allocationType = 1
+		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
+
+			for cur := start; cur.ID < cur.Next.ID; {
+				if _, ok := locks[cur.ID]; !ok {
+					cur.Lock.Lock()
+					locks[cur.ID] = &cur.Lock
+				}
+
+				for _, node := range cur.Nodes {
+					var available []GPUStatus
+					for _, status := range node.Status {
+						if status.MemoryAllocated > 0 && status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated {
+
+							if jobs, ok := pool.bindings[status.UUID]; ok {
+								totalUtil := util
+								for job := range jobs {
+									if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
+										totalUtil += utilT
+									} else {
+										totalUtil += 100
+									}
+								}
+								if totalUtil < 100 {
+									available = append(available, status)
+									availableGPUs[node.ClientID] = available
+								}
+							}
+						}
+					}
+					if len(available) >= task.NumberGPU {
+						candidates = append(candidates, node)
+						if len(candidates) >= len(job.Tasks)*3+5 {
+							break
+						}
+					}
+				}
+				if len(candidates) >= len(job.Tasks)*3+5 {
+					break
+				}
+				cur = cur.Next
+				if cur.ID == start.ID {
+					break
+				}
+			}
+		}
+		//log.Info(candidates)
+	}
+
+	/* second round, find vacant gpu */
+	if len(candidates) == 0 {
+		allocationType = 2
+		for cur := start; cur.ID < cur.Next.ID; {
+			if _, ok := locks[cur.ID]; !ok {
+				cur.Lock.Lock()
+				locks[cur.ID] = &cur.Lock
+			}
+			for _, node := range cur.Nodes {
+				var available []GPUStatus
+				for _, status := range node.Status {
+					if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
+						available = append(available, status)
+					}
+				}
+				if len(available) >= task.NumberGPU {
+					candidates = append(candidates, node)
+					availableGPUs[node.ClientID] = available
+					if len(candidates) >= len(job.Tasks)*3+5 {
+						break
+					}
+				}
+			}
+			if len(candidates) >= len(job.Tasks)*3+5 {
+				break
+			}
+			cur = cur.Next
+			if cur.ID == start.ID {
+				break
+			}
+		}
+		//log.Info(candidates)
+	}
+
+	/* third round, find gpu to be released */
+	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && pool.enablePreSchedule {
+		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
+
+		//log.Info(pool.TotalGPU)
+		//log.Info(estimate, valid)
+		//log.Info(scheduler.UsingGPU)
+
+		if pool.TotalGPU != 0 && float64(pool.UsingGPU)/float64(pool.TotalGPU) >= pool.enablePreScheduleRatio && valid {
+			allocationType = 3
+			for cur := start; cur.ID < cur.Next.ID; {
+				if _, ok := locks[cur.ID]; !ok {
+					cur.Lock.Lock()
+					locks[cur.ID] = &cur.Lock
+				}
+				for _, node := range cur.Nodes {
+					var available []GPUStatus
+					for _, status := range node.Status {
+						bindings := pool.getBindings()
+						if tasks, ok := bindings[status.UUID]; ok {
+							if len(tasks) > 1 || status.MemoryAllocated == 0 {
+								continue
+							}
+							for taskT, s := range tasks {
+								est, valid2 := InstanceOfOptimizer().predictTime(taskT)
+								if valid2 {
+									now := (int)(time.Now().Unix())
+									log.Info(s, now, estimate, est)
+									if now-s > est.Total-est.Post-estimate.Pre-15 {
+										available = append(available, status)
+									}
+								}
+							}
+						}
+					}
+					if len(available) >= task.NumberGPU {
+						candidates = append(candidates, node)
+						availableGPUs[node.ClientID] = available
+						if len(candidates) >= len(job.Tasks)*3+5 {
+							break
+						}
+					}
+				}
+				if len(candidates) >= len(job.Tasks)*3+5 {
+					break
+				}
+			}
+			//log.Info(candidates)
+		}
+	}
+
+	if len(candidates) > 0 {
+		log.Info("allocationType is ", allocationType)
+		//log.Info(candidates)
+	}
+
+	/* assign */
+	var ress []NodeStatus
+	if len(candidates) > 0 {
+		var nodes []NodeStatus
+		if len(job.Tasks) == 1 {
+			node := pool.pickNode(candidates, availableGPUs, task, job, []NodeStatus{})
+			nodes = append(nodes, *node)
+		}
+
+		for _, node := range nodes {
+			res := NodeStatus{}
+			res.ClientID = node.ClientID
+			res.ClientHost = node.ClientHost
+			res.Status = availableGPUs[node.ClientID][0:task.NumberGPU]
+			res.NumCPU = task.NumberCPU
+			res.MemTotal = task.Memory
+
+			for i := range res.Status {
+				for j := range node.Status {
+					if res.Status[i].UUID == node.Status[j].UUID {
+						if node.Status[j].MemoryAllocated == 0 {
+							pool.UsingGPUMu.Lock()
+							pool.UsingGPU ++
+							pool.UsingGPUMu.Unlock()
+						}
+						node.Status[j].MemoryAllocated += task.MemoryGPU
+						res.Status[i].MemoryTotal = task.MemoryGPU
+					}
+				}
+			}
+			for _, t := range res.Status {
+				pool.attach(t.UUID, job.Name)
+			}
+			ress = append(ress, res)
+		}
+	}
+
+	for segID, lock := range locks {
+		log.Debug("Unlock ", segID)
+		lock.Unlock()
+	}
+	return ress
+}
+
+func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
+	segID := pool.getNodePool(agent.ClientID)
+	seg := pool.pools[segID]
+	if seg.Nodes == nil {
+		seg = *seg.Next
+	}
+	seg.Lock.Lock()
+	defer seg.Lock.Unlock()
+
+	node := seg.Nodes[agent.ClientID]
+	for _, gpu := range agent.Status {
+		for j := range node.Status {
+			if gpu.UUID == node.Status[j].UUID {
+				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
+				if node.Status[j].MemoryAllocated < 0 {
+					// in case of error
+					log.Warn(node.ClientID, "More Memory Allocated")
+					node.Status[j].MemoryAllocated = 0
+				}
+				if node.Status[j].MemoryAllocated == 0 {
+					pool.UsingGPUMu.Lock()
+					pool.UsingGPU--
+					pool.UsingGPUMu.Unlock()
+					log.Info(node.Status[j].UUID, " is released")
+				}
+				//log.Info(node.Status[j].MemoryAllocated)
+			}
+		}
+	}
+}
+
+func (pool *ResourcePool) SetShareRatio(ratio float64) bool {
+	pool.enableShareRatio = ratio
+	log.Info("enableShareRatio is updated to ", ratio)
+	return true
+}
+
+func (pool *ResourcePool) SetPreScheduleRatio(ratio float64) bool {
+	pool.enablePreScheduleRatio = ratio
+	log.Info("enablePreScheduleRatio is updated to ", ratio)
+	return true
 }
