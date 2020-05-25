@@ -336,10 +336,10 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 	var pre *PoolSeg
 	for i := seg.ID + pool.poolsCount - 1; i >= 0; i-- {
 		segIDs = append(segIDs, i%pool.poolsCount)
-		if pool.pools[i%pool.poolsCount].Next != seg {
-			pre = &pool.pools[i%pool.poolsCount]
+		if pool.pools[i%pool.poolsCount].Next.ID != seg.ID {
 			break
 		}
+		pre = &pool.pools[i%pool.poolsCount]
 	}
 
 	distance := seg.ID - pre.ID
@@ -347,15 +347,19 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 		distance += pool.poolsCount
 	}
 	if distance <= 1 {
-		log.Warn("Unable to scale, already full")
+		log.Warn("Unable to scale, ", seg.ID, ", already full")
 		return
 	}
 
 	candidate := pre
 	/* walk to the nearest middle */
-	for i := 0; i < distance/2; i++ {
-		candidate = candidate.Next
+	if pre.ID < seg.ID {
+		candidate = &pool.pools[(pre.ID+seg.ID)/2]
+	} else {
+		candidate = &pool.pools[(pre.ID+seg.ID+pool.poolsCount)/2%pool.poolsCount]
 	}
+	candidate.Next = seg
+	candidate.Nodes = map[string]*NodeStatus{}
 
 	/* lock in asc sequence to avoid deadlock */
 	sort.Ints(segIDs)
@@ -365,8 +369,12 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 	log.Println(segIDs)
 
 	/* update Next */
-	for cur := pre; cur.ID != candidate.ID; {
-		cur, cur.Next = cur.Next, candidate
+	for i := 0; ; i++ {
+		id := (pre.ID + i) % pool.poolsCount
+		if id == candidate.ID {
+			break
+		}
+		pool.pools[id].Next = candidate
 	}
 
 	/* move nodes */
@@ -377,7 +385,7 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 		if seg2.Nodes == nil {
 			seg2 = seg2.Next
 		}
-		if seg2 != seg {
+		if seg2.ID != seg.ID {
 			nodesToMove[node.ClientID] = node
 		}
 	}
@@ -385,7 +393,7 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 		delete(seg.Nodes, node.ClientID)
 	}
 	candidate.Nodes = nodesToMove
-
+	//log.Info("pre=", pre.ID, " active=", candidate.ID, " seg=", seg.ID)
 	for _, id := range segIDs {
 		pool.pools[id].Lock.Unlock()
 	}
