@@ -20,7 +20,8 @@ type JobManager struct {
 	resourcesMu sync.Mutex
 	isRunning   bool
 	killFlag    bool
-	network     string
+
+	network string
 }
 
 func (jm *JobManager) start() {
@@ -188,9 +189,11 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 			}
 		}
 	}
-	if flagRunning && onlyPS {
+	if flagRunning && onlyPS && !jm.killFlag {
 		log.Info("Only PS is running, stop ", jm.job.Name)
 		jm.stop(false)
+		jm.killFlag = true
+		jm.scheduler.UpdateProgress(jm.job, Finished)
 	}
 
 	if !flagRunning && !jm.killFlag {
