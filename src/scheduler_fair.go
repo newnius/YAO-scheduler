@@ -407,7 +407,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
-	return jm.stop()
+	return jm.stop(true)
 }
 
 func (scheduler *SchedulerFair) QueryLogs(jobName string, taskName string) MsgLog {

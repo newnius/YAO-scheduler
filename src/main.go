@@ -292,7 +292,7 @@ func main() {
 
 	/* init components */
 	InstanceOfResourcePool().init(config)
-	InstanceOfColector().init(config)
+	InstanceOfCollector().init(config)
 	InstanceJobHistoryLogger().init(config)
 	InstanceOfOptimizer().init(config)
 	InstanceOfGroupManager().init(config)

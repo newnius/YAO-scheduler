@@ -11,7 +11,7 @@ import (
 var collectorInstance *Collector
 var collectorInstanceLock sync.Mutex
 
-func InstanceOfColector() *Collector {
+func InstanceOfCollector() *Collector {
 	defer collectorInstanceLock.Unlock()
 	collectorInstanceLock.Lock()
 

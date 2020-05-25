@@ -30,11 +30,13 @@ type NodeStatus struct {
 	ClientID     string      `json:"id"`
 	ClientHost   string      `json:"host"`
 	Domain       string      `json:"domain"`
-	Rack         int         `json:"rack"`
+	Rack         string      `json:"rack"`
 	Version      float64     `json:"version"`
 	NumCPU       int         `json:"cpu_num"`
 	UtilCPU      float64     `json:"cpu_load"`
 	MemTotal     int         `json:"mem_total"`
 	MemAvailable int         `json:"mem_available"`
+	UsingBW      float64     `json:"bw_using"`
+	TotalBW      float64     `json:"bw_total"`
 	Status       []GPUStatus `json:"status"`
 }

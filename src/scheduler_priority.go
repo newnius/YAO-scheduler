@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
-	)
+)
 
 type SchedulerPriority struct {
 	history    []*Job

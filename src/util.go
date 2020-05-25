@@ -6,7 +6,7 @@ import (
 	"time"
 	"io"
 	"net/http"
-	)
+)
 
 type Configuration struct {
 	KafkaBrokers    []string `json:"kafkaBrokers"`

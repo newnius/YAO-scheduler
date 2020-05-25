@@ -9,5 +9,3 @@ type Group struct {
 	CPU       int    `json:"quota_cpu"`
 	Memory    int    `json:"quota_mem"`
 }
-
-

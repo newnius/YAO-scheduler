@@ -807,6 +807,12 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 	/* assign */
 	var ress []NodeStatus
 	if len(candidates) > 0 {
+		/*
+				for range job.Tasks { //append would cause uncertain order
+					resources = append(resources, NodeStatus{ClientID: "null"})
+				}
+				*/
+
 		var nodes []NodeStatus
 		if len(job.Tasks) == 1 {
 			node := pool.pickNode(candidates, availableGPUs, task, job, []NodeStatus{})
