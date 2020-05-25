@@ -35,7 +35,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		log.Debug("job_submit")
 		msgSubmit := MsgSubmit{Code: 0}
 		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
-		log.Info("Submit job", job.Name, time.Now())
+		log.Info("Submit job ", job.Name, " at ", time.Now())
 		if err != nil {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
