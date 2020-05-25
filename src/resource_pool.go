@@ -536,8 +536,9 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 	}
 }
 
+/* return free & using GPUs */
 func (pool *ResourcePool) countGPU() (int, int) {
-	return pool.TotalGPU - pool.UsingGPU, pool.TotalGPU
+	return pool.TotalGPU - pool.UsingGPU, pool.UsingGPU
 }
 
 func (pool *ResourcePool) getBindings() map[string]map[string]int {
