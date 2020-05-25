@@ -32,18 +32,19 @@ type ResourcePool struct {
 
 	history []PoolStatus
 
-	heartBeat   map[string]time.Time
-	heartBeatMu sync.Mutex
+	heartBeat    map[string]time.Time
+	heartBeatMu  sync.Mutex
+	versions     map[string]float64
+	versionsMu   sync.Mutex
+	counter      int
+	counterTotal int
+
+	subscriptions   map[string]map[string]int
+	subscriptionsMu sync.Mutex
 
 	networks     map[string]bool
 	networksFree map[string]bool
 	networkMu    sync.Mutex
-
-	versions   map[string]float64
-	versionsMu sync.Mutex
-
-	counter      int
-	counterTotal int
 
 	bindings   map[string]map[string]int
 	bindingsMu sync.Mutex
@@ -51,12 +52,8 @@ type ResourcePool struct {
 
 	TotalGPU   int
 	TotalGPUMu sync.Mutex
-
 	UsingGPU   int
 	UsingGPUMu sync.Mutex
-
-	subscriptions   map[string]map[string]int
-	subscriptionsMu sync.Mutex
 
 	enableShare            bool
 	enableShareRatio       float64
@@ -70,11 +67,8 @@ func (pool *ResourcePool) init(conf Configuration) {
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
 
-	pool.versions = map[string]float64{}
 	pool.bindings = map[string]map[string]int{}
 	pool.utils = map[string][]UtilGPUTimeSeries{}
-
-	pool.subscriptions = map[string]map[string]int{}
 
 	pool.TotalGPU = 0
 	pool.UsingGPU = 0
@@ -105,6 +99,8 @@ func (pool *ResourcePool) init(conf Configuration) {
 		}
 	}
 
+	pool.versions = map[string]float64{}
+	pool.subscriptions = map[string]map[string]int{}
 	pool.heartBeat = map[string]time.Time{}
 	go func() {
 		pool.checkDeadNodes()
@@ -114,7 +110,6 @@ func (pool *ResourcePool) init(conf Configuration) {
 	go func() {
 		pool.saveStatusHistory()
 	}()
-
 }
 
 /* check dead nodes periodically */
@@ -313,6 +308,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		pool.TotalGPUMu.Lock()
 		pool.TotalGPU += len(node.Status)
 		pool.TotalGPUMu.Unlock()
+		log.Info("node ", node.ClientID, " is online")
 	}
 	seg.Nodes[node.ClientID] = &node
 	if len(seg.Nodes) > 10 {
@@ -519,7 +515,7 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 
 	if _, ok := pool.bindings[GPU]; ok {
 		if _, ok2 := pool.utils[GPU]; ok2 {
-			if len(pool.bindings[GPU]) == 1 && job.Status != Failed && job.Status != Stopped {
+			if len(pool.bindings[GPU]) == 1 && job.Status == Finished {
 				InstanceOfOptimizer().feed(job.Name, pool.utils[GPU])
 			}
 			delete(pool.utils, GPU)
@@ -532,30 +528,7 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 }
 
 func (pool *ResourcePool) countGPU() (int, int) {
-	FreeGPU := 0
-	UsingGPU := 0
-	start := &pool.pools[0]
-	if start.Nodes == nil {
-		start = start.Next
-	}
-	for cur := start; ; {
-		cur.Lock.Lock()
-		for _, node := range cur.Nodes {
-			for j := range node.Status {
-				if node.Status[j].MemoryAllocated == 0 {
-					FreeGPU++
-				} else {
-					UsingGPU++
-				}
-			}
-		}
-		cur.Lock.Unlock()
-		cur = cur.Next
-		if cur.ID == start.ID {
-			break
-		}
-	}
-	return FreeGPU, UsingGPU
+	return pool.TotalGPU - pool.UsingGPU, pool.TotalGPU
 }
 
 func (pool *ResourcePool) getBindings() map[string]map[string]int {
