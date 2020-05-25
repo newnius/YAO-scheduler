@@ -251,7 +251,7 @@ func (pool *ResourcePool) saveStatusHistory() {
 /* update node info */
 func (pool *ResourcePool) update(node NodeStatus) {
 	pool.poolsMu.Lock()
-	pool.poolsMu.Unlock()
+	defer pool.poolsMu.Unlock()
 	segID := pool.getNodePool(node.ClientID)
 	seg := &pool.pools[segID]
 	if seg.Nodes == nil {
