@@ -31,8 +31,6 @@ type SchedulerCapacity struct {
 
 	queuesSchedulingCnt map[string]int
 	queuesUsingGPUMu    sync.Mutex
-
-	mu sync.Mutex
 }
 
 type FairJobSorter []Job
@@ -133,8 +131,6 @@ func (scheduler *SchedulerCapacity) Start() {
 				}()
 			} else {
 				log.Debug("No more jobs to scheduling ", time.Now())
-				scheduler.schedulingMu.Lock()
-				scheduler.schedulingMu.Unlock()
 			}
 			scheduler.queueMu.Unlock()
 		}

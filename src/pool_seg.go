@@ -7,5 +7,4 @@ type PoolSeg struct {
 	Nodes     map[string]*NodeStatus
 	Lock      sync.Mutex
 	Next      *PoolSeg
-	IsVirtual bool
 }
