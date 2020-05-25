@@ -8,7 +8,7 @@ import (
 	"math"
 )
 
-type SchedulerFair struct {
+type SchedulerCapacity struct {
 	history   []*Job
 	historyMu sync.Mutex
 
@@ -47,7 +47,7 @@ func (s FairJobSorter) Less(i, j int) bool {
 	return s[i].CreatedAt < s[j].CreatedAt
 }
 
-func (scheduler *SchedulerFair) Start() {
+func (scheduler *SchedulerCapacity) Start() {
 	log.Info("JS started")
 
 	scheduler.jobs = map[string]*JobManager{}
@@ -64,7 +64,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.parallelism = 1
 
 	go func() {
-		/* fair scheduler */
+		/* capacity scheduler */
 		flag := true
 		for {
 			log.Debug("Scheduling")
@@ -141,7 +141,7 @@ func (scheduler *SchedulerFair) Start() {
 	}()
 }
 
-func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
+func (scheduler *SchedulerCapacity) UpdateProgress(job Job, state State) {
 	scheduler.historyMu.Lock()
 	defer scheduler.historyMu.Unlock()
 
@@ -195,7 +195,7 @@ func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
 	}
 }
 
-func (scheduler *SchedulerFair) Schedule(job Job) {
+func (scheduler *SchedulerCapacity) Schedule(job Job) {
 	scheduler.queueMu.Lock()
 	defer scheduler.queueMu.Unlock()
 
@@ -236,7 +236,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	job.Status = Created
 }
 
-func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
+func (scheduler *SchedulerCapacity) AcquireResource(job Job) []NodeStatus {
 	res := InstanceOfResourcePool().acquireResource(job)
 
 	if len(res) != 0 {
@@ -271,7 +271,7 @@ func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
 	return res
 }
 
-func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
+func (scheduler *SchedulerCapacity) ReleaseResource(job Job, agent NodeStatus) {
 	InstanceOfResourcePool().releaseResource(job, agent)
 	go func(res NodeStatus) {
 		scheduler.resourceAllocationsMu.Lock()
@@ -290,7 +290,7 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	}(agent)
 }
 
-func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
+func (scheduler *SchedulerCapacity) QueryState(jobName string) MsgJobStatus {
 	scheduler.queueMu.Lock()
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queueMu.Unlock()
@@ -300,7 +300,7 @@ func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
 	return jm.status()
 }
 
-func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
+func (scheduler *SchedulerCapacity) Stop(jobName string) MsgStop {
 	scheduler.queueMu.Lock()
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queueMu.Unlock()
@@ -310,7 +310,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	return jm.stop(true)
 }
 
-func (scheduler *SchedulerFair) QueryLogs(jobName string, taskName string) MsgLog {
+func (scheduler *SchedulerCapacity) QueryLogs(jobName string, taskName string) MsgLog {
 	scheduler.queueMu.Lock()
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queueMu.Unlock()
@@ -320,7 +320,7 @@ func (scheduler *SchedulerFair) QueryLogs(jobName string, taskName string) MsgLo
 	return jm.logs(taskName)
 }
 
-func (scheduler *SchedulerFair) ListJobs() MsgJobList {
+func (scheduler *SchedulerCapacity) ListJobs() MsgJobList {
 	var jobs []Job
 	scheduler.historyMu.Lock()
 	for _, job := range scheduler.history {
@@ -336,7 +336,7 @@ func (scheduler *SchedulerFair) ListJobs() MsgJobList {
 	return MsgJobList{Code: 0, Jobs: jobs}
 }
 
-func (scheduler *SchedulerFair) Summary() MsgSummary {
+func (scheduler *SchedulerCapacity) Summary() MsgSummary {
 	summary := MsgSummary{}
 	summary.Code = 0
 
@@ -381,7 +381,7 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 	return summary
 }
 
-func (scheduler *SchedulerFair) UpdateNextQueue() {
+func (scheduler *SchedulerCapacity) UpdateNextQueue() {
 	next := "default"
 	quota := math.MaxFloat64
 
@@ -415,25 +415,25 @@ func (scheduler *SchedulerFair) UpdateNextQueue() {
 	log.Debug("updateNextQueue ->", next)
 }
 
-func (scheduler *SchedulerFair) Enable() bool {
+func (scheduler *SchedulerCapacity) Enable() bool {
 	scheduler.enabled = true
 	log.Info("scheduler is enabled ", time.Now())
 	return true
 }
 
-func (scheduler *SchedulerFair) Disable() bool {
+func (scheduler *SchedulerCapacity) Disable() bool {
 	scheduler.enabled = false
 	log.Info("scheduler is disabled ", time.Now())
 	return true
 }
 
-func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
+func (scheduler *SchedulerCapacity) UpdateParallelism(parallelism int) bool {
 	scheduler.parallelism = parallelism
 	log.Info("parallelism is updated to ", parallelism)
 	return true
 }
 
-func (scheduler *SchedulerFair) updateGroup(group Group) bool {
+func (scheduler *SchedulerCapacity) updateGroup(group Group) bool {
 	num := 0
 	for _, g := range InstanceOfGroupManager().List().Groups {
 		if g.Reserved {
