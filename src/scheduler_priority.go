@@ -132,7 +132,7 @@ func (scheduler *SchedulerPriority) Stop(jobName string) MsgStop {
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
-	return jm.stop()
+	return jm.stop(true)
 }
 
 func (scheduler *SchedulerPriority) QueryLogs(jobName string, taskName string) MsgLog {
