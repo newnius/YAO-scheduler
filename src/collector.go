@@ -67,5 +67,6 @@ func (collector *Collector) init(conf Configuration) {
 		}
 		collector.wg.Wait()
 		consumer.Close()
+		log.Warn("Collector exited")
 	}()
 }
