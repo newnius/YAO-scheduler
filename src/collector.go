@@ -54,15 +54,15 @@ func (collector *Collector) init(conf Configuration) {
 			go func(sarama.PartitionConsumer) {
 				defer collector.wg.Done()
 				for msg := range pc.Messages() {
-					var nodeStatus NodeStatus
-					err = json.Unmarshal([]byte(string(msg.Value)), &nodeStatus)
-					if err != nil {
-						log.Warn(err)
-						continue
-					}
-					go func(node NodeStatus) {
-						InstanceOfResourcePool().update(node)
-					}(nodeStatus)
+					go func(msg *sarama.ConsumerMessage) {
+						var nodeStatus NodeStatus
+						err = json.Unmarshal([]byte(string(msg.Value)), &nodeStatus)
+						if err != nil {
+							log.Warn(err)
+							return
+						}
+						InstanceOfResourcePool().update(nodeStatus)
+					}(msg)
 				}
 
 			}(pc)
