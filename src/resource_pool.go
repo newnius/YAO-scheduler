@@ -689,6 +689,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 				if len(candidates) >= len(job.Tasks)*3+5 {
 					break
 				}
+				log.Info(cur)
 				if cur.ID > cur.Next.ID {
 					break
 				}
