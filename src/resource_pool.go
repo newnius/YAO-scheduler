@@ -366,7 +366,7 @@ func (pool *ResourcePool) scaleSeg(seg *PoolSeg) {
 	for _, id := range segIDs {
 		pool.pools[id].Lock.Lock()
 	}
-	log.Println(segIDs)
+	//log.Println(segIDs)
 
 	/* update Next */
 	for i := 0; ; i++ {
