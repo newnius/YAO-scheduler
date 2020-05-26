@@ -57,8 +57,8 @@ func firstFit(allocation Allocation, task Task) (string, bool) {
 }
 
 func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
-	//log.Info(nodes)
-	//log.Info(tasks)
+	log.Info(nodes)
+	log.Info(tasks)
 	eva := Evaluator{}
 	eva.init(nodes, tasks)
 

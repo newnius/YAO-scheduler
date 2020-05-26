@@ -11,20 +11,20 @@ import (
 )
 
 func TgenerateCase() ([]NodeStatus, []Task) {
-	numTask := 6
+	numTask := 2
 
 	var nodes []NodeStatus
 	var tasks []Task
 
-	for i := 0; i < numTask*3; i++ {
+	for i := 0; i < numTask; i++ {
 		node := NodeStatus{ClientID: strconv.Itoa(i), Rack: "Rack-" + strconv.Itoa(i%40), Domain: "Domain-" + strconv.Itoa(i%4)}
 		node.NumCPU = 24
 		node.UtilCPU = 2.0
 		node.MemTotal = 188
 		node.MemAvailable = 20
 		node.TotalBW = 100
-		//cnt := 4
-		cnt := rand.Intn(3) + 1
+		cnt := 1
+		//cnt := rand.Intn(3) + 1
 		for i := 0; i < cnt; i++ {
 			node.Status = append(node.Status, GPUStatus{MemoryTotal: 11439, MemoryAllocated: 0, UUID: node.ClientID + "-" + strconv.Itoa(i)})
 		}
