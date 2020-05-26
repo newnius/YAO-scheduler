@@ -60,7 +60,9 @@ func (collector *Collector) init(conf Configuration) {
 						log.Warn(err)
 						continue
 					}
-					InstanceOfResourcePool().update(nodeStatus)
+					go func(node NodeStatus) {
+						InstanceOfResourcePool().update(node)
+					}(nodeStatus)
 				}
 
 			}(pc)
