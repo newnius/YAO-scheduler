@@ -789,69 +789,68 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 	/* assign */
 	var ress []NodeStatus
 	if len(candidates) > 0 {
-		for range job.Tasks { //append would cause uncertain order
-			ress = append(ress, NodeStatus{ClientID: "null"})
-		}
-
 		var nodesT []NodeStatus
 		for _, node := range candidates {
 			nodesT = append(nodesT, node.Copy())
 		}
 
 		allocation := fastBestFit(nodesT, job.Tasks)
-		if !allocation.Flags["valid"] {
-			return []NodeStatus{}
-		}
+		if allocation.Flags["valid"] {
 
-		for nodeID, tasks := range allocation.TasksOnNode {
-			var node *NodeStatus
-			for i := range candidates {
-				if candidates[i].ClientID == nodeID {
-					node = &candidates[i]
-				}
+			for range job.Tasks { //append would cause uncertain order
+				ress = append(ress, NodeStatus{ClientID: "null"})
 			}
 
-			var available []GPUStatus
-			for _, gpu := range node.Status {
-				if gpu.MemoryAllocated == 0 {
-					available = append(available, gpu)
+			for nodeID, tasks := range allocation.TasksOnNode {
+				var node *NodeStatus
+				for i := range candidates {
+					if candidates[i].ClientID == nodeID {
+						node = &candidates[i]
+					}
 				}
-			}
-			for _, task := range tasks {
-				res := NodeStatus{}
-				res.ClientID = node.ClientID
-				res.ClientHost = node.ClientHost
-				res.NumCPU = task.NumberCPU
-				res.MemTotal = task.Memory
-				res.Status = available[0:task.NumberGPU]
-				available = available[task.NumberGPU:]
 
-				for i := range res.Status {
-					for j := range node.Status {
-						if res.Status[i].UUID == node.Status[j].UUID {
-							if node.Status[j].MemoryAllocated == 0 {
-								pool.UsingGPUMu.Lock()
-								pool.UsingGPU ++
-								pool.UsingGPUMu.Unlock()
+				var available []GPUStatus
+				for _, gpu := range node.Status {
+					if gpu.MemoryAllocated == 0 {
+						available = append(available, gpu)
+					}
+				}
+				for _, task := range tasks {
+					res := NodeStatus{}
+					res.ClientID = node.ClientID
+					res.ClientHost = node.ClientHost
+					res.NumCPU = task.NumberCPU
+					res.MemTotal = task.Memory
+					res.Status = available[0:task.NumberGPU]
+					available = available[task.NumberGPU:]
+
+					for i := range res.Status {
+						for j := range node.Status {
+							if res.Status[i].UUID == node.Status[j].UUID {
+								if node.Status[j].MemoryAllocated == 0 {
+									pool.UsingGPUMu.Lock()
+									pool.UsingGPU ++
+									pool.UsingGPUMu.Unlock()
+								}
+								node.Status[j].MemoryAllocated += task.MemoryGPU
+								res.Status[i].MemoryTotal = task.MemoryGPU
 							}
-							node.Status[j].MemoryAllocated += task.MemoryGPU
-							res.Status[i].MemoryTotal = task.MemoryGPU
 						}
 					}
-				}
-				for _, t := range res.Status {
-					pool.attach(t.UUID, job.Name)
-				}
-
-				for i := range job.Tasks {
-					if job.Tasks[i].Name == task.Name {
-						ress[i] = res
+					for _, t := range res.Status {
+						pool.attach(t.UUID, job.Name)
 					}
+
+					for i := range job.Tasks {
+						if job.Tasks[i].Name == task.Name {
+							ress[i] = res
+						}
+					}
+
 				}
-
 			}
-		}
 
+		}
 	}
 
 	for segID, lock := range locks {
