@@ -686,7 +686,6 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 						}
 					}
 				}
-				log.Info(candidates, cur)
 				if len(candidates) >= len(job.Tasks)*3+5 {
 					break
 				}
@@ -721,6 +720,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 					}
 				}
 			}
+			log.Info(candidates, cur)
 			if len(candidates) >= len(job.Tasks)*3+5 {
 				break
 			}
