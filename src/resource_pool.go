@@ -247,7 +247,6 @@ func (pool *ResourcePool) saveStatusHistory() {
 
 /* update node info */
 func (pool *ResourcePool) update(node NodeStatus) {
-	log.Info("Update", node.ClientID)
 	pool.poolsMu.Lock()
 	defer pool.poolsMu.Unlock()
 	segID := pool.getNodePool(node.ClientID)
