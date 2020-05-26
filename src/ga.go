@@ -89,8 +89,8 @@ func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
 				best = &nodes[i]
 			}
 		}
-		log.Info(task, " choose ", best.ClientID)
 		if best == nil {
+			log.Info(task, " choose ", best.ClientID)
 			allocation.Flags["valid"] = false
 			break
 		} else {
