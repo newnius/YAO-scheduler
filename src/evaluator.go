@@ -14,6 +14,8 @@ type Evaluator struct {
 	factorNode   float64
 	factorRack   float64
 	factorDomain float64
+
+	costLoad float64
 }
 
 func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
@@ -28,6 +30,7 @@ func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
 	eva.factorDomain = 40.0
 	eva.cost = 0.0
 	eva.costNetwork = 0.0
+	eva.costLoad = 0.0
 }
 
 func (eva *Evaluator) add(node NodeStatus, task Task) {
@@ -63,6 +66,20 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 		eva.totalWorker++
 	}
 	eva.cost = eva.costNetwork
+
+	if task.IsPS {
+		//eva.costLoad += 1
+	} else {
+		//eva.costLoad += 0.5
+	}
+	numberGPU := 1
+	for _, gpu := range node.Status {
+		if gpu.MemoryAllocated != 0 {
+			numberGPU += 1
+		}
+	}
+	eva.costLoad += float64(numberGPU) / float64(len(node.Status))
+
 }
 
 func (eva *Evaluator) remove(node NodeStatus, task Task) {
@@ -88,10 +105,23 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 		eva.totalWorker--
 	}
 	eva.cost = eva.costNetwork
+
+	if task.IsPS {
+		//eva.costLoad -= 1
+	} else {
+		//eva.costLoad -= 0.5
+	}
+	numberGPU := 1
+	for _, gpu := range node.Status {
+		if gpu.MemoryAllocated != 0 {
+			numberGPU += 1
+		}
+	}
+	eva.costLoad -= float64(numberGPU) / float64(len(node.Status))
 }
 
 func (eva *Evaluator) calculate() float64 {
-	return eva.cost
+	return eva.cost + eva.costLoad/float64(eva.totalPS+eva.totalWorker)
 }
 
 func evaluate(allocation Allocation) float64 {
@@ -189,6 +219,7 @@ func evaluate(allocation Allocation) float64 {
 	costLB *= 100
 	//fmt.Println(costLB)
 
-	cost := 0.0*costLB + 1.0*costNetwork
+	cost := costNetwork
+	//cost := 0.0*costLB + 1.0*costNetwork
 	return cost
 }

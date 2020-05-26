@@ -3,13 +3,9 @@ package main
 import (
 	"math/rand"
 	"github.com/MaxHalford/eaopt"
-	"time"
-		"math"
+	"math"
 	log "github.com/sirupsen/logrus"
 )
-
-var nodesMap map[string]NodeStatus
-var tasksMap map[string]Task
 
 // A resource allocation
 type Allocation struct {
@@ -18,6 +14,7 @@ type Allocation struct {
 	NodeIDs     []string
 	Flags       map[string]bool
 	Evaluator   Evaluator
+	Tasks       []Task
 }
 
 func randomFit(allocation Allocation, task Task) (string, bool) {
@@ -27,10 +24,10 @@ func randomFit(allocation Allocation, task Task) (string, bool) {
 		numberGPU := 0
 		for _, gpu := range allocation.Nodes[nodeID].Status {
 			if gpu.MemoryAllocated == 0 {
-				numberGPU += 0
+				numberGPU += 1
 			}
 		}
-		if _, ok := allocation.Nodes[nodeID]; ok && len(allocation.TasksOnNode[nodeID]) < numberGPU {
+		if task.NumberGPU <= numberGPU {
 			flag = true
 			break
 		}
@@ -42,13 +39,16 @@ func firstFit(allocation Allocation, task Task) (string, bool) {
 	flag := false
 	nodeID := ""
 	for _, nodeID = range allocation.NodeIDs {
+		if _, ok := allocation.Nodes[nodeID]; !ok {
+			continue
+		}
 		numberGPU := 0
 		for _, gpu := range allocation.Nodes[nodeID].Status {
 			if gpu.MemoryAllocated == 0 {
-				numberGPU += 0
+				numberGPU += 1
 			}
 		}
-		if _, ok := allocation.Nodes[nodeID]; ok && len(allocation.TasksOnNode[nodeID]) < numberGPU {
+		if task.NumberGPU <= numberGPU {
 			flag = true
 			break
 		}
@@ -57,6 +57,8 @@ func firstFit(allocation Allocation, task Task) (string, bool) {
 }
 
 func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
+	//log.Info(nodes)
+	//log.Info(tasks)
 	eva := Evaluator{}
 	eva.init(nodes, tasks)
 
@@ -64,90 +66,76 @@ func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
 	allocation.TasksOnNode = map[string][]Task{}
 	for _, task := range tasks {
 		minCost := math.MaxFloat64
-		nodeID := ""
-		for _, node := range nodes {
+		var best *NodeStatus
+		for i, node := range nodes {
 			if _, ok := allocation.TasksOnNode[node.ClientID]; !ok {
 				allocation.TasksOnNode[node.ClientID] = []Task{}
 			}
 			numberGPU := 0
-			for _, gpu := range allocation.Nodes[nodeID].Status {
+			for _, gpu := range node.Status {
 				if gpu.MemoryAllocated == 0 {
-					numberGPU += 0
+					numberGPU += 1
 				}
 			}
-			if len(allocation.TasksOnNode[node.ClientID]) >= numberGPU {
+			if task.NumberGPU > numberGPU {
 				continue
 			}
 			eva.add(node, task)
 			cost := eva.calculate()
 			eva.remove(node, task)
-			if cost < minCost || nodeID == "" {
+			//log.Info(node, cost)
+			if cost < minCost || best == nil {
 				minCost = cost
-				nodeID = node.ClientID
+				best = &nodes[i]
 			}
-			//fmt.Println(cost)
 		}
-		if nodeID == "" {
+		log.Info(task, " choose ", best.ClientID)
+		if best == nil {
 			allocation.Flags["valid"] = false
 			break
 		} else {
 			//fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
-			allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
-			eva.add(nodesMap[nodeID], task)
-		}
-	}
-	log.Println(eva.calculate())
-	return allocation
-}
-
-func bestFit(allocation Allocation, task Task) (string, bool) {
-	flag := false
-	nodeID := ""
-	minCost := math.MaxFloat64
-	for _, id := range allocation.NodeIDs {
-		numberGPU := 0
-		for _, gpu := range allocation.Nodes[id].Status {
-			if gpu.MemoryAllocated == 0 {
-				numberGPU += 0
-			}
-		}
-		if _, ok := allocation.Nodes[id]; ok && len(allocation.TasksOnNode[id]) < numberGPU {
-			/* add */
-			allocation.TasksOnNode[id] = append(allocation.TasksOnNode[id], task)
-
-			/* evaluate */
-			cost := evaluate(allocation)
-
-			/* revert */
-			idx := -1
-			for i, task2 := range allocation.TasksOnNode[id] {
-				if task2.Name == task.Name {
-					idx = i
+			allocation.TasksOnNode[best.ClientID] = append(allocation.TasksOnNode[best.ClientID], task)
+			eva.add(*best, task)
+			for i := range best.Status {
+				//allocate more than 1
+				if best.Status[i].MemoryAllocated == 0 {
+					best.Status[i].MemoryAllocated += task.MemoryGPU
+					break
 				}
 			}
-			copy(allocation.TasksOnNode[id][idx:], allocation.TasksOnNode[id][idx+1:])
-			allocation.TasksOnNode[id] = allocation.TasksOnNode[id][:len(allocation.TasksOnNode[id])-1]
-
-			if cost < minCost || !flag {
-				nodeID = id
-				minCost = cost
-			}
-			flag = true
 		}
 	}
-	return nodeID, flag
+	//log.Info(allocation.TasksOnNode)
+	log.Println("BestFit Cost:", eva.calculate())
+	return allocation
 }
 
 /* Evaluate the allocation */
 func (X Allocation) Evaluate() (float64, error) {
+	//log.Info(X)
 	if !X.Flags["valid"] {
 		//fmt.Println("Invalid allocation")
 		return math.MaxFloat64, nil
 	}
 
-	costNetwork := evaluate(X)
+	//costNetwork := evaluate(X)
 
-	cost := costNetwork
+	var nodes []NodeStatus
+	for _, node := range X.Nodes {
+		nodes = append(nodes, node)
+	}
+
+	eva := Evaluator{}
+	eva.init(nodes, X.Tasks)
+	for node, tasks := range X.TasksOnNode {
+		for _, task := range tasks {
+			eva.add(X.Nodes[node], task)
+		}
+	}
+
+	cost := eva.calculate()
+	//log.Info(cost)
 	//fmt.Println(taskToNode, cost, len(X.Nodes))
 	return float64(cost), nil
 }
@@ -189,6 +177,12 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 		for _, task := range tasks {
 			if nodeID, ok := firstFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
+				for i := range X.Nodes[nodeID].Status {
+					if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+						X.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+						break
+					}
+				}
 			} else {
 				X.Flags["valid"] = false
 			}
@@ -196,6 +190,7 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 	}
 	//fmt.Println("After", X)
 
+	return
 	/* move tasks */
 	if !X.Flags["valid"] {
 		//fmt.Println("Invalid allocation")
@@ -230,7 +225,6 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		if !Y.(Allocation).Flags["valid"] || !X.Flags["valid"] {
 			return
 		}
-		//fmt.Println("Crossover")
 		taskToNode := map[string]string{}
 		for nodeID, tasks := range X.TasksOnNode {
 			for _, task := range tasks {
@@ -265,6 +259,12 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 			//fmt.Println(X.TasksOnNode)
 			copy(X.TasksOnNode[nodeID2][idx:], X.TasksOnNode[nodeID2][idx+1:])
 			X.TasksOnNode[nodeID2] = X.TasksOnNode[nodeID2][:len(X.TasksOnNode[nodeID2])-1]
+			for i := range X.Nodes[nodeID].Status {
+				if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+					X.Nodes[nodeID].Status[i].MemoryAllocated -= task.MemoryGPU
+					break
+				}
+			}
 			//fmt.Println(X.TasksOnNode)
 		}
 		/* reschedule tasks on tgt node */
@@ -291,6 +291,12 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		for _, task := range tasks {
 			if nodeID, ok := firstFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
+				for i := range X.Nodes[nodeID].Status {
+					if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+						X.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+						break
+					}
+				}
 			} else {
 				X.Flags["valid"] = false
 			}
@@ -318,75 +324,4 @@ func (X Allocation) Clone() eaopt.Genome {
 		Y.TasksOnNode[id] = t
 	}
 	return Y
-}
-
-func VectorFactory(rng *rand.Rand) eaopt.Genome {
-	allocation := Allocation{TasksOnNode: map[string][]Task{}, Nodes: map[string]NodeStatus{}, Flags: map[string]bool{"valid": true}}
-
-	var nodes []NodeStatus
-	var tasks []Task
-
-	for _, node := range nodesMap {
-		nodes = append(nodes, node)
-	}
-	for _, task := range tasksMap {
-		tasks = append(tasks, task)
-	}
-
-	/* shuffle */
-	for n := len(nodes); n > 0; n-- {
-		randIndex := rng.Intn(n)
-		nodes[n-1], nodes[randIndex] = nodes[randIndex], nodes[n-1]
-	}
-	for n := len(tasks); n > 0; n-- {
-		randIndex := rng.Intn(n)
-		tasks[n-1], tasks[randIndex] = tasks[randIndex], tasks[n-1]
-	}
-
-	/* pick nodes */
-	for _, node := range nodesMap {
-		allocation.Nodes[node.ClientID] = node
-		allocation.NodeIDs = append(allocation.NodeIDs, node.ClientID)
-	}
-
-	t := rng.Int() % 10
-	if t == -1 {
-		/* best-fit */
-		ts := time.Now()
-
-		/*
-		for _, task := range tasks {
-			if nodeID, ok := bestFit(allocation, task); ok {
-				allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
-			} else {
-				allocation.Flags["valid"] = false
-			}
-		}
-		*/
-
-		allocation.TasksOnNode = fastBestFit(nodes, tasks).TasksOnNode
-		log.Println(time.Since(ts))
-		//fmt.Println("Best Fit")
-	} else if t%2 == 0 {
-		/* first-fit */
-		for _, task := range tasks {
-			if nodeID, ok := randomFit(allocation, task); ok {
-				allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
-			} else {
-				allocation.Flags["valid"] = false
-			}
-		}
-	} else {
-		/* random-fit */
-		for _, task := range tasks {
-			if nodeID, ok := randomFit(allocation, task); ok {
-				allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
-			} else {
-				allocation.Flags["valid"] = false
-			}
-		}
-	}
-	//fmt.Println(evaluatue(allocation))
-	//fmt.Println(allocation)
-	return allocation
 }

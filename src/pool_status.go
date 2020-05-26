@@ -40,3 +40,10 @@ type NodeStatus struct {
 	TotalBW      float64     `json:"bw_total"`
 	Status       []GPUStatus `json:"status"`
 }
+
+func (X *NodeStatus) Copy() NodeStatus {
+	res := *X
+	res.Status = make([]GPUStatus, len(X.Status))
+	copy(res.Status, X.Status)
+	return res
+}

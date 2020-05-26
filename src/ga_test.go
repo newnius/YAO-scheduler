@@ -4,53 +4,61 @@ import (
 	"strconv"
 	"math/rand"
 	"time"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"github.com/MaxHalford/eaopt"
 	"math"
 	"testing"
 )
 
-func TestGA(t *testing.T) {
-	numTask := 20
-
-	nodesMap = map[string]NodeStatus{}
-	tasksMap = map[string]Task{}
-
-	for i := 0; i < numTask*3; i++ {
-		node := NodeStatus{ClientID: strconv.Itoa(i), Rack: strconv.Itoa(i % 40), Domain: strconv.Itoa(i % 4)}
-		node.NumCPU = 24
-		node.MemTotal = 188
-		node.TotalBW = 100
-		cnt := rand.Intn(3) + 1
-		for i := 0; i < cnt; i++ {
-			node.Status = append(node.Status, GPUStatus{MemoryTotal: 11439, MemoryAllocated: 0, UUID: node.ClientID + strconv.Itoa(i)})
-		}
-		nodesMap[strconv.Itoa(i)] = node
-	}
-	for i := 0; i < numTask; i++ {
-		isPS := false
-		if i >= 3 {
-			isPS = true
-		}
-		task := Task{Name: strconv.Itoa(i), IsPS: isPS}
-		task.Memory = 4
-		task.NumberCPU = 2
-		task.NumberGPU = 1
-		tasksMap[strconv.Itoa(i)] = task
-	}
+func TgenerateCase() ([]NodeStatus, []Task) {
+	numTask := 6
 
 	var nodes []NodeStatus
 	var tasks []Task
 
-	for _, node := range nodesMap {
+	for i := 0; i < numTask*3; i++ {
+		node := NodeStatus{ClientID: strconv.Itoa(i), Rack: "Rack-" + strconv.Itoa(i%40), Domain: "Domain-" + strconv.Itoa(i%4)}
+		node.NumCPU = 24
+		node.UtilCPU = 2.0
+		node.MemTotal = 188
+		node.MemAvailable = 20
+		node.TotalBW = 100
+		//cnt := 4
+		cnt := rand.Intn(3) + 1
+		for i := 0; i < cnt; i++ {
+			node.Status = append(node.Status, GPUStatus{MemoryTotal: 11439, MemoryAllocated: 0, UUID: node.ClientID + "-" + strconv.Itoa(i)})
+		}
 		nodes = append(nodes, node)
 	}
-	for _, task := range tasksMap {
+	for i := 0; i < numTask; i++ {
+		isPS := false
+		if i%4 == 0 {
+			isPS = true
+		}
+		task := Task{Name: "task-" + strconv.Itoa(i), IsPS: isPS}
+		task.Memory = 4
+		task.NumberCPU = 2
+		task.NumberGPU = 1
+		task.MemoryGPU = 4096
 		tasks = append(tasks, task)
+	}
+	return nodes, tasks
+}
+
+func TestBestFit(t *testing.T) {
+	nodes, tasks := TgenerateCase()
+	for _, node := range nodes {
+		log.Info(node)
 	}
 	s := time.Now()
 	allocation := fastBestFit(nodes, tasks)
 	log.Println(time.Since(s))
+	log.Println(allocation)
+}
+
+func TestGA(t *testing.T) {
+	return
+	nodes, tasks := TgenerateCase()
 
 	// Instantiate a GA with a GAConfig
 	var ga, err = eaopt.NewDefaultGAConfig().NewGA()
@@ -62,7 +70,7 @@ func TestGA(t *testing.T) {
 	// Set the number of generations to run for
 	ga.NGenerations = math.MaxInt32
 	ga.NPops = 1
-	ga.PopSize = 30 + uint(numTask/2)
+	ga.PopSize = 30 + uint(len(tasks)/2)
 
 	// Add a custom print function to track progress
 	ga.Callback = func(ga *eaopt.GA) {
@@ -90,15 +98,92 @@ func TestGA(t *testing.T) {
 		return false
 	}
 
+	var f = func(rng *rand.Rand) eaopt.Genome {
+		allocation := Allocation{TasksOnNode: map[string][]Task{}, Nodes: map[string]NodeStatus{}, Flags: map[string]bool{"valid": true}}
+
+		//log.Println(nodes)
+		var nodesT []NodeStatus
+		for _, node := range nodes {
+			nodesT = append(nodesT, node.Copy())
+		}
+
+		//nodesT[0].Status[0].MemoryAllocated = 100
+		//log.Println(nodes[0].Status[0].MemoryAllocated)
+
+		//log.Println(&nodesT[0])
+		//log.Println(&nodes[0])
+
+		for _, node := range nodesT {
+			allocation.Nodes[node.ClientID] = node
+		}
+		for _, task := range tasks {
+			allocation.Tasks = append(allocation.Tasks, task)
+		}
+
+		/* shuffle */
+		for n := len(tasks); n > 0; n-- {
+			randIndex := rng.Intn(n)
+			allocation.Tasks[n-1], allocation.Tasks[randIndex] = allocation.Tasks[randIndex], allocation.Tasks[n-1]
+		}
+
+		/* pick nodes */
+		for _, node := range nodesT {
+			allocation.Nodes[node.ClientID] = node
+			allocation.NodeIDs = append(allocation.NodeIDs, node.ClientID)
+		}
+
+		t := rng.Int() % 10
+		if t == 0 {
+			/* best-fit */
+			ts := time.Now()
+			allocation.TasksOnNode = fastBestFit(nodesT, tasks).TasksOnNode
+			log.Println(time.Since(ts))
+			//fmt.Println("Best Fit")
+		} else if t%2 == 0 {
+			/* first-fit */
+			for _, task := range tasks {
+				if nodeID, ok := randomFit(allocation, task); ok {
+					allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
+					for i := range allocation.Nodes[nodeID].Status {
+						if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+							allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+							break
+						}
+					}
+				} else {
+					allocation.Flags["valid"] = false
+				}
+			}
+		} else {
+			/* random-fit */
+			for _, task := range tasks {
+				if nodeID, ok := randomFit(allocation, task); ok {
+					allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
+					for i := range allocation.Nodes[nodeID].Status {
+						if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+							allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+							break
+						}
+					}
+				} else {
+					allocation.Flags["valid"] = false
+				}
+			}
+		}
+		//fmt.Println(evaluatue(allocation))
+		//fmt.Println(allocation)
+		return allocation
+
+	}
+
 	// Find the minimum
-	err = ga.Minimize(VectorFactory)
+	err = ga.Minimize(f)
 	log.Println(time.Since(ts))
 	log.Println(ga.HallOfFame[0].Genome.(Allocation).TasksOnNode)
-	//fmt.Println(ga.HallOfFame[0].Genome.(Allocation).Nodes)
+	//log.Println(ga.HallOfFame[0].Genome.(Allocation).Flags)
+	//log.Println(ga.HallOfFame[0].Genome.(Allocation).Nodes)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	log.Println(allocation)
 }
