@@ -90,10 +90,10 @@ func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
 			}
 		}
 		if best == nil {
-			log.Info(task, " choose ", best.ClientID)
 			allocation.Flags["valid"] = false
 			break
 		} else {
+			log.Info(task, " choose ", best.ClientID)
 			//fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
 			allocation.TasksOnNode[best.ClientID] = append(allocation.TasksOnNode[best.ClientID], task)
 			eva.add(*best, task)
