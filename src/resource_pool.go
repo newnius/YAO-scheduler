@@ -147,9 +147,6 @@ func (pool *ResourcePool) checkDeadNodes() {
 				seg = seg.Next
 			}
 			seg.Lock.Lock()
-			if seg.Nodes == nil {
-				seg = seg.Next
-			}
 			delete(seg.Nodes, v)
 			seg.Lock.Unlock()
 			delete(pool.heartBeat, v)

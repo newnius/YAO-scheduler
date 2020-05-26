@@ -179,6 +179,13 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				onlyPS = false
 			}
 			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+		} else if status[i].Status == "unknown" {
+			log.Warn(jm.job.Name, "-", i, " is unknown")
+			flagRunning = true
+			if !jm.job.Tasks[i].IsPS {
+				onlyPS = false
+			}
+			//InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else {
 			log.Info(jm.job.Name, "-", i, " ", status[i].Status)
 			if exitCode, ok := status[i].State["ExitCode"].(float64); ok && exitCode != 0 && !jm.killFlag {
@@ -270,6 +277,10 @@ func (jm *JobManager) status() MsgJobStatus {
 		err = json.Unmarshal([]byte(string(body)), &res)
 		if err != nil {
 			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
+			continue
+		}
+		if res.Code != 0 {
+			tasksStatus[i] = TaskStatus{Status: "notexist", State: map[string]interface{}{"ExitCode": float64(1)}}
 			continue
 		}
 		res.Status.Node = taskStatus.Node
