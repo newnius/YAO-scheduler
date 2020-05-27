@@ -87,6 +87,7 @@ func (jm *JobManager) start() {
 				v.Set("hdfs_dir", "/user/yao/output/"+jm.job.Name)
 				v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[index].MemoryGPU))
 
+				log.Info("launching 2", index)
 				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 				if err != nil {
 					log.Warn(err.Error())
