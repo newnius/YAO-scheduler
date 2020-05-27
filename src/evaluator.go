@@ -15,7 +15,7 @@ type Evaluator struct {
 	factorRack   float64
 	factorDomain float64
 
-	factorPack float64
+	factorSpread float64
 }
 
 func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
@@ -30,7 +30,7 @@ func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
 	eva.factorDomain = 40.0
 	eva.costNetwork = 0.0
 	eva.costLoad = 0.0
-	eva.factorPack = -1.0
+	eva.factorSpread = -1.0
 }
 
 func (eva *Evaluator) add(node NodeStatus, task Task) {
@@ -109,7 +109,7 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 }
 
 func (eva *Evaluator) calculate() float64 {
-	return eva.costNetwork + eva.factorPack*eva.costLoad/float64(eva.totalPS+eva.totalWorker)
+	return eva.costNetwork + eva.factorSpread*eva.costLoad/float64(eva.totalPS+eva.totalWorker)
 }
 
 func evaluate(allocation Allocation) float64 {

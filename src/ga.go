@@ -68,9 +68,9 @@ func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
 		minCost := math.MaxFloat64
 		var best *NodeStatus
 		if task.IsPS {
-			eva.factorPack = -1.0
+			eva.factorSpread = 1.0
 		} else {
-			eva.factorPack = 1.0
+			eva.factorSpread = -1.0
 		}
 		for i, node := range nodes {
 			if _, ok := allocation.TasksOnNode[node.ClientID]; !ok {
