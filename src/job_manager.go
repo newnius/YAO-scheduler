@@ -109,7 +109,6 @@ func (jm *JobManager) start() {
 		}
 		wg.Wait()
 		jm.isRunning = true
-		log.Info(jm.jobStatus)
 	}
 
 	/* monitor job execution */
@@ -135,6 +134,9 @@ func (jm *JobManager) returnResource(status []TaskStatus) {
 	}
 	/* return resource */
 	for i := range jm.resources {
+		if jm.resources[i].ClientID == "_released_" {
+			continue
+		}
 		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 		log.Info("return resource ", jm.resources[i].ClientID)
 
@@ -194,6 +196,16 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Failed)
 			}
+
+			jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
+			log.Info("return resource ", jm.resources[i].ClientID)
+			jm.resources[i].ClientID = "_released_"
+
+			for _, t := range jm.resources[i].Status {
+				InstanceOfResourcePool().detach(t.UUID, jm.job)
+			}
+
+			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		}
 	}
 	if flagRunning && onlyPS && !jm.killFlag {
