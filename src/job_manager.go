@@ -138,7 +138,7 @@ func (jm *JobManager) returnResource(status []TaskStatus) {
 			continue
 		}
 		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-		log.Info("return resource again", jm.resources[i].ClientID)
+		log.Info("return resource again ", jm.resources[i].ClientID)
 
 		for _, t := range jm.resources[i].Status {
 			InstanceOfResourcePool().detach(t.UUID, jm.job)
