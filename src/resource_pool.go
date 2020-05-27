@@ -709,7 +709,8 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 			for _, node := range cur.Nodes {
 				var available []GPUStatus
 				for _, status := range node.Status {
-					if status.MemoryAllocated == 0 && status.MemoryUsed < 10 {
+					/* make sure GPU is not used by in-system and outer-system */
+					if status.MemoryAllocated == 0 && status.MemoryUsed < 100 {
 						available = append(available, status)
 					}
 				}
@@ -720,7 +721,6 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 					}
 				}
 			}
-			log.Info(candidates, cur)
 			if len(candidates) >= len(job.Tasks)*3+5 {
 				break
 			}
@@ -795,7 +795,33 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 			nodesT = append(nodesT, node.Copy())
 		}
 
-		allocation := fastBestFit(nodesT, job.Tasks)
+		tasks := make([]Task, len(job.Tasks))
+		var tasksPS []Task
+		var tasksWorker []Task
+		for _, taskT := range job.Tasks {
+			if taskT.IsPS {
+				tasksPS = append(tasksPS, taskT)
+			} else {
+				tasksWorker = append(tasksWorker, taskT)
+			}
+		}
+		idxPS := 0
+		idxWorker := 0
+		factor := float64(len(tasksWorker)) / (float64(len(tasksPS)) + 0.001)
+		for i := range tasks {
+			if float64(idxPS)*factor <= float64(idxWorker) && idxPS < len(tasksPS) {
+				tasks[i] = tasksPS[idxPS]
+				idxPS++
+			} else if idxWorker < len(tasksWorker) {
+				tasks[i] = tasksWorker[idxWorker]
+				idxWorker++
+			} else {
+				tasks[i] = tasksPS[idxPS]
+				idxPS++
+			}
+		}
+
+		allocation := fastBestFit(nodesT, tasks)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order

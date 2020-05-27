@@ -5,17 +5,15 @@ type Evaluator struct {
 	racks       map[string]map[string]int
 	nodes       map[string]map[string]int
 	upstreams   map[string]string
-	cost        float64
 	totalPS     int
 	totalWorker int
 
 	costNetwork float64
+	costLoad    float64
 
 	factorNode   float64
 	factorRack   float64
 	factorDomain float64
-
-	costLoad float64
 }
 
 func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
@@ -28,7 +26,6 @@ func (eva *Evaluator) init(nodes []NodeStatus, tasks []Task) {
 	eva.factorNode = 1.0
 	eva.factorRack = 4.0
 	eva.factorDomain = 40.0
-	eva.cost = 0.0
 	eva.costNetwork = 0.0
 	eva.costLoad = 0.0
 }
@@ -65,7 +62,6 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 		eva.domains[node.Domain]["Worker"]++
 		eva.totalWorker++
 	}
-	eva.cost = eva.costNetwork
 
 	if task.IsPS {
 		//eva.costLoad += 1
@@ -104,7 +100,6 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 		eva.domains[node.Domain]["Worker"]--
 		eva.totalWorker--
 	}
-	eva.cost = eva.costNetwork
 
 	if task.IsPS {
 		//eva.costLoad -= 1
@@ -121,7 +116,10 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 }
 
 func (eva *Evaluator) calculate() float64 {
-	return eva.cost + eva.costLoad/float64(eva.totalPS+eva.totalWorker)
+	/* factor to determine spread or pack */
+	/* 1.0 spread, -1.0 pack */
+	factor := -1.0
+	return eva.costNetwork + factor*eva.costLoad/float64(eva.totalPS+eva.totalWorker)
 }
 
 func evaluate(allocation Allocation) float64 {
