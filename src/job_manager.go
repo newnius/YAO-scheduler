@@ -53,7 +53,6 @@ func (jm *JobManager) start() {
 	if !jm.killFlag {
 		/* switch to Running state */
 		jm.scheduler.UpdateProgress(jm.job, Running)
-		log.Info("ready to run job ", jm.job.Name, time.Now())
 
 		/* bring up containers */
 		wg := sync.WaitGroup{}
@@ -62,7 +61,6 @@ func (jm *JobManager) start() {
 
 			go func(index int) {
 				defer wg.Done()
-				log.Info("launching ", index)
 				var UUIDs []string
 				for _, GPU := range jm.resources[index].Status {
 					UUIDs = append(UUIDs, GPU.UUID)
@@ -87,7 +85,6 @@ func (jm *JobManager) start() {
 				v.Set("hdfs_dir", "/user/yao/output/"+jm.job.Name)
 				v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[index].MemoryGPU))
 
-				log.Info("launching 2", index)
 				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 				if err != nil {
 					log.Warn(err.Error())
@@ -107,7 +104,6 @@ func (jm *JobManager) start() {
 					log.Warn(res)
 					return
 				}
-				log.Info(jm.job.Name, "-", index, " started")
 				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost}
 			}(i)
 		}
@@ -259,6 +255,12 @@ func (jm *JobManager) status() MsgJobStatus {
 
 	for i, task := range jm.job.Tasks {
 		taskStatus := jm.jobStatus.tasks[task.Name]
+
+		/* still in launching phase */
+		if len(taskStatus.Node) == 0 {
+			continue
+		}
+
 		spider := Spider{}
 		spider.Method = "GET"
 		spider.URL = "http://" + taskStatus.Node + ":8000/status?id=" + taskStatus.Id
