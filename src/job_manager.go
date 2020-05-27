@@ -110,6 +110,7 @@ func (jm *JobManager) start() {
 		}
 		wg.Wait()
 		jm.isRunning = true
+		log.Info(jm.jobStatus)
 	}
 
 	/* monitor job execution */
@@ -289,7 +290,9 @@ func (jm *JobManager) status() MsgJobStatus {
 		tasksStatus[i] = res.Status
 	}
 
-	jm.checkStatus(tasksStatus)
+	if jm.isRunning {
+		jm.checkStatus(tasksStatus)
+	}
 	return MsgJobStatus{Status: tasksStatus}
 }
 
