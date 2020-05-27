@@ -41,8 +41,8 @@ type NodeStatus struct {
 	Status       []GPUStatus `json:"status"`
 }
 
-func (X *NodeStatus) Copy() NodeStatus {
-	res := *X
+func (X NodeStatus) Copy() NodeStatus {
+	res := X
 	res.Status = make([]GPUStatus, len(X.Status))
 	copy(res.Status, X.Status)
 	return res

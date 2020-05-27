@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 	"strconv"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -20,10 +20,10 @@ func TestPool(t *testing.T) {
 
 	count := 0
 	for _, seg := range InstanceOfResourcePool().pools {
-		logrus.Info(seg.ID, "<--->", len(seg.Nodes), " ", seg.Nodes == nil, " Next:", seg.Next.ID)
+		log.Info(seg.ID, "<--->", len(seg.Nodes), " ", seg.Nodes == nil, " Next:", seg.Next.ID)
 		count += len(seg.Nodes)
 	}
-	logrus.Info(count)
+	log.Info(count)
 
 	counter := map[int]int{}
 	for i := 0; i < 1000; i++ {
@@ -52,5 +52,6 @@ func TestAllocate(t *testing.T) {
 	tasks = append(tasks, task)
 	job.Tasks = tasks
 
-	InstanceOfResourcePool().acquireResource(job)
+	allocation := InstanceOfResourcePool().acquireResource(job)
+	log.Info(allocation)
 }

@@ -821,7 +821,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 			}
 		}
 
-		allocation := fastBestFit(nodesT, tasks)
+		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order
@@ -897,8 +897,8 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	defer seg.Lock.Unlock()
 
 	node, ok := seg.Nodes[agent.ClientID]
+	/* in case node is offline */
 	if !ok {
-		/* in case node is offline */
 		/* TODO, update usingTotalGPU correctly */
 		return
 	}

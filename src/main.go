@@ -267,6 +267,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 
+	case "allocator_update_strategy":
+		log.Debug("allocator_update_strategy")
+		strategy := r.URL.Query().Get("strategy")
+		js, _ := json.Marshal(InstanceOfAllocator().updateStrategy(strategy))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

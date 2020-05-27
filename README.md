@@ -76,3 +76,8 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_get_predict_dl&job=lstm&seq=1
 ```
+
+**UpdateAllocateStrategy**
+```
+?action=allocator_update_strategy&strategy=bestfit
+```

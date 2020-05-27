@@ -17,114 +17,12 @@ type Allocation struct {
 	Tasks       []Task
 }
 
-func randomFit(allocation Allocation, task Task) (string, bool) {
-	flag := false
-	nodeID := ""
-	for nodeID = range allocation.Nodes {
-		numberGPU := 0
-		for _, gpu := range allocation.Nodes[nodeID].Status {
-			if gpu.MemoryAllocated == 0 {
-				numberGPU += 1
-			}
-		}
-		if task.NumberGPU <= numberGPU {
-			flag = true
-			break
-		}
-	}
-	return nodeID, flag
-}
-
-func firstFit(allocation Allocation, task Task) (string, bool) {
-	flag := false
-	nodeID := ""
-	for _, nodeID = range allocation.NodeIDs {
-		if _, ok := allocation.Nodes[nodeID]; !ok {
-			continue
-		}
-		numberGPU := 0
-		for _, gpu := range allocation.Nodes[nodeID].Status {
-			if gpu.MemoryAllocated == 0 {
-				numberGPU += 1
-			}
-		}
-		if task.NumberGPU <= numberGPU {
-			flag = true
-			break
-		}
-	}
-	return nodeID, flag
-}
-
-func fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {
-	log.Info(nodes)
-	log.Info(tasks)
-	eva := Evaluator{}
-	eva.init(nodes, tasks)
-
-	allocation := Allocation{Flags: map[string]bool{"valid": true}}
-	allocation.TasksOnNode = map[string][]Task{}
-	for _, task := range tasks {
-		minCost := math.MaxFloat64
-		var best *NodeStatus
-		if task.IsPS {
-			eva.factorSpread = 1.0
-		} else {
-			eva.factorSpread = -1.0
-		}
-		for i, node := range nodes {
-			if _, ok := allocation.TasksOnNode[node.ClientID]; !ok {
-				allocation.TasksOnNode[node.ClientID] = []Task{}
-			}
-			numberGPU := 0
-			for _, gpu := range node.Status {
-				if gpu.MemoryAllocated == 0 {
-					numberGPU += 1
-				}
-			}
-			if task.NumberGPU > numberGPU {
-				continue
-			}
-			eva.add(node, task)
-			cost := eva.calculate()
-			eva.remove(node, task)
-			//log.Info(node, cost)
-			if cost < minCost || best == nil {
-				minCost = cost
-				best = &nodes[i]
-			}
-		}
-		if best == nil {
-			allocation.Flags["valid"] = false
-			break
-		} else {
-			log.Info(task, " choose ", best.ClientID)
-			//fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
-			allocation.TasksOnNode[best.ClientID] = append(allocation.TasksOnNode[best.ClientID], task)
-			eva.add(*best, task)
-			for i := range best.Status {
-				//allocate more than 1
-				if best.Status[i].MemoryAllocated == 0 {
-					best.Status[i].MemoryAllocated += task.MemoryGPU
-					break
-				}
-			}
-		}
-	}
-	//log.Info(allocation.TasksOnNode)
-	log.Println("BestFit Cost:", eva.calculate())
-	return allocation
-}
-
 /* Evaluate the allocation */
 func (X Allocation) Evaluate() (float64, error) {
-	//log.Info(X)
 	if !X.Flags["valid"] {
 		//fmt.Println("Invalid allocation")
 		return math.MaxFloat64, nil
 	}
-
-	//costNetwork := evaluate(X)
 
 	var nodes []NodeStatus
 	for _, node := range X.Nodes {
@@ -141,19 +39,18 @@ func (X Allocation) Evaluate() (float64, error) {
 
 	cost := eva.calculate()
 	//log.Info(cost)
-	//fmt.Println(taskToNode, cost, len(X.Nodes))
-	return float64(cost), nil
+	//return float64(cost) + float64(len(X.Nodes)), nil
+	return float64(cost) + float64(len(X.Nodes))/float64(len(X.Tasks)), nil
+	//return float64(cost), nil
 }
 
-// Mutate a Vector by resampling each element from a normal distribution with
-// probability 0.8.
+// Mutate a Vector by resampling each element from a normal distribution with probability 0.8.
 func (X Allocation) Mutate(rng *rand.Rand) {
 	/* remove a node randomly */
-	// make sure rng.Intn != 0 && cnt >0
-	cnt := rng.Intn(1+len(X.Nodes)/100)%50 + 1
-	for i := 0; i < cnt; i++ {
+	// make sure n > 0 && round >0
+	round := rng.Intn(1+len(X.Nodes)/100)%50 + 1
+	for i := 0; i < round; i++ {
 		if !X.Flags["valid"] {
-			//fmt.Println("Invalid allocation")
 			return
 		}
 		//fmt.Println("Mutate")
@@ -174,7 +71,10 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 			}
 			delete(X.TasksOnNode, nodeID)
 		}
+		//log.Info("Delete node ", nodeID)
+		//log.Info("Before ", X.Nodes)
 		delete(X.Nodes, nodeID)
+		//log.Info("After ", X.Nodes)
 
 		//fmt.Println(tasks)
 
@@ -182,18 +82,26 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 		for _, task := range tasks {
 			if nodeID, ok := firstFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
+				cnt := task.NumberGPU
+				//log.Info("Add task ", task.Name, " in ", nodeID)
+				//log.Info("Before ", X.Nodes[nodeID].Status)
 				for i := range X.Nodes[nodeID].Status {
 					if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
 						X.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
-						break
+						cnt--
+						if cnt == 0 {
+							break
+						}
 					}
 				}
+
+				//log.Info("After ", X.Nodes[nodeID].Status)
 			} else {
 				X.Flags["valid"] = false
+				break
 			}
 		}
 	}
-	//fmt.Println("After", X)
 
 	return
 	/* move tasks */
@@ -224,9 +132,9 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 
 // Crossover a Vector with another Vector by applying uniform crossover.
 func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
-	// make sure rng.Intn != 0 && cnt >0
-	cnt := rng.Intn(1+len(X.Nodes)/100)%10 + 1
-	for i := 0; i < cnt; i++ {
+	// make sure n > 0 && round > 0
+	round := rng.Intn(1+len(X.Nodes)/100)%10 + 1
+	for i := 0; i < round; i++ {
 		if !Y.(Allocation).Flags["valid"] || !X.Flags["valid"] {
 			return
 		}
@@ -246,12 +154,13 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		randIndex := rng.Intn(len(nodeIDs))
 		nodeID := nodeIDs[randIndex]
 
+		/* remove duplicated tasks */
 		for _, task := range Y.(Allocation).TasksOnNode[nodeID] {
 			//fmt.Println(Y.(Allocation).TasksOnNode[nodeID])
 			idx := -1
 			nodeID2, ok := taskToNode[task.Name]
 			if !ok {
-				log.Println("Error", taskToNode, X.TasksOnNode, task.Name)
+				log.Warn("Error", taskToNode, X.TasksOnNode, task.Name)
 			}
 			for i, task2 := range X.TasksOnNode[nodeID2] {
 				if task2.Name == task.Name {
@@ -259,19 +168,31 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 				}
 			}
 			if idx == -1 {
-				log.Println("Error 2", taskToNode, X.TasksOnNode, task.Name)
+				log.Warn("Error 2", taskToNode, X.TasksOnNode, task.Name)
 			}
 			//fmt.Println(X.TasksOnNode)
 			copy(X.TasksOnNode[nodeID2][idx:], X.TasksOnNode[nodeID2][idx+1:])
 			X.TasksOnNode[nodeID2] = X.TasksOnNode[nodeID2][:len(X.TasksOnNode[nodeID2])-1]
-			for i := range X.Nodes[nodeID].Status {
-				if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
-					X.Nodes[nodeID].Status[i].MemoryAllocated -= task.MemoryGPU
-					break
+			cnt := task.NumberGPU
+			//log.Info("Remove task ", task.Name, " in ", nodeID2)
+			//log.Info("Before ", X.Nodes[nodeID2].Status)
+			for i := range X.Nodes[nodeID2].Status {
+				/* TODO: determine correct GPU */
+				if X.Nodes[nodeID2].Status[i].MemoryAllocated == task.MemoryGPU {
+					X.Nodes[nodeID2].Status[i].MemoryAllocated -= task.MemoryGPU
+					cnt--
+					if cnt == 0 {
+						break
+					}
 				}
 			}
+			if cnt != 0 {
+				log.Warn("Cross remove ", cnt)
+			}
+			//log.Info("After ", X.Nodes[nodeID].Status)
 			//fmt.Println(X.TasksOnNode)
 		}
+
 		/* reschedule tasks on tgt node */
 		var tasks []Task
 		if _, ok := X.TasksOnNode[nodeID]; ok {
@@ -284,7 +205,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		if _, ok := X.Nodes[nodeID]; ok {
 			delete(X.Nodes, nodeID)
 		}
-		X.Nodes[nodeID] = Y.(Allocation).Nodes[nodeID]
+		X.Nodes[nodeID] = Y.(Allocation).Nodes[nodeID].Copy()
 
 		var newTasksOnNode []Task
 		for _, task := range Y.(Allocation).TasksOnNode[nodeID] {
@@ -296,14 +217,25 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		for _, task := range tasks {
 			if nodeID, ok := firstFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
+				cnt := task.NumberGPU
+				//log.Info("Remove task ", task.Name, " in ", nodeID)
+				//log.Info("Before ", X.Nodes[nodeID].Status)
 				for i := range X.Nodes[nodeID].Status {
 					if X.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
 						X.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
-						break
+						cnt--
+						if cnt == 0 {
+							break
+						}
 					}
+				}
+				//log.Info("After ", X.Nodes[nodeID].Status)
+				if cnt != 0 {
+					log.Warn("cross add", cnt)
 				}
 			} else {
 				X.Flags["valid"] = false
+				break
 			}
 		}
 	}
@@ -318,7 +250,7 @@ func (X Allocation) Clone() eaopt.Genome {
 	}
 	Y := Allocation{TasksOnNode: map[string][]Task{}, Nodes: map[string]NodeStatus{}, Flags: map[string]bool{"valid": X.Flags["valid"]}}
 	for id, node := range X.Nodes {
-		Y.Nodes[id] = node
+		Y.Nodes[id] = node.Copy()
 		Y.NodeIDs = append(Y.NodeIDs, node.ClientID)
 	}
 	for id, tasks := range X.TasksOnNode {
@@ -328,5 +260,6 @@ func (X Allocation) Clone() eaopt.Genome {
 		}
 		Y.TasksOnNode[id] = t
 	}
+	Y.Tasks = X.Tasks
 	return Y
 }
