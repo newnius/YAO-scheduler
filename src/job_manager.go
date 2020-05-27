@@ -261,6 +261,7 @@ func (jm *JobManager) status() MsgJobStatus {
 
 		err := spider.do()
 		if err != nil {
+			log.Warn(err)
 			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}
@@ -276,6 +277,7 @@ func (jm *JobManager) status() MsgJobStatus {
 		var res MsgTaskStatus
 		err = json.Unmarshal([]byte(string(body)), &res)
 		if err != nil {
+			log.Warn(err)
 			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}

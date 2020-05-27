@@ -78,9 +78,9 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 
 		//fmt.Println(tasks)
 
-		/* first-fit */
+		/* random-fit */
 		for _, task := range tasks {
-			if nodeID, ok := firstFit(X, task); ok {
+			if nodeID, ok := randomFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
 				cnt := task.NumberGPU
 				//log.Info("Add task ", task.Name, " in ", nodeID)
@@ -213,9 +213,9 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		}
 		X.TasksOnNode[nodeID] = newTasksOnNode
 
-		/* first-fit */
+		/* random-fit */
 		for _, task := range tasks {
-			if nodeID, ok := firstFit(X, task); ok {
+			if nodeID, ok := randomFit(X, task); ok {
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
 				cnt := task.NumberGPU
 				//log.Info("Remove task ", task.Name, " in ", nodeID)

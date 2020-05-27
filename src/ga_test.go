@@ -8,7 +8,7 @@ import (
 )
 
 func TgenerateCase() ([]NodeStatus, []Task) {
-	numTask := 4
+	numTask := 6
 
 	var nodes []NodeStatus
 	var tasks []Task
@@ -29,7 +29,7 @@ func TgenerateCase() ([]NodeStatus, []Task) {
 	}
 	for i := 0; i < numTask; i++ {
 		isPS := false
-		if i < numTask/4 {
+		if i < numTask/3 {
 			isPS = true
 		}
 		task := Task{Name: "task-" + strconv.Itoa(i), IsPS: isPS}
