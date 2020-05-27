@@ -66,11 +66,6 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 		eva.totalWorker++
 	}
 
-	if task.IsPS {
-		//eva.costLoad += 1
-	} else {
-		//eva.costLoad += 0.5
-	}
 	numberGPU := 1
 	for _, gpu := range node.Status {
 		if gpu.MemoryAllocated != 0 {
@@ -104,11 +99,6 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 		eva.totalWorker--
 	}
 
-	if task.IsPS {
-		//eva.costLoad -= 1
-	} else {
-		//eva.costLoad -= 0.5
-	}
 	numberGPU := 1
 	for _, gpu := range node.Status {
 		if gpu.MemoryAllocated != 0 {

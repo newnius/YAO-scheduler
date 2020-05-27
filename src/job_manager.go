@@ -80,7 +80,7 @@ func (jm *JobManager) start() {
 				v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[index].Memory)+"m")
 				v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[index].NumberCPU))
 				v.Set("network", jm.network)
-				v.Set("should_wait", "1")
+				v.Set("should_wait", "0")
 				v.Set("output_dir", "/tmp/")
 				v.Set("hdfs_address", "http://192.168.100.104:50070/")
 				v.Set("hdfs_dir", "/user/yao/output/"+jm.job.Name)

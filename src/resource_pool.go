@@ -896,7 +896,12 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	seg.Lock.Lock()
 	defer seg.Lock.Unlock()
 
-	node := seg.Nodes[agent.ClientID]
+	node, ok := seg.Nodes[agent.ClientID]
+	if !ok {
+		/* in case node is offline */
+		/* TODO, update usingTotalGPU correctly */
+		return
+	}
 	for _, gpu := range agent.Status {
 		for j := range node.Status {
 			if gpu.UUID == node.Status[j].UUID {
