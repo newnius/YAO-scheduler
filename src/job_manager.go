@@ -62,6 +62,7 @@ func (jm *JobManager) start() {
 
 			go func(index int) {
 				defer wg.Done()
+				log.Info("launching ", index)
 				var UUIDs []string
 				for _, GPU := range jm.resources[index].Status {
 					UUIDs = append(UUIDs, GPU.UUID)
@@ -105,7 +106,7 @@ func (jm *JobManager) start() {
 					log.Warn(res)
 					return
 				}
-				log.Info(jm.job.Name, "-", i, " started")
+				log.Info(jm.job.Name, "-", index, " started")
 				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost}
 			}(i)
 		}
