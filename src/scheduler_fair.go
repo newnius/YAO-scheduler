@@ -125,6 +125,11 @@ func (scheduler *SchedulerFair) Start() {
 					if _, ok := scheduler.queuesQuota[queue]; !ok {
 						scheduler.queuesQuota[queue] = &ResourceCount{}
 					}
+					/* one cannot borrow more before he has cleared his IOUs */
+					if len(scheduler.IOUs[queue]) > 0 {
+						continue
+					}
+
 					needGPU := numberGPUtmp*1000 - scheduler.queuesQuota[queue].NumberGPU
 					/* the less, the better */
 					if bestQueue == "" || needGPU < minRequestGPU {
