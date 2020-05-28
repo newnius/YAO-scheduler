@@ -170,6 +170,7 @@ func (scheduler *SchedulerFair) Start() {
 							}
 							IOU.NumberGPU += least
 							minRequestGPU -= least
+							scheduler.queuesQuota[bestQueue].NumberGPU += least
 							if least != 0 {
 								log.Info(bestQueue, " borrow ", least, " from ", queue)
 							}
@@ -624,5 +625,6 @@ func (scheduler *SchedulerFair) DebugDump() map[string]interface{} {
 	res["schedulingJobs"] = scheduler.schedulingJobs
 	res["resourceAllocations"] = scheduler.resourceAllocations
 	res["allocatingGPU"] = scheduler.allocatingGPU
+	res["IOUs"] = scheduler.IOUs
 	return res
 }
