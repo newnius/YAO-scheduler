@@ -129,6 +129,14 @@ func (scheduler *SchedulerFair) Start() {
 					}
 					log.Info("After, ", scheduler.queuesQuota[bestQueue])
 
+					scheduler.resourceAllocationsMu.Lock()
+					if _, ok := scheduler.resourceAllocations[bestQueue]; !ok {
+						scheduler.resourceAllocations[bestQueue] = &ResourceCount{}
+					}
+					cnt, _ := scheduler.resourceAllocations[bestQueue]
+					cnt.NumberGPU += numberGPUtmp
+					scheduler.resourceAllocationsMu.Unlock()
+
 					scheduler.allocatingGPUMu.Lock()
 					scheduler.allocatingGPU += numberGPUtmp
 					scheduler.allocatingGPUMu.Unlock()
@@ -258,24 +266,6 @@ func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
 			scheduler.allocatingGPUMu.Unlock()
 		}
 		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
-
-		go func(nodes []NodeStatus) {
-			for _, node := range nodes {
-				scheduler.resourceAllocationsMu.Lock()
-				if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-					scheduler.resourceAllocations[job.Group] = &ResourceCount{}
-				}
-				cnt, _ := scheduler.resourceAllocations[job.Group]
-				cnt.CPU += node.MemTotal
-				cnt.Memory += node.NumCPU
-				for _, v := range node.Status {
-					cnt.NumberGPU ++
-					cnt.MemoryGPU += v.MemoryTotal
-				}
-				scheduler.resourceAllocationsMu.Unlock()
-			}
-
-		}(res)
 	}
 	go func() {
 		scheduler.UpdateQuota()
