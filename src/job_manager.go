@@ -197,17 +197,20 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.scheduler.UpdateProgress(jm.job, Failed)
 			}
 
+			jm.resourcesMu.Lock()
 			if jm.resources[i].ClientID != "_released_" {
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				log.Info("return resource ", jm.resources[i].ClientID)
 				jm.resources[i].ClientID = "_released_"
-			}
 
-			for _, t := range jm.resources[i].Status {
-				InstanceOfResourcePool().detach(t.UUID, jm.job)
-			}
+				for _, t := range jm.resources[i].Status {
+					InstanceOfResourcePool().detach(t.UUID, jm.job)
+				}
 
-			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+				jm.resourcesMu.Unlock()
+
+				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+			}
 		}
 	}
 	if flagRunning && onlyPS && !jm.killFlag {

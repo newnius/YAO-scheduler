@@ -908,7 +908,7 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
 				if node.Status[j].MemoryAllocated < 0 {
 					// in case of error
-					log.Warn(node.ClientID, "More Memory Allocated")
+					log.Warn(node.ClientID, " More Memory Allocated")
 					node.Status[j].MemoryAllocated = 0
 				}
 				if node.Status[j].MemoryAllocated == 0 {
