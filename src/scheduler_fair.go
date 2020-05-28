@@ -87,7 +87,7 @@ func (scheduler *SchedulerFair) Start() {
 						numberGPUtmp += task.NumberGPU
 						numberCPUtmp += task.NumberCPU
 					}
-					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU/100 < numberGPUtmp {
+					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU/1000 < numberGPUtmp {
 						continue
 					}
 					if bestQueue == "" || numberGPUtmp < numberGPU || (numberGPUtmp == numberGPU) {
@@ -122,8 +122,8 @@ func (scheduler *SchedulerFair) Start() {
 
 					log.Info("Before, ", scheduler.queuesQuota[bestQueue])
 					if quota, ok := scheduler.queuesQuota[bestQueue]; ok {
-						quota.NumberGPU -= numberGPUtmp * 100
-						quota.CPU -= numberCPUtmp * 100
+						quota.NumberGPU -= numberGPUtmp * 1000
+						quota.CPU -= numberCPUtmp * 1000
 						quota.Memory -= Memorytmp
 					}
 					log.Info("After, ", scheduler.queuesQuota[bestQueue])
@@ -324,8 +324,8 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 	pool := InstanceOfResourcePool()
 
-	availableGPU := pool.TotalGPU - usingGPU - allocatedGPU/100
-	availableCPU := pool.TotalCPU - usingCPU - allocatedCPU/100
+	availableGPU := pool.TotalGPU - usingGPU - allocatedGPU/1000
+	availableCPU := pool.TotalCPU - usingCPU - allocatedCPU/1000
 	//availableMemory := pool.TotalMemory - usingMemory - allocatedMemory
 	/* <0 means some nodes exited */
 	if availableGPU <= 0 {
@@ -339,16 +339,16 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		log.Info("CPU:", quota.CPU)
 		log.Info("Memory:", quota.Memory)
 	}
-	availableGPU *= 100
-	availableCPU *= 100
+	availableGPU *= 1000
+	availableCPU *= 1000
 
 	var candidates []string
 	requests := map[string]ResourceCount{}
 	weights := 0
 
 	for queue, jobs := range scheduler.queues {
-		if len(jobs) > 0 {
-			candidates = append(candidates, queue)
+		if len(jobs) == 0 {
+			continue
 		}
 		weights += InstanceOfGroupManager().groups[queue].Weight
 		request := ResourceCount{}
@@ -365,7 +365,15 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			request.CPU += CPU
 			request.Memory += Memory
 		}
+		if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= request.NumberGPU {
+			continue
+		}
 		requests[queue] = request
+		candidates = append(candidates, queue)
+	}
+
+	if len(candidates) == 0 {
+		return
 	}
 
 	per := availableGPU / weights
@@ -379,7 +387,8 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		availableGPU -= per * weight
 
 		quota.CPU += (requests[queue].CPU / requests[queue].NumberGPU) * per * weight
-		quota.Memory += (requests[queue].Memory / requests[queue].NumberGPU) * per * weight
+		availableCPU -= (requests[queue].CPU / requests[queue].NumberGPU) * per * weight
+		quota.Memory += (requests[queue].Memory / requests[queue].NumberGPU) * per * weight / 1000
 	}
 	if availableGPU > 0 {
 		for _, queue := range candidates {
