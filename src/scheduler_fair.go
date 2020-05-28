@@ -320,7 +320,12 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 	available := pool.TotalGPU - usingGPU
 	log.Info("Can allocate ", available)
-	log.Info("Before ", scheduler.queuesQuota)
+	log.Info("Before ")
+	for _, quota := range scheduler.queuesQuota {
+		log.Info("GPU:", quota.NumberGPU)
+		log.Info("CPU:", quota.CPU)
+		log.Info("Memory:", quota.Memory)
+	}
 	per := available / len(scheduler.queues)
 	for queue := range scheduler.queues {
 		if _, ok := scheduler.queuesQuota[queue]; !ok {
@@ -337,7 +342,12 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			break
 		}
 	}
-	log.Info("After ", scheduler.queuesQuota)
+	log.Info("After ")
+	for _, quota := range scheduler.queuesQuota {
+		log.Info("GPU:", quota.NumberGPU)
+		log.Info("CPU:", quota.CPU)
+		log.Info("Memory:", quota.Memory)
+	}
 }
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
