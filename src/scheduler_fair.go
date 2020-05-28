@@ -330,6 +330,9 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	pool := InstanceOfResourcePool()
 
 	available := pool.TotalGPU - usingGPU - allocatedGPU
+	if available == 0 {
+		return
+	}
 	log.Info("Can allocate ", available)
 	log.Info("Before ")
 	for queue, quota := range scheduler.queuesQuota {
