@@ -186,3 +186,8 @@ func (scheduler *SchedulerFCFS) UpdateParallelism(parallelism int) bool {
 func (scheduler *SchedulerFCFS) updateGroup(group Group) bool {
 	return true
 }
+
+func (scheduler *SchedulerFCFS) DebugDump() map[string]interface{} {
+	res := map[string]interface{}{}
+	return res
+}

@@ -81,3 +81,8 @@ GPU is occupied by which job(s)
 ```
 ?action=allocator_update_strategy&strategy=bestfit
 ```
+
+**SchedulerDump**
+```
+?action=debug_scheduler_dump
+```

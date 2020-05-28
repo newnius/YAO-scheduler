@@ -15,7 +15,7 @@ type SchedulerCapacity struct {
 	nextQueue string
 	jobs      map[string]*JobManager
 	queues    map[string][]Job
-	queuesMu   sync.Mutex
+	queuesMu  sync.Mutex
 
 	schedulingJobs map[string]bool
 	schedulingMu   sync.Mutex
@@ -412,4 +412,13 @@ func (scheduler *SchedulerCapacity) UpdateParallelism(parallelism int) bool {
 
 func (scheduler *SchedulerCapacity) updateGroup(group Group) bool {
 	return true
+}
+
+func (scheduler *SchedulerCapacity) DebugDump() map[string]interface{} {
+	res := map[string]interface{}{}
+	res["nextQueue"] = scheduler.nextQueue
+	res["schedulingJobs"] = scheduler.schedulingJobs
+	res["resourceAllocations"] = scheduler.resourceAllocations
+	res["allocatingGPU"] = scheduler.allocatingGPU
+	return res
 }

@@ -30,10 +30,6 @@ type SchedulerFair struct {
 
 	allocatingGPU   int
 	allocatingGPUMu sync.Mutex
-
-	totalQuota     ResourceCount
-	allocatedQuota ResourceCount
-	quotaMu        sync.Mutex
 }
 
 func (scheduler *SchedulerFair) Start() {
@@ -300,9 +296,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	defer scheduler.queuesMu.Unlock()
 	scheduler.queuesQuotaMu.Lock()
 	defer scheduler.queuesQuotaMu.Unlock()
-	scheduler.quotaMu.Lock()
-	defer scheduler.quotaMu.Unlock()
-	log.Info("Updating queues quota~")
+	//log.Info("Updating queues quota~")
 
 	/* phase 1: DRF */
 	usingGPU := 0
@@ -320,6 +314,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	pool := InstanceOfResourcePool()
 
 	available := pool.TotalGPU - usingGPU - allocatedGPU
+	/* <0 means some nodes exited */
 	if available <= 0 {
 		return
 	}
@@ -469,4 +464,13 @@ func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
 
 func (scheduler *SchedulerFair) updateGroup(group Group) bool {
 	return true
+}
+
+func (scheduler *SchedulerFair) DebugDump() map[string]interface{} {
+	res := map[string]interface{}{}
+	res["queuesQuota"] = scheduler.queuesQuota
+	res["schedulingJobs"] = scheduler.schedulingJobs
+	res["resourceAllocations"] = scheduler.resourceAllocations
+	res["allocatingGPU"] = scheduler.allocatingGPU
+	return res
 }

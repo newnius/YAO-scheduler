@@ -182,6 +182,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_scheduler_dump":
+		log.Debug("debug_scheduler_dump")
+		js, _ := json.Marshal(scheduler.DebugDump())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "debug_update_parallelism":
 		log.Debug("update_parallelism")
 		parallelism, _ := strconv.Atoi(r.URL.Query().Get("parallelism"))

@@ -209,3 +209,8 @@ func (scheduler *SchedulerPriority) UpdateParallelism(parallelism int) bool {
 func (scheduler *SchedulerPriority) updateGroup(group Group) bool {
 	return true
 }
+
+func (scheduler *SchedulerPriority) DebugDump() map[string]interface{} {
+	res := map[string]interface{}{}
+	return res
+}
