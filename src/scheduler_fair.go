@@ -155,6 +155,10 @@ func (scheduler *SchedulerFair) Start() {
 						}
 						/* start borrow */
 						for queue, quota := range scheduler.queuesQuota {
+							/* do not self borrow */
+							if queue == bestQueue {
+								continue
+							}
 							quota.NumberGPU -= least
 							if _, ok := scheduler.IOUs[bestQueue]; !ok {
 								scheduler.IOUs[bestQueue] = map[string]*ResourceCount{}
@@ -189,6 +193,13 @@ func (scheduler *SchedulerFair) Start() {
 				}
 
 				log.Info("schedulingJobs are ", scheduler.schedulingJobs)
+				log.Info("Before ")
+				for queue, quota := range scheduler.queuesQuota {
+					log.Info("Queue<->", queue)
+					log.Info("GPU:", quota.NumberGPU)
+					log.Info("CPU:", quota.CPU)
+					log.Info("Memory:", quota.Memory)
+				}
 				pool := InstanceOfResourcePool()
 				/* Make sure resource it enough */
 				if len(scheduler.schedulingJobs) == 0 || (numberGPUtmp*10+(scheduler.allocatingGPU)*13 <= (pool.TotalGPU-pool.UsingGPU)*10) {
