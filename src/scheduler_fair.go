@@ -134,8 +134,8 @@ func (scheduler *SchedulerFair) Start() {
 					}
 				}
 				/* if totalGPU can satisfy that job, start borrowing */
-				log.Info(totalGPU, minRequestGPU)
 				if bestQueue != "" && totalGPU >= minRequestGPU {
+					log.Info(totalGPU, minRequestGPU)
 					for {
 						/* if all satisfied, break */
 						if minRequestGPU == 0 {
@@ -190,6 +190,7 @@ func (scheduler *SchedulerFair) Start() {
 									IOU = scheduler.IOUs[bestQueue][queue]
 								}
 								IOU.NumberGPU += minRequestGPU
+								minRequestGPU = 0
 								scheduler.queuesQuota[bestQueue].NumberGPU += minRequestGPU
 								log.Info(bestQueue, " borrow ", minRequestGPU, " from ", queue, " now ", scheduler.queuesQuota[bestQueue].NumberGPU)
 								break
