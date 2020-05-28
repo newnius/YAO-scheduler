@@ -525,7 +525,47 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		log.Info("Memory:", quota.Memory)
 	}
 
-	/* Phase 2: return */
+	/* Phase 2: clear IOUs */
+	for queue, IOUs := range scheduler.IOUs {
+		/* no IOU, skip */
+		if t, ok := scheduler.IOUs[queue]; !ok || len(t) == 0 {
+			continue
+		}
+		/* nothing to pay */
+		if tmp, ok := scheduler.queuesQuota[queue]; !ok || tmp.NumberGPU == 0 {
+			continue
+		}
+		minIOU := 0
+		totalIOU := 0
+		for _, IOU := range IOUs {
+			if IOU.NumberGPU > minIOU && IOU.NumberGPU != 0 {
+				minIOU = IOU.NumberGPU
+				totalIOU += IOU.NumberGPU
+			}
+		}
+		quota := scheduler.queuesQuota[queue]
+		if quota.NumberGPU >= totalIOU {
+			/* can clear all */
+			minIOU = totalIOU
+		}
+
+		for q, IOU := range IOUs {
+			if IOU.NumberGPU <= minIOU {
+				quota.NumberGPU -= IOU.NumberGPU
+				scheduler.queuesQuota[q].NumberGPU += IOU.NumberGPU
+				IOU.NumberGPU = 0
+			} else {
+				quota.NumberGPU -= minIOU
+				scheduler.queuesQuota[q].NumberGPU += minIOU
+				IOU.NumberGPU -= minIOU
+			}
+			log.Info(queue, " pay IOU to ", q, " now ", IOU.NumberGPU)
+			/* clear */
+			if IOU.NumberGPU == 0 {
+				delete(scheduler.IOUs[queue], q)
+			}
+		}
+	}
 }
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
