@@ -87,7 +87,7 @@ func (scheduler *SchedulerFair) Start() {
 						numberGPUtmp += task.NumberGPU
 						numberCPUtmp += task.NumberCPU
 					}
-					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU < numberGPUtmp {
+					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU/100 < numberGPUtmp {
 						continue
 					}
 					if bestQueue == "" || numberGPUtmp < numberGPU || (numberGPUtmp == numberGPU) {
@@ -120,8 +120,8 @@ func (scheduler *SchedulerFair) Start() {
 
 					log.Info("Before, ", scheduler.queuesQuota[bestQueue])
 					if quota, ok := scheduler.queuesQuota[bestQueue]; ok {
-						quota.NumberGPU -= numberGPUtmp
-						quota.CPU -= numberCPUtmp
+						quota.NumberGPU -= numberGPUtmp * 100
+						quota.CPU -= numberCPUtmp * 100
 					}
 					log.Info("After, ", scheduler.queuesQuota[bestQueue])
 
@@ -313,7 +313,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 	pool := InstanceOfResourcePool()
 
-	available := pool.TotalGPU - usingGPU - allocatedGPU
+	available := pool.TotalGPU - usingGPU - allocatedGPU/100
 	/* <0 means some nodes exited */
 	if available <= 0 {
 		return
@@ -326,6 +326,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		log.Info("CPU:", quota.CPU)
 		log.Info("Memory:", quota.Memory)
 	}
+	available *= 100
 	per := available / len(scheduler.queues)
 	for queue := range scheduler.queues {
 		if _, ok := scheduler.queuesQuota[queue]; !ok {
