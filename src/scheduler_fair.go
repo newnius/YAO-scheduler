@@ -548,6 +548,9 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			/* can clear all */
 			minIOU = totalIOU
 		}
+		if quota.NumberGPU < minIOU*len(IOUs) {
+			minIOU = quota.NumberGPU / len(IOUs)
+		}
 
 		for q, IOU := range IOUs {
 			if IOU.NumberGPU <= minIOU {
@@ -563,6 +566,22 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			/* clear */
 			if IOU.NumberGPU == 0 {
 				delete(scheduler.IOUs[queue], q)
+			}
+		}
+
+		if minIOU == 0 {
+			for q, IOU := range IOUs {
+				quota.NumberGPU -= 1
+				scheduler.queuesQuota[q].NumberGPU += 1
+				IOU.NumberGPU -= 1
+				log.Info(queue, " pay IOU to ", q, " now ", IOU.NumberGPU)
+				/* clear */
+				if IOU.NumberGPU == 0 {
+					delete(scheduler.IOUs[queue], q)
+				}
+				if quota.NumberGPU == 0 {
+					break
+				}
 			}
 		}
 	}
