@@ -190,8 +190,8 @@ func (scheduler *SchedulerFair) Start() {
 									IOU = scheduler.IOUs[bestQueue][queue]
 								}
 								IOU.NumberGPU += minRequestGPU
-								minRequestGPU = 0
 								scheduler.queuesQuota[bestQueue].NumberGPU += minRequestGPU
+								minRequestGPU = 0
 								log.Info(bestQueue, " borrow ", minRequestGPU, " from ", queue, " now ", scheduler.queuesQuota[bestQueue].NumberGPU)
 								break
 							}
