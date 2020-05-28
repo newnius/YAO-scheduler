@@ -177,7 +177,7 @@ func (scheduler *SchedulerFair) Start() {
 						if least == 0 {
 							for queue, quota := range scheduler.queuesQuota {
 								/* do not self borrow */
-								if queue == bestQueue || quota.NumberGPU < least {
+								if queue == bestQueue || quota.NumberGPU < minRequestGPU {
 									continue
 								}
 								quota.NumberGPU -= minRequestGPU
