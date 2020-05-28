@@ -326,7 +326,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 	availableGPU := pool.TotalGPU - usingGPU - allocatedGPU/100
 	availableCPU := pool.TotalCPU - usingCPU - allocatedCPU/100
-	availableMemory := pool.TotalMemory - usingMemory - allocatedMemory
+	//availableMemory := pool.TotalMemory - usingMemory - allocatedMemory
 	/* <0 means some nodes exited */
 	if availableGPU <= 0 {
 		return
