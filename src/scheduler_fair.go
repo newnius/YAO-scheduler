@@ -282,12 +282,9 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
 		}
 		cnt, _ := scheduler.resourceAllocations[job.Group]
-		cnt.CPU -= res.MemTotal
-		cnt.Memory -= res.NumCPU
-		for _, v := range res.Status {
-			cnt.NumberGPU --
-			cnt.MemoryGPU -= v.MemoryTotal
-		}
+		cnt.CPU -= res.NumCPU
+		cnt.Memory -= res.MemTotal
+		cnt.NumberGPU -= len(res.Status)
 		scheduler.resourceAllocationsMu.Unlock()
 	}(agent)
 	go func() {
@@ -391,7 +388,6 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		availableCPU -= (requests[queue].CPU * per * weight) / requests[queue].NumberGPU
 		quota.Memory += (requests[queue].Memory * per * weight) / requests[queue].NumberGPU / 1000
 	}
-	log.Info(availableGPU)
 	if availableGPU > 0 {
 		for _, queue := range candidates {
 			quota := scheduler.queuesQuota[queue]
