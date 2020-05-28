@@ -30,6 +30,10 @@ type SchedulerFair struct {
 
 	allocatingGPU   int
 	allocatingGPUMu sync.Mutex
+
+	totalQuota     ResourceCount
+	allocatedQuota ResourceCount
+	quotaMu        sync.Mutex
 }
 
 func (scheduler *SchedulerFair) Start() {
@@ -301,7 +305,21 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	defer scheduler.queuesMu.Unlock()
 	scheduler.queuesQuotaMu.Lock()
 	defer scheduler.queuesQuotaMu.Unlock()
+	scheduler.quotaMu.Lock()
+	defer scheduler.quotaMu.Unlock()
 	log.Info("Updating queues quota~")
+
+	usingGPU := 0
+	scheduler.resourceAllocationsMu.Lock()
+	for _, queue := range scheduler.resourceAllocations {
+		usingGPU += queue.NumberGPU
+	}
+	scheduler.resourceAllocationsMu.Unlock()
+
+	pool := InstanceOfResourcePool()
+
+	available := pool.TotalGPU - usingGPU
+	log.Info("Can allocate ", available)
 }
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
