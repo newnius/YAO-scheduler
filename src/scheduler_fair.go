@@ -97,7 +97,7 @@ func (scheduler *SchedulerFair) Start() {
 					if bestQueue == "" || numberGPUtmp < numberGPU || (numberGPUtmp == numberGPU) {
 						bestQueue = queue
 						numberGPU = numberGPUtmp
-						numberCPU = numberCPUtmp
+						//numberCPU = numberCPUtmp
 					}
 				}
 			}
