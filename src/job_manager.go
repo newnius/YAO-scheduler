@@ -134,9 +134,9 @@ func (jm *JobManager) returnResource(status []TaskStatus) {
 		if jm.resources[i].ClientID == "_released_" {
 			continue
 		}
-		jm.resources[i].ClientID = "_released_"
 		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 		log.Info("return resource again ", jm.resources[i].ClientID)
+		jm.resources[i].ClientID = "_released_"
 
 		for _, t := range jm.resources[i].Status {
 			InstanceOfResourcePool().detach(t.UUID, jm.job)
