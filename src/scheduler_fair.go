@@ -145,7 +145,7 @@ func (scheduler *SchedulerFair) Start() {
 							if queue == bestQueue {
 								continue
 							}
-							if quota.NumberGPU < least {
+							if quota.NumberGPU > 0 && quota.NumberGPU < least {
 								least = quota.NumberGPU
 							}
 						}
