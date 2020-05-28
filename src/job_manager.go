@@ -340,6 +340,9 @@ func (jm *JobManager) stop(force bool) MsgStop {
 				log.Warn(res)
 				return
 			}
+			if res.Code != 0 {
+				log.Warn(res.Error)
+			}
 
 		}(taskStatus)
 	}

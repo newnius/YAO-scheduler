@@ -145,6 +145,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		break
 
 	case "group_remove":
+		/* TODO: rearrange jobs to other queues */
 		log.Debug("group_remove")
 		var group Group
 		msg := MsgGroupCreate{Code: 0}
