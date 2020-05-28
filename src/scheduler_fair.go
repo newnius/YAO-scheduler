@@ -397,7 +397,9 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		quota.Memory += ((requests[queue].Memory * base) / requests[queue].NumberGPU) / 1000
 	}
 	/* left more and more resource */
-	availableGPU = availableGPU % per
+	if per != 0 {
+		availableGPU = availableGPU % per
+	}
 	if availableGPU > 0 {
 		for _, queue := range candidates {
 			quota := scheduler.queuesQuota[queue]
