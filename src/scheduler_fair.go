@@ -54,7 +54,7 @@ func (scheduler *SchedulerFair) Start() {
 	go func() {
 		flag := true
 		for {
-			log.Info("Scheduling")
+			log.Debug("Scheduling")
 			if !flag { /* no more job */
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -94,10 +94,6 @@ func (scheduler *SchedulerFair) Start() {
 					}
 					/* the more, the better */
 					if bestQueue == "" || numberGPUtmp > maxNumberGPU || (numberGPUtmp == maxNumberGPU && numberCPUtmp > maxNumberCPU) {
-						/* cannot borrow more if already borrowed */
-						if _, ok := scheduler.IOUs[queue]; ok && len(scheduler.IOUs[queue]) > 0 {
-							continue
-						}
 						bestQueue = queue
 						maxNumberGPU = numberGPUtmp
 						maxNumberCPU = numberCPUtmp
