@@ -50,10 +50,12 @@ type ResourcePool struct {
 	bindingsMu sync.Mutex
 	utils      map[string][]UtilGPUTimeSeries
 
-	TotalGPU   int
-	TotalGPUMu sync.Mutex
-	UsingGPU   int
-	UsingGPUMu sync.Mutex
+	TotalGPU    int
+	TotalGPUMu  sync.Mutex
+	TotalCPU    int
+	TotalMemory int
+	UsingGPU    int
+	UsingGPUMu  sync.Mutex
 
 	enableShare            bool
 	enableShareRatio       float64
@@ -72,6 +74,9 @@ func (pool *ResourcePool) init(conf Configuration) {
 
 	pool.TotalGPU = 0
 	pool.UsingGPU = 0
+
+	pool.TotalCPU = 0
+	pool.TotalMemory = 0
 
 	pool.enableShare = true
 	pool.enableShareRatio = 0.75
@@ -129,6 +134,8 @@ func (pool *ResourcePool) checkDeadNodes() {
 				pool.TotalGPUMu.Lock()
 				if _, ok := seg.Nodes[k]; ok {
 					pool.TotalGPU -= len(seg.Nodes[k].Status)
+					pool.TotalCPU -= seg.Nodes[k].NumCPU
+					pool.TotalMemory -= seg.Nodes[k].MemTotal
 				}
 				pool.TotalGPUMu.Unlock()
 				delete(seg.Nodes, k)
@@ -240,6 +247,8 @@ func (pool *ResourcePool) saveStatusHistory() {
 
 		pool.TotalGPUMu.Lock()
 		pool.TotalGPU = TotalGPU
+		pool.TotalCPU = TotalCPU
+		pool.TotalMemory = TotalMemGPU
 		pool.TotalGPUMu.Unlock()
 		time.Sleep(time.Second * 60)
 	}
@@ -307,6 +316,8 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		/* TODO: double check node do belong to this seg */
 		pool.TotalGPUMu.Lock()
 		pool.TotalGPU += len(node.Status)
+		pool.TotalCPU += node.NumCPU
+		pool.TotalMemory += node.MemTotal
 		pool.TotalGPUMu.Unlock()
 		log.Info("node ", node.ClientID, " is online")
 	}
