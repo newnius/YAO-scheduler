@@ -16,7 +16,7 @@ type SchedulerFair struct {
 	queues   map[string][]Job
 	queuesMu sync.Mutex
 
-	queuesQuota   map[string]ResourceCount
+	queuesQuota   map[string]*ResourceCount
 	queuesQuotaMu sync.Mutex
 
 	schedulingJobs map[string]bool
@@ -43,7 +43,7 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.history = []*Job{}
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
-	scheduler.queuesQuota = map[string]ResourceCount{}
+	scheduler.queuesQuota = map[string]*ResourceCount{}
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
 	scheduler.enabled = true
 	scheduler.schedulingJobs = map[string]bool{}
@@ -324,12 +324,11 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	per := available / len(scheduler.queues)
 	for queue := range scheduler.queues {
 		if _, ok := scheduler.queuesQuota[queue]; !ok {
-			scheduler.queuesQuota[queue] = ResourceCount{}
+			scheduler.queuesQuota[queue] = &ResourceCount{}
 		}
 		quota := scheduler.queuesQuota[queue]
 		quota.NumberGPU += per
 		available -= per
-		log.Info(quota)
 	}
 	if available > 0 {
 		for queue := range scheduler.queues {
