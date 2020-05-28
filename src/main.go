@@ -309,11 +309,14 @@ func main() {
 	case "FCFS":
 		scheduler = &SchedulerFCFS{}
 		break
-	case "fair":
-		scheduler = &SchedulerCapacity{}
-		break
 	case "priority":
 		scheduler = &SchedulerPriority{}
+		break
+	case "capacity":
+		scheduler = &SchedulerCapacity{}
+		break
+	case "fair":
+		scheduler = &SchedulerFair{}
 		break
 	default:
 		scheduler = &SchedulerFCFS{}
