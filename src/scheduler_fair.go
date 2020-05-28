@@ -134,6 +134,7 @@ func (scheduler *SchedulerFair) Start() {
 					}
 				}
 				/* if totalGPU can satisfy that job, start borrowing */
+				log.Info(totalGPU, minRequestGPU)
 				if bestQueue != "" && totalGPU >= minRequestGPU {
 					for {
 						/* if all satisfied, break */
