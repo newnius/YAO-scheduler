@@ -356,7 +356,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			request.CPU += CPU
 			request.Memory += Memory
 		}
-		if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= request.NumberGPU {
+		if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= request.NumberGPU*1000 {
 			continue
 		}
 		requests[queue] = request
