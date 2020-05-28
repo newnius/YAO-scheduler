@@ -171,9 +171,9 @@ func (scheduler *SchedulerFair) Start() {
 							IOU.NumberGPU += least
 							minRequestGPU -= least
 							scheduler.queuesQuota[bestQueue].NumberGPU += least
-							if least != 0 {
-								log.Info(bestQueue, " borrow ", least, " from ", queue)
-							}
+
+							log.Info(bestQueue, " borrow ", least, " from ", queue)
+
 						}
 					}
 
