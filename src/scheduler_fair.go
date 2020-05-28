@@ -80,7 +80,7 @@ func (scheduler *SchedulerFair) Start() {
 
 			bestQueue := ""
 			numberGPU := math.MaxInt64
-			numberCPU := math.MaxInt64
+			//numberCPU := math.MaxInt64
 			/* phase 1 */
 			for queue, jobs := range scheduler.queues {
 				/* find smallest job */
