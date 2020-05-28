@@ -920,6 +920,7 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
 				if node.Status[j].MemoryAllocated < 0 {
 					// in case of error
+					/* Case 0: a node is offline and then online, the allocation info will be lost */
 					log.Warn(node.ClientID, " UUID=", gpu.UUID, " More Memory Allocated")
 					node.Status[j].MemoryAllocated = 0
 				}

@@ -343,6 +343,7 @@ func (jm *JobManager) stop(force bool) MsgStop {
 			if res.Code != 0 {
 				log.Warn(res.Error)
 			}
+			log.Info(task.Id, " is killed")
 
 		}(taskStatus)
 	}
