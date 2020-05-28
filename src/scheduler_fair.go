@@ -277,6 +277,9 @@ func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
 
 		}(res)
 	}
+	go func() {
+		scheduler.UpdateQuota()
+	}()
 	return res
 }
 
@@ -296,7 +299,9 @@ func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 		}
 		scheduler.resourceAllocationsMu.Unlock()
 	}(agent)
-	scheduler.UpdateQuota()
+	go func() {
+		scheduler.UpdateQuota()
+	}()
 }
 
 /* allocate quota to queues */
