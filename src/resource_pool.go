@@ -911,6 +911,7 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	/* in case node is offline */
 	if !ok {
 		/* TODO, update usingTotalGPU correctly */
+		log.Warn("node ", agent.ClientID, " not present")
 		return
 	}
 	for _, gpu := range agent.Status {

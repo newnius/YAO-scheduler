@@ -250,19 +250,20 @@ func (scheduler *SchedulerCapacity) AcquireResource(job Job) []NodeStatus {
 
 func (scheduler *SchedulerCapacity) ReleaseResource(job Job, agent NodeStatus) {
 	InstanceOfResourcePool().releaseResource(job, agent)
+
+	scheduler.resourceAllocationsMu.Lock()
+	if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
+		scheduler.resourceAllocations[job.Group] = &ResourceCount{}
+	}
+	cnt, _ := scheduler.resourceAllocations[job.Group]
+	cnt.CPU -= agent.MemTotal
+	cnt.Memory -= agent.NumCPU
+	for _, v := range agent.Status {
+		cnt.NumberGPU --
+		cnt.MemoryGPU -= v.MemoryTotal
+	}
+	scheduler.resourceAllocationsMu.Unlock()
 	go func(res NodeStatus) {
-		scheduler.resourceAllocationsMu.Lock()
-		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
-		}
-		cnt, _ := scheduler.resourceAllocations[job.Group]
-		cnt.CPU -= res.MemTotal
-		cnt.Memory -= res.NumCPU
-		for _, v := range res.Status {
-			cnt.NumberGPU --
-			cnt.MemoryGPU -= v.MemoryTotal
-		}
-		scheduler.resourceAllocationsMu.Unlock()
 		scheduler.UpdateNextQueue()
 	}(agent)
 }

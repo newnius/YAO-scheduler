@@ -276,17 +276,17 @@ func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
 
 func (scheduler *SchedulerFair) ReleaseResource(job Job, agent NodeStatus) {
 	InstanceOfResourcePool().releaseResource(job, agent)
-	go func(res NodeStatus) {
-		scheduler.resourceAllocationsMu.Lock()
-		if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
-			scheduler.resourceAllocations[job.Group] = &ResourceCount{}
-		}
-		cnt, _ := scheduler.resourceAllocations[job.Group]
-		cnt.CPU -= res.NumCPU
-		cnt.Memory -= res.MemTotal
-		cnt.NumberGPU -= len(res.Status)
-		scheduler.resourceAllocationsMu.Unlock()
-	}(agent)
+
+	scheduler.resourceAllocationsMu.Lock()
+	if _, ok := scheduler.resourceAllocations[job.Group]; !ok {
+		scheduler.resourceAllocations[job.Group] = &ResourceCount{}
+	}
+	cnt, _ := scheduler.resourceAllocations[job.Group]
+	cnt.CPU -= agent.NumCPU
+	cnt.Memory -= agent.MemTotal
+	cnt.NumberGPU -= len(agent.Status)
+	scheduler.resourceAllocationsMu.Unlock()
+
 	go func() {
 		scheduler.UpdateQuota()
 	}()
