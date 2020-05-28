@@ -324,10 +324,23 @@ func (jm *JobManager) stop(force bool) MsgStop {
 			v := url.Values{}
 			v.Set("id", task.Id)
 
-			_, err := doRequest("POST", "http://"+task.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			resp, err := doRequest("POST", "http://"+task.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 			if err != nil {
 				log.Warn(err.Error())
 			}
+			body, err := ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				log.Warn(err)
+				return
+			}
+			var res MsgStop
+			err = json.Unmarshal([]byte(string(body)), &res)
+			if err != nil || res.Code != 0 {
+				log.Warn(res)
+				return
+			}
+
 		}(taskStatus)
 	}
 
