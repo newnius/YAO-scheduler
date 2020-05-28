@@ -384,20 +384,23 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 		/* if allocate is more than request, reduce weight */
 		log.Info(quota.NumberGPU, per, weight, requests[queue].NumberGPU)
-		if quota.NumberGPU+per*weight > requests[queue].NumberGPU*1000 {
-			weight = (requests[queue].NumberGPU*1000 - quota.NumberGPU + per - 1) / per
+		base := per * weight
+		if quota.NumberGPU+base > requests[queue].NumberGPU*1000 {
+			base = requests[queue].NumberGPU*1000 - quota.NumberGPU
 		}
-		log.Info(weight)
 
-		quota.NumberGPU += per * weight
-		availableGPU -= per * weight
+		quota.NumberGPU += base
+		availableGPU -= base
 
-		quota.CPU += (requests[queue].CPU * per * weight) / requests[queue].NumberGPU
-		availableCPU -= (requests[queue].CPU * per * weight) / requests[queue].NumberGPU
-		quota.Memory += (requests[queue].Memory * per * weight) / requests[queue].NumberGPU / 1000
+		quota.CPU += (requests[queue].CPU * base) / requests[queue].NumberGPU
+		availableCPU -= (requests[queue].CPU * base) / requests[queue].NumberGPU
+		quota.Memory += (requests[queue].Memory * base) / requests[queue].NumberGPU / 1000
 	}
 	if availableGPU > 0 {
 		for _, queue := range candidates {
+			if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= requests[queue].NumberGPU*1000 {
+				continue
+			}
 			quota := scheduler.queuesQuota[queue]
 			quota.NumberGPU += availableGPU
 			break
