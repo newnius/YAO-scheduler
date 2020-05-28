@@ -91,10 +91,10 @@ func (scheduler *SchedulerFair) Start() {
 						numberGPUtmp += task.NumberGPU
 						numberCPUtmp += task.NumberCPU
 					}
-					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU < numberGPUtmp || quota.CPU < numberCPUtmp {
+					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU < numberGPUtmp {
 						continue
 					}
-					if bestQueue == "" || numberGPUtmp < numberGPU || (numberGPUtmp == numberGPU && numberCPUtmp < numberCPU) {
+					if bestQueue == "" || numberGPUtmp < numberGPU || (numberGPUtmp == numberGPU) {
 						bestQueue = queue
 						numberGPU = numberGPUtmp
 						numberCPU = numberCPUtmp
@@ -309,6 +309,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	defer scheduler.quotaMu.Unlock()
 	log.Info("Updating queues quota~")
 
+	/* phase 1: DRF */
 	usingGPU := 0
 	allocatedGPU := 0
 	scheduler.resourceAllocationsMu.Lock()
@@ -355,6 +356,8 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		log.Info("CPU:", quota.CPU)
 		log.Info("Memory:", quota.Memory)
 	}
+
+	/* Phase 2: return */
 }
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
