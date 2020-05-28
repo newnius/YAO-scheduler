@@ -310,18 +310,24 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	log.Info("Updating queues quota~")
 
 	usingGPU := 0
+	allocatedGPU := 0
 	scheduler.resourceAllocationsMu.Lock()
-	for _, queue := range scheduler.resourceAllocations {
-		usingGPU += queue.NumberGPU
+	for _, quota := range scheduler.resourceAllocations {
+		usingGPU += quota.NumberGPU
 	}
 	scheduler.resourceAllocationsMu.Unlock()
 
+	for _, quota := range scheduler.queuesQuota {
+		allocatedGPU += quota.NumberGPU
+	}
+
 	pool := InstanceOfResourcePool()
 
-	available := pool.TotalGPU - usingGPU
+	available := pool.TotalGPU - usingGPU - allocatedGPU
 	log.Info("Can allocate ", available)
 	log.Info("Before ")
-	for _, quota := range scheduler.queuesQuota {
+	for queue, quota := range scheduler.queuesQuota {
+		log.Info("Queue<->", queue)
 		log.Info("GPU:", quota.NumberGPU)
 		log.Info("CPU:", quota.CPU)
 		log.Info("Memory:", quota.Memory)
@@ -343,7 +349,8 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		}
 	}
 	log.Info("After ")
-	for _, quota := range scheduler.queuesQuota {
+	for queue, quota := range scheduler.queuesQuota {
+		log.Info("Queue<->", queue)
 		log.Info("GPU:", quota.NumberGPU)
 		log.Info("CPU:", quota.CPU)
 		log.Info("Memory:", quota.Memory)
