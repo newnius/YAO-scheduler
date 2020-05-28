@@ -107,6 +107,7 @@ func (scheduler *SchedulerFair) Start() {
 
 			/* phase 2: borrow */
 			if bestQueue == "" && scheduler.enableBorrow {
+				log.Info("start borrow phase")
 				/* firstly, check if quota sum can run a job */
 				totalGPU := 0
 				for _, quota := range scheduler.queuesQuota {
@@ -168,6 +169,8 @@ func (scheduler *SchedulerFair) Start() {
 						}
 					}
 
+				} else {
+					bestQueue = ""
 				}
 			}
 
