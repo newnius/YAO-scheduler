@@ -129,14 +129,12 @@ func (jm *JobManager) start() {
 func (jm *JobManager) returnResource(status []TaskStatus) {
 	jm.resourcesMu.Lock()
 	defer jm.resourcesMu.Unlock()
-	if len(jm.resources) == 0 {
-		return
-	}
 	/* return resource */
 	for i := range jm.resources {
 		if jm.resources[i].ClientID == "_released_" {
 			continue
 		}
+		jm.resources[i].ClientID = "_released_"
 		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 		log.Info("return resource again ", jm.resources[i].ClientID)
 
@@ -156,8 +154,10 @@ func (jm *JobManager) returnResource(status []TaskStatus) {
 		//	continue
 		//}
 	}
-	InstanceOfResourcePool().releaseNetwork(jm.network)
-	jm.resources = []NodeStatus{}
+	if jm.network != "" {
+		InstanceOfResourcePool().releaseNetwork(jm.network)
+		jm.network = ""
+	}
 }
 
 /* monitor all tasks */
