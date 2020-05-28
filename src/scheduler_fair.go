@@ -382,8 +382,9 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		weight := InstanceOfGroupManager().groups[queue].Weight
 		quota := scheduler.queuesQuota[queue]
 
+		/* if allocate is more than request, reduce weight */
 		if quota.NumberGPU+per*weight > requests[queue].NumberGPU {
-			weight = requests[queue].NumberGPU / (quota.NumberGPU + per)
+			weight = (requests[queue].NumberGPU - quota.NumberGPU + per - 1) / per
 		}
 
 		quota.NumberGPU += per * weight
