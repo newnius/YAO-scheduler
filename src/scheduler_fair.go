@@ -54,7 +54,7 @@ func (scheduler *SchedulerFair) Start() {
 	go func() {
 		flag := true
 		for {
-			log.Debug("Scheduling")
+			log.Info("Scheduling")
 			if !flag { /* no more job */
 				time.Sleep(time.Millisecond * 100)
 			}
