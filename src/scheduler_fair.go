@@ -191,7 +191,7 @@ func (scheduler *SchedulerFair) Start() {
 								}
 								IOU.NumberGPU += minRequestGPU
 								scheduler.queuesQuota[bestQueue].NumberGPU += minRequestGPU
-								log.Info(bestQueue, " borrow ", minRequestGPU, " from ", queue)
+								log.Info(bestQueue, " borrow ", minRequestGPU, " from ", queue, " now ", scheduler.queuesQuota[bestQueue].NumberGPU)
 								break
 							}
 						}
