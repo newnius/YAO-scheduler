@@ -324,15 +324,13 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 	pool := InstanceOfResourcePool()
 
-	availableGPU := pool.TotalGPU - usingGPU - allocatedGPU/1000
-	availableCPU := pool.TotalCPU - usingCPU - allocatedCPU/1000
+	availableGPU := pool.TotalGPU*1000 - usingGPU*1000 - allocatedGPU
+	availableCPU := pool.TotalCPU*1000 - usingCPU*1000 - allocatedCPU
 	//availableMemory := pool.TotalMemory - usingMemory - allocatedMemory
 	/* <0 means some nodes exited */
 	if availableGPU <= 0 {
 		return
 	}
-	availableGPU *= 1000
-	availableCPU *= 1000
 
 	var candidates []string
 	requests := map[string]ResourceCount{}
@@ -386,9 +384,9 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		quota.NumberGPU += per * weight
 		availableGPU -= per * weight
 
-		quota.CPU += (requests[queue].CPU / requests[queue].NumberGPU) * per * weight
-		availableCPU -= (requests[queue].CPU / requests[queue].NumberGPU) * per * weight
-		quota.Memory += (requests[queue].Memory / requests[queue].NumberGPU) * per * weight / 1000
+		quota.CPU += (requests[queue].CPU * per * weight) / requests[queue].NumberGPU
+		availableCPU -= (requests[queue].CPU * per * weight) / requests[queue].NumberGPU
+		quota.Memory += (requests[queue].Memory * per * weight) / requests[queue].NumberGPU / 1000
 	}
 	log.Info(availableGPU)
 	if availableGPU > 0 {
