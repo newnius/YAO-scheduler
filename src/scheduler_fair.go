@@ -329,6 +329,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		quota := scheduler.queuesQuota[queue]
 		quota.NumberGPU += per
 		available -= per
+		log.Info(quota)
 	}
 	if available > 0 {
 		for queue := range scheduler.queues {
