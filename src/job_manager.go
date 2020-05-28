@@ -206,11 +206,9 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				for _, t := range jm.resources[i].Status {
 					InstanceOfResourcePool().detach(t.UUID, jm.job)
 				}
-
-				jm.resourcesMu.Unlock()
-
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 			}
+			jm.resourcesMu.Unlock()
 		}
 	}
 	if flagRunning && onlyPS && !jm.killFlag {
