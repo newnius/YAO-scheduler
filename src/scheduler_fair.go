@@ -397,28 +397,14 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		quota.Memory += ((requests[queue].Memory * base) / requests[queue].NumberGPU) / 1000
 	}
 	/* left more and more resource */
-	if availableGPU > 0 && availableGPU < per {
-		flag := false
+	availableGPU = availableGPU % per
+	if availableGPU > 0 {
 		for _, queue := range candidates {
-			if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= requests[queue].NumberGPU*1000 {
-				continue
-			}
 			quota := scheduler.queuesQuota[queue]
 			quota.NumberGPU += availableGPU
 			quota.CPU += (requests[queue].CPU * availableGPU) / requests[queue].NumberGPU
 			quota.Memory += ((requests[queue].Memory * availableGPU) / requests[queue].NumberGPU) / 1000
-			flag = true
 			break
-		}
-		if !flag { /* make sure no resource is waste */
-			for _, queue := range candidates {
-				quota := scheduler.queuesQuota[queue]
-				quota.NumberGPU += availableGPU
-				quota.CPU += (requests[queue].CPU * availableGPU) / requests[queue].NumberGPU
-				quota.Memory += ((requests[queue].Memory * availableGPU) / requests[queue].NumberGPU) / 1000
-				flag = true
-				break
-			}
 		}
 	}
 	log.Info("After ")
