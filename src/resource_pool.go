@@ -721,7 +721,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 				var available []GPUStatus
 				for _, status := range node.Status {
 					/* make sure GPU is not used by in-system and outer-system */
-					if status.MemoryAllocated == 0 && status.MemoryUsed < 100 {
+					if status.MemoryAllocated == 0 { //} && status.MemoryUsed < 100 {
 						available = append(available, status)
 					}
 				}
