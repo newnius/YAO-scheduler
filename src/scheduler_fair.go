@@ -181,10 +181,15 @@ func (scheduler *SchedulerFair) Start() {
 						if least == 0 {
 							for queue, quota := range scheduler.queuesQuota {
 								/* do not self borrow */
-								if queue == bestQueue || quota.NumberGPU < minRequestGPU {
+								if queue == bestQueue || quota.NumberGPU == 0 {
 									continue
 								}
-								quota.NumberGPU -= minRequestGPU
+								if quota.NumberGPU < minRequestGPU {
+									least = quota.NumberGPU
+								} else {
+									least = minRequestGPU
+								}
+								quota.NumberGPU -= least
 								if _, ok := scheduler.IOUs[bestQueue]; !ok {
 									scheduler.IOUs[bestQueue] = map[string]*ResourceCount{}
 								}
@@ -193,10 +198,10 @@ func (scheduler *SchedulerFair) Start() {
 									scheduler.IOUs[bestQueue][queue] = &ResourceCount{}
 									IOU = scheduler.IOUs[bestQueue][queue]
 								}
-								IOU.NumberGPU += minRequestGPU
-								scheduler.queuesQuota[bestQueue].NumberGPU += minRequestGPU
+								IOU.NumberGPU += least
+								scheduler.queuesQuota[bestQueue].NumberGPU += least
 								log.Info(bestQueue, " borrow ", minRequestGPU, " from ", queue, " now ", scheduler.queuesQuota[bestQueue].NumberGPU)
-								minRequestGPU = 0
+								minRequestGPU -= least
 								break
 							}
 						}
