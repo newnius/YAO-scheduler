@@ -16,6 +16,7 @@ type SchedulerFair struct {
 	queues   map[string][]Job
 	queuesMu sync.Mutex
 
+	drfyarn       bool
 	enableBorrow  bool
 	IOUs          map[string]map[string]*ResourceCount
 	queuesQuota   map[string]*ResourceCount
@@ -41,7 +42,8 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.history = []*Job{}
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
-	scheduler.enableBorrow = true
+	scheduler.drfyarn = true
+	scheduler.enableBorrow = false
 	scheduler.IOUs = map[string]map[string]*ResourceCount{}
 	scheduler.queuesQuota = map[string]*ResourceCount{}
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
@@ -209,6 +211,19 @@ func (scheduler *SchedulerFair) Start() {
 
 				} else {
 					bestQueue = ""
+				}
+			}
+
+			/* drf of yarn/kube-batch */
+			if bestQueue == "" && scheduler.drfyarn {
+				least := math.MaxInt32
+				for queue, allocate := range scheduler.resourceAllocations {
+					if jobs, ok := scheduler.queues[queue]; ok && len(jobs) > 0 {
+						if bestQueue == "" || allocate.NumberGPU < least {
+							bestQueue = queue
+							least = allocate.NumberGPU
+						}
+					}
 				}
 			}
 
