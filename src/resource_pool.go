@@ -144,7 +144,7 @@ func (pool *ResourcePool) checkDeadNodes() {
 				delete(pool.versions, k)
 				pool.versionsMu.Unlock()
 				nodesToDel = append(nodesToDel, k)
-				log.Info(" node ", k, " is offline")
+				log.Warn(" node ", k, " is offline")
 			}
 		}
 		for _, v := range nodesToDel {
