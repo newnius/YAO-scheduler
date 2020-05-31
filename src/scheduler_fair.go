@@ -157,9 +157,9 @@ func (scheduler *SchedulerFair) Start() {
 						scheduler.queuesQuota[queue] = &ResourceCount{}
 					}
 					/* one cannot borrow more before he has cleared his IOUs */
-					if len(scheduler.IOUs[queue]) > 0 {
-						continue
-					}
+					//if len(scheduler.IOUs[queue]) > 0 {
+					//	continue
+					//}
 
 					needGPU := numberGPUtmp*1000 - quotas[queue].NumberGPU
 					/* the less, the better */
