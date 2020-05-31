@@ -83,12 +83,19 @@ func (scheduler *SchedulerFair) Start() {
 			/* drf of yarn/kube-batch */
 			if scheduler.drfyarn {
 				least := math.MaxInt32
-				for queue, allocate := range scheduler.resourceAllocations {
-					if jobs, ok := scheduler.queues[queue]; ok && len(jobs) > 0 {
+				for queue, jobs := range scheduler.queues {
+					if len(jobs) == 0 {
+						continue
+					}
+					if allocate, ok := scheduler.resourceAllocations[queue]; ok {
 						if bestQueue == "" || allocate.NumberGPU < least {
 							bestQueue = queue
 							least = allocate.NumberGPU
 						}
+					} else {
+						bestQueue = queue
+						least = 0
+						break
 					}
 				}
 			}
