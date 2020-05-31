@@ -189,6 +189,9 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 			}
 			//InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else {
+			if jm.resources[i].ClientID == "_released_" {
+				continue
+			}
 			log.Info(jm.job.Name, "-", i, " ", status[i].Status)
 			if exitCode, ok := status[i].State["ExitCode"].(float64); ok && exitCode != 0 && !jm.killFlag {
 				log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
@@ -311,7 +314,9 @@ func (jm *JobManager) status() MsgJobStatus {
 	}
 
 	if jm.isRunning {
-		jm.checkStatus(tasksStatus)
+		go func() {
+			jm.checkStatus(tasksStatus)
+		}()
 	}
 	return MsgJobStatus{Status: tasksStatus}
 }
