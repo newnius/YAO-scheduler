@@ -42,7 +42,10 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		} else {
 			scheduler.Schedule(job)
 		}
-		js, _ := json.Marshal(msgSubmit)
+		js, err := json.Marshal(msgSubmit)
+		if err != nil {
+			log.Warn(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
