@@ -156,6 +156,9 @@ func (scheduler *SchedulerFair) Start() {
 					if _, ok := scheduler.queuesQuota[queue]; !ok {
 						scheduler.queuesQuota[queue] = &ResourceCount{}
 					}
+					if _, ok := quotas[queue]; !ok {
+						quotas[queue] = &ResourceCount{}
+					}
 					/* one cannot borrow more before he has cleared his IOUs */
 					//if len(scheduler.IOUs[queue]) > 0 {
 					//	continue
