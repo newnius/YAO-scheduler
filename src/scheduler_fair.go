@@ -79,26 +79,42 @@ func (scheduler *SchedulerFair) Start() {
 			bestQueue := ""
 			maxNumberGPU := math.MaxInt64
 			maxNumberCPU := math.MaxInt64
+
+			/* drf of yarn/kube-batch */
+			if scheduler.drfyarn {
+				least := math.MaxInt32
+				for queue, allocate := range scheduler.resourceAllocations {
+					if jobs, ok := scheduler.queues[queue]; ok && len(jobs) > 0 {
+						if bestQueue == "" || allocate.NumberGPU < least {
+							bestQueue = queue
+							least = allocate.NumberGPU
+						}
+					}
+				}
+			}
+
 			/* phase 1: execute jobs using self quota */
-			for queue, jobs := range scheduler.queues {
-				/* find largest job */
-				if len(jobs) > 0 {
-					/* calculate resource request of head job */
-					numberGPUtmp := 0
-					numberCPUtmp := 0
-					for _, task := range jobs[0].Tasks {
-						numberGPUtmp += task.NumberGPU
-						numberCPUtmp += task.NumberCPU
-					}
-					/* if queue quota cannot satisfy, skip */
-					if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU/1000 < numberGPUtmp {
-						continue
-					}
-					/* the more, the better */
-					if bestQueue == "" || numberGPUtmp > maxNumberGPU || (numberGPUtmp == maxNumberGPU && numberCPUtmp > maxNumberCPU) {
-						bestQueue = queue
-						maxNumberGPU = numberGPUtmp
-						maxNumberCPU = numberCPUtmp
+			if bestQueue == "" {
+				for queue, jobs := range scheduler.queues {
+					/* find largest job */
+					if len(jobs) > 0 {
+						/* calculate resource request of head job */
+						numberGPUtmp := 0
+						numberCPUtmp := 0
+						for _, task := range jobs[0].Tasks {
+							numberGPUtmp += task.NumberGPU
+							numberCPUtmp += task.NumberCPU
+						}
+						/* if queue quota cannot satisfy, skip */
+						if quota, ok := scheduler.queuesQuota[queue]; !ok || quota.NumberGPU/1000 < numberGPUtmp {
+							continue
+						}
+						/* the more, the better */
+						if bestQueue == "" || numberGPUtmp > maxNumberGPU || (numberGPUtmp == maxNumberGPU && numberCPUtmp > maxNumberCPU) {
+							bestQueue = queue
+							maxNumberGPU = numberGPUtmp
+							maxNumberCPU = numberCPUtmp
+						}
 					}
 				}
 			}
@@ -211,19 +227,6 @@ func (scheduler *SchedulerFair) Start() {
 
 				} else {
 					bestQueue = ""
-				}
-			}
-
-			/* drf of yarn/kube-batch */
-			if bestQueue == "" && scheduler.drfyarn {
-				least := math.MaxInt32
-				for queue, allocate := range scheduler.resourceAllocations {
-					if jobs, ok := scheduler.queues[queue]; ok && len(jobs) > 0 {
-						if bestQueue == "" || allocate.NumberGPU < least {
-							bestQueue = queue
-							least = allocate.NumberGPU
-						}
-					}
 				}
 			}
 
