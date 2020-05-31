@@ -128,6 +128,16 @@ func (scheduler *SchedulerFair) Start() {
 
 			/* phase 2: borrow */
 			if bestQueue == "" && scheduler.enableBorrow {
+				quotas := map[string]ResourceCount{}
+				for queue, quota := range scheduler.queuesQuota {
+					quotas[queue] = ResourceCount{NumberGPU: quota.NumberGPU}
+				}
+				for _, IOUs := range scheduler.IOUs {
+					for queue, IOU := range IOUs {
+						quota := quotas[queue]
+						quota.NumberGPU += IOU.NumberGPU
+					}
+				}
 				/* firstly, check if quota sum can run a job */
 				totalGPU := 0
 				for _, quota := range scheduler.queuesQuota {
@@ -151,7 +161,7 @@ func (scheduler *SchedulerFair) Start() {
 						continue
 					}
 
-					needGPU := numberGPUtmp*1000 - scheduler.queuesQuota[queue].NumberGPU
+					needGPU := numberGPUtmp*1000 - quotas[queue].NumberGPU
 					/* the less, the better */
 					if bestQueue == "" || needGPU < minRequestGPU {
 						bestQueue = queue
@@ -167,7 +177,7 @@ func (scheduler *SchedulerFair) Start() {
 					log.Info(bestQueue, ": ", "total=", totalGPU, " still need ", minRequestGPU)
 					for {
 						/* if all satisfied, break */
-						if minRequestGPU == 0 {
+						if minRequestGPU <= 0 {
 							break
 						}
 						least := math.MaxInt32

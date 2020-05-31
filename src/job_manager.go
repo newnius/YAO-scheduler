@@ -189,7 +189,9 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 			}
 			//InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else {
+			jm.resourcesMu.Lock()
 			if jm.resources[i].ClientID == "_released_" {
+				jm.resourcesMu.Unlock()
 				continue
 			}
 			log.Info(jm.job.Name, "-", i, " ", status[i].Status)
@@ -200,7 +202,6 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.scheduler.UpdateProgress(jm.job, Failed)
 			}
 
-			jm.resourcesMu.Lock()
 			if jm.resources[i].ClientID != "_released_" {
 				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
 				log.Info("return resource ", jm.resources[i].ClientID)
