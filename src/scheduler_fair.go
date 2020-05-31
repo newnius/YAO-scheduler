@@ -128,9 +128,9 @@ func (scheduler *SchedulerFair) Start() {
 
 			/* phase 2: borrow */
 			if bestQueue == "" && scheduler.enableBorrow {
-				quotas := map[string]ResourceCount{}
+				quotas := map[string]*ResourceCount{}
 				for queue, quota := range scheduler.queuesQuota {
-					quotas[queue] = ResourceCount{NumberGPU: quota.NumberGPU}
+					quotas[queue] = &ResourceCount{NumberGPU: quota.NumberGPU}
 				}
 				for _, IOUs := range scheduler.IOUs {
 					for queue, IOU := range IOUs {
