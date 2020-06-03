@@ -84,7 +84,7 @@ func (jm *JobManager) start() {
 				v.Set("hdfs_address", "http://192.168.100.104:50070/")
 				v.Set("hdfs_dir", "/user/yao/output/"+jm.job.Name)
 				v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[index].MemoryGPU))
-				v.Set("dfs_src", "/dfs/"+jm.job.Name+"/task-"+strconv.Itoa(index))
+				v.Set("dfs_src", "/dfs/yao-jobs/"+jm.job.Name+"/task-"+strconv.Itoa(index))
 				v.Set("dfs_dst", "/tmp")
 
 				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
