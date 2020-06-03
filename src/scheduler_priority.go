@@ -5,6 +5,7 @@ import (
 	"time"
 	log "github.com/sirupsen/logrus"
 	"sort"
+	"math"
 )
 
 type SchedulerPriority struct {
@@ -84,8 +85,24 @@ func (scheduler *SchedulerPriority) Start() {
 					}
 					sort.Sort(JobSorter(jobs))
 					if len(jobs) > 0 {
-						before := InstanceOfResourcePool().UsingGPU
 						preempted := jobs[0]
+						minScore := math.MaxFloat64
+						for _, jobT := range jobs {
+							score := 0.0
+							numberGPUt := 0
+							for _, task := range jobT.Tasks {
+								numberGPUt += task.NumberGPU
+							}
+							needGPU := InstanceOfResourcePool().TotalGPU - InstanceOfResourcePool().UsingGPU
+							score = float64(jobT.CreatedAt) * math.Abs(float64(numberGPU-numberGPUt+needGPU)) / float64(numberGPUt)
+
+							if score < minScore {
+								minScore = score
+								preempted = jobT
+							}
+						}
+
+						before := InstanceOfResourcePool().UsingGPU
 						log.Info("Start preempt ", preempted.Name)
 						scheduler.Stop(preempted.Name)
 
@@ -100,7 +117,6 @@ func (scheduler *SchedulerPriority) Start() {
 							copy(scheduler.history[idx:], scheduler.history[idx+1:])
 							scheduler.history = scheduler.history[:len(scheduler.history)-1]
 						}
-						log.Info(idx, scheduler.history)
 
 						/* add back */
 						idx = len(scheduler.queue)
@@ -116,7 +132,6 @@ func (scheduler *SchedulerPriority) Start() {
 						preempted.Status = Created
 						copy(scheduler.queue[idx+1:], scheduler.queue[idx:])
 						scheduler.queue[idx] = preempted
-						log.Info(scheduler.queue)
 
 						delete(scheduler.jobs, preempted.Name)
 
