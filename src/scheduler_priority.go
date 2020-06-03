@@ -297,6 +297,9 @@ func (scheduler *SchedulerPriority) updateGroup(group Group) bool {
 }
 
 func (scheduler *SchedulerPriority) DebugDump() map[string]interface{} {
-	res := map[string]interface{}{}
+	res := map[string]interface{}{
+		"queue":          scheduler.queue,
+		"schedulingJobs": scheduler.schedulingJobs,
+		"history":        scheduler.history}
 	return res
 }
