@@ -30,18 +30,6 @@ type SchedulerCapacity struct {
 	allocatingGPUMu sync.Mutex
 }
 
-type FairJobSorter []Job
-
-func (s FairJobSorter) Len() int {
-	return len(s)
-}
-func (s FairJobSorter) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s FairJobSorter) Less(i, j int) bool {
-	return s[i].CreatedAt < s[j].CreatedAt
-}
-
 func (scheduler *SchedulerCapacity) Start() {
 	log.Info("JS (capacity) started")
 
@@ -309,7 +297,7 @@ func (scheduler *SchedulerCapacity) ListJobs() MsgJobList {
 	for _, v := range scheduler.queues {
 		tmp = append(tmp, v...)
 	}
-	sort.Sort(FairJobSorter(tmp))
+	sort.Sort(JobSorter(tmp))
 	jobs = append(jobs, tmp...)
 	return MsgJobList{Code: 0, Jobs: jobs}
 }

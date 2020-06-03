@@ -4,13 +4,18 @@ import (
 	"sync"
 	"time"
 	log "github.com/sirupsen/logrus"
+	"sort"
 )
 
 type SchedulerPriority struct {
-	history    []*Job
-	queue      []Job
-	mu         sync.Mutex
-	scheduling sync.Mutex
+	history   []*Job
+	historyMu sync.Mutex
+
+	queue   []Job
+	queueMu sync.Mutex
+
+	schedulingJobs map[string]bool
+	schedulingMu   sync.Mutex
 
 	jobs        map[string]*JobManager
 	enabled     bool
@@ -21,40 +26,87 @@ func (scheduler *SchedulerPriority) Start() {
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
+	scheduler.parallelism = 1
 
 	go func() {
+		flag := true
 		for {
-			log.Info("Scheduling")
-			time.Sleep(time.Second * 5)
-			scheduler.scheduling.Lock()
-			scheduler.mu.Lock()
+			log.Debug("Scheduling")
+			if !flag { /* no more job */
+				time.Sleep(time.Millisecond * 100)
+			}
+			flag = false
+			scheduler.schedulingMu.Lock()
+			if len(scheduler.schedulingJobs) >= scheduler.parallelism {
+				scheduler.schedulingMu.Unlock()
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+			scheduler.schedulingMu.Unlock()
+
+			scheduler.queueMu.Lock()
 			if len(scheduler.queue) > 0 {
 
-				jm := JobManager{}
-				jm.job = scheduler.queue[0]
-				scheduler.queue = scheduler.queue[1:]
-				jm.scheduler = scheduler
-				scheduler.jobs[jm.job.Name] = &jm
+				numberGPU := 0
+				for _, task := range scheduler.queue[0].Tasks {
+					numberGPU += task.NumberGPU
+				}
+				if numberGPU <= (InstanceOfResourcePool().TotalGPU - InstanceOfResourcePool().UsingGPU) {
 
-				jm.job.Status = Starting
-				scheduler.history = append(scheduler.history, &jm.job)
+					jm := JobManager{}
+					jm.job = scheduler.queue[0]
+					scheduler.queue = scheduler.queue[1:]
+					jm.scheduler = scheduler
+					scheduler.jobs[jm.job.Name] = &jm
 
-				go func() {
-					jm.start()
-				}()
-			} else {
-				scheduler.scheduling.Unlock()
+					jm.job.Status = Starting
+					scheduler.historyMu.Lock()
+					scheduler.history = append(scheduler.history, &jm.job)
+					scheduler.historyMu.Unlock()
+
+					go func() {
+						jm.start()
+					}()
+				} else {
+					/* start preempt */
+					var jobs []Job
+					lowest := scheduler.queue[0].Priority
+					scheduler.historyMu.Lock()
+					for _, job := range scheduler.history {
+						if job.Priority < lowest {
+							jobs = []Job{*job}
+							lowest = job.Priority
+						} else if job.Priority == lowest {
+							jobs = append(jobs, *job)
+						}
+					}
+					scheduler.historyMu.Unlock()
+					sort.Sort(JobSorter(jobs))
+					if len(jobs) > 0 {
+						job := jobs[0]
+						log.Info("Start preempt ", job.Name)
+						scheduler.Stop(job.Name)
+						scheduler.Schedule(job)
+
+						/* Remove from history */
+					}
+				}
 			}
-			scheduler.mu.Unlock()
+			scheduler.queueMu.Unlock()
 		}
 	}()
 }
 
 func (scheduler *SchedulerPriority) UpdateProgress(job Job, state State) {
+	scheduler.historyMu.Lock()
+	defer scheduler.historyMu.Unlock()
+
+	scheduler.schedulingMu.Lock()
+	delete(scheduler.schedulingJobs, job.Name)
+	scheduler.schedulingMu.Unlock()
+
 	switch state {
 	case Running:
-		scheduler.scheduling.Unlock()
-
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Running
@@ -75,12 +127,20 @@ func (scheduler *SchedulerPriority) UpdateProgress(job Job, state State) {
 			}
 		}
 		break
+	case Failed:
+		for i := range scheduler.history {
+			if scheduler.history[i].Name == job.Name {
+				scheduler.history[i].Status = Failed
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
+			}
+		}
+		break
 	}
 }
 
 func (scheduler *SchedulerPriority) Schedule(job Job) {
-	scheduler.mu.Lock()
-	defer scheduler.mu.Unlock()
+	scheduler.queueMu.Lock()
+	defer scheduler.queueMu.Unlock()
 
 	index := 0
 

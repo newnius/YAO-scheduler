@@ -674,7 +674,7 @@ func (scheduler *SchedulerFair) ListJobs() MsgJobList {
 	for _, v := range scheduler.queues {
 		tmp = append(tmp, v...)
 	}
-	sort.Sort(FairJobSorter(tmp))
+	sort.Sort(JobSorter(tmp))
 	jobs = append(jobs, tmp...)
 	return MsgJobList{Code: 0, Jobs: jobs}
 }
