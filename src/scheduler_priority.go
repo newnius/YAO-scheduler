@@ -70,7 +70,8 @@ func (scheduler *SchedulerPriority) Start() {
 				} else {
 					/* start preempt */
 					var jobs []Job
-					lowest := scheduler.queue[0].Priority
+					preemptee := scheduler.queue[0]
+					lowest := preemptee.Priority - 1
 					scheduler.historyMu.Lock()
 					for _, job := range scheduler.history {
 						if job.Priority < lowest {
@@ -80,16 +81,41 @@ func (scheduler *SchedulerPriority) Start() {
 							jobs = append(jobs, *job)
 						}
 					}
-					scheduler.historyMu.Unlock()
 					sort.Sort(JobSorter(jobs))
 					if len(jobs) > 0 {
-						job := jobs[0]
-						log.Info("Start preempt ", job.Name)
-						scheduler.Stop(job.Name)
-						scheduler.Schedule(job)
+						preempted := jobs[0]
+						log.Info("Start preempt ", preempted.Name)
+						scheduler.Stop(preempted.Name)
 
 						/* Remove from history */
+						idx := -1
+						for i, job := range scheduler.history {
+							if job.Name == preempted.Name {
+								idx = i
+							}
+						}
+						if idx != -1 {
+							copy(scheduler.history[idx:], scheduler.history[idx+1:])
+							scheduler.history = scheduler.history[:len(scheduler.history)-1]
+						}
+
+						/* add back */
+						idx = len(scheduler.queue)
+						for i, job := range scheduler.queue {
+							if job.Priority > preempted.Priority {
+								continue
+							}
+							idx = i
+							break
+						}
+						scheduler.queue = append(scheduler.queue, Job{})
+
+						copy(scheduler.queue[idx+1:], scheduler.queue[idx:])
+						scheduler.queue[idx] = preempted
+
+						preempted.Status = Created
 					}
+					scheduler.historyMu.Unlock()
 				}
 			}
 			scheduler.queueMu.Unlock()
