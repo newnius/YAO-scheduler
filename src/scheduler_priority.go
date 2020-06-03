@@ -27,6 +27,7 @@ func (scheduler *SchedulerPriority) Start() {
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
 	scheduler.parallelism = 1
+	scheduler.schedulingJobs = map[string]bool{}
 
 	go func() {
 		flag := true
@@ -98,6 +99,7 @@ func (scheduler *SchedulerPriority) Start() {
 							copy(scheduler.history[idx:], scheduler.history[idx+1:])
 							scheduler.history = scheduler.history[:len(scheduler.history)-1]
 						}
+						log.Info(idx, scheduler.history)
 
 						/* add back */
 						idx = len(scheduler.queue)
@@ -112,6 +114,9 @@ func (scheduler *SchedulerPriority) Start() {
 
 						copy(scheduler.queue[idx+1:], scheduler.queue[idx:])
 						scheduler.queue[idx] = preempted
+						log.Info(scheduler.queue)
+
+						delete(scheduler.jobs, preempted.Name)
 
 						preempted.Status = Created
 					}
