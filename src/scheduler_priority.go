@@ -84,6 +84,7 @@ func (scheduler *SchedulerPriority) Start() {
 					}
 					sort.Sort(JobSorter(jobs))
 					if len(jobs) > 0 {
+						before := InstanceOfResourcePool().UsingGPU
 						preempted := jobs[0]
 						log.Info("Start preempt ", preempted.Name)
 						scheduler.Stop(preempted.Name)
@@ -118,6 +119,14 @@ func (scheduler *SchedulerPriority) Start() {
 						log.Info(scheduler.queue)
 
 						delete(scheduler.jobs, preempted.Name)
+
+						for {
+							after := InstanceOfResourcePool().UsingGPU
+							if after != before {
+								break
+							}
+							time.Sleep(time.Millisecond * 100)
+						}
 					}
 					scheduler.historyMu.Unlock()
 				}
