@@ -356,10 +356,12 @@ func (jm *JobManager) stop(force bool) MsgStop {
 		}(taskStatus)
 	}
 
-	if force {
-		jm.killFlag = true
-		jm.scheduler.UpdateProgress(jm.job, Stopped)
-		log.Info("kill job, ", jm.job.Name)
-	}
+	go func() {
+		if force {
+			jm.killFlag = true
+			jm.scheduler.UpdateProgress(jm.job, Stopped)
+			log.Info("kill job, ", jm.job.Name)
+		}
+	}()
 	return MsgStop{Code: 0}
 }
