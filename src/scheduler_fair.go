@@ -42,8 +42,8 @@ func (scheduler *SchedulerFair) Start() {
 	scheduler.history = []*Job{}
 	scheduler.queues = map[string][]Job{}
 	scheduler.queues["default"] = []Job{}
-	scheduler.drfyarn = true
-	scheduler.enableBorrow = false
+	scheduler.drfyarn = false
+	scheduler.enableBorrow = true
 	scheduler.IOUs = map[string]map[string]*ResourceCount{}
 	scheduler.queuesQuota = map[string]*ResourceCount{}
 	scheduler.resourceAllocations = map[string]*ResourceCount{}
