@@ -112,13 +112,12 @@ func (scheduler *SchedulerPriority) Start() {
 						}
 						scheduler.queue = append(scheduler.queue, Job{})
 
+						preempted.Status = Created
 						copy(scheduler.queue[idx+1:], scheduler.queue[idx:])
 						scheduler.queue[idx] = preempted
 						log.Info(scheduler.queue)
 
 						delete(scheduler.jobs, preempted.Name)
-
-						preempted.Status = Created
 					}
 					scheduler.historyMu.Unlock()
 				}
