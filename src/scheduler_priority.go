@@ -93,9 +93,9 @@ func (scheduler *SchedulerPriority) Start() {
 							for _, task := range jobT.Tasks {
 								numberGPUt += task.NumberGPU
 							}
-							log.Info(time.Now().UnixNano())
+
 							needGPU := InstanceOfResourcePool().TotalGPU - InstanceOfResourcePool().UsingGPU
-							score = float64(jobT.CreatedAt) * math.Abs(float64(numberGPU-numberGPUt+needGPU)) / float64(numberGPUt)
+							score = float64(time.Now().UnixNano()/100000-int64(jobT.CreatedAt)) * math.Abs(float64(numberGPU-numberGPUt+needGPU)) / float64(numberGPUt)
 
 							if score < minScore {
 								minScore = score
