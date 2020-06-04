@@ -76,6 +76,9 @@ func (scheduler *SchedulerPriority) Start() {
 					lowest := preemptee.Priority - 1
 					scheduler.historyMu.Lock()
 					for _, job := range scheduler.history {
+						if job.Status != Running {
+							continue
+						}
 						if job.Priority < lowest {
 							jobs = []Job{*job}
 							lowest = job.Priority
