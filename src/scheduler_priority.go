@@ -168,6 +168,7 @@ func (scheduler *SchedulerPriority) UpdateProgress(job Job, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Running
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
@@ -175,6 +176,7 @@ func (scheduler *SchedulerPriority) UpdateProgress(job Job, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Finished
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
@@ -182,6 +184,7 @@ func (scheduler *SchedulerPriority) UpdateProgress(job Job, state State) {
 		for i := range scheduler.history {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Stopped
+				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
 			}
 		}
 		break
