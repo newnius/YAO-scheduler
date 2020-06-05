@@ -125,6 +125,7 @@ func (jm *JobManager) start() {
 	}
 
 	/* make sure resources are released */
+	InstanceOfOptimizer().feedStats(jm.job.Name, jm.stats)
 	jm.returnResource(jm.status().Status)
 	log.Info("JobMaster exited ", jm.job.Name)
 }
