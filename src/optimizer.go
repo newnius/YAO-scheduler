@@ -46,25 +46,31 @@ func (optimizer *Optimizer) init(conf Configuration) {
 }
 
 func (optimizer *Optimizer) feedStats(job string, stats [][]TaskStatus) {
-	var UtilsCPU []float64
-	var Mems []float64
-	var BwRxs []float64
-	var BwTxs []float64
-	for _, stat := range stats {
-		for _, task := range stat {
-			UtilsCPU = append(UtilsCPU, task.UtilCPU)
-			Mems = append(Mems, task.Mem)
-			BwRxs = append(BwRxs, task.BwRX)
-			BwTxs = append(BwTxs, task.BWTx)
+	go func() {
+		var UtilsCPU []float64
+		var Mems []float64
+		var BwRxs []float64
+		var BwTxs []float64
+		str := strings.Split(job, "-")
+		if len(str) == 2 {
+			jobName := str[0]
+			for _, stat := range stats {
+				for _, task := range stat {
+					UtilsCPU = append(UtilsCPU, task.UtilCPU)
+					Mems = append(Mems, task.Mem)
+					BwRxs = append(BwRxs, task.BwRX)
+					BwTxs = append(BwTxs, task.BWTx)
+				}
+			}
+			optimizer.stats[jobName] = map[string]float64{
+				"cpu":     optimizer.mean(UtilsCPU),
+				"cpu_std": optimizer.std(UtilsCPU),
+				"mem":     optimizer.max(Mems),
+				"bw_rx":   optimizer.mean(BwRxs),
+				"bw_tx":   optimizer.mean(BwTxs),
+			}
 		}
-	}
-	optimizer.stats[job] = map[string]float64{
-		"cpu":     optimizer.mean(UtilsCPU),
-		"cpu_std": optimizer.std(UtilsCPU),
-		"mem":     optimizer.max(Mems),
-		"bw_rx":   optimizer.mean(BwRxs),
-		"bw_tx":   optimizer.mean(BwTxs),
-	}
+	}()
 }
 
 func (optimizer *Optimizer) max(values []float64) float64 {
