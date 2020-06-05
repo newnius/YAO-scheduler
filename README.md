@@ -86,3 +86,8 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_scheduler_dump
 ```
+
+**DescribeJob**
+```
+?action=debug_optimizer_describe_job&job=
+```

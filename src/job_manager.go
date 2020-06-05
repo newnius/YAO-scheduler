@@ -22,6 +22,8 @@ type JobManager struct {
 	killFlag    bool
 
 	network string
+
+	stats [][]TaskStatus
 }
 
 func (jm *JobManager) start() {
@@ -320,6 +322,8 @@ func (jm *JobManager) status() MsgJobStatus {
 		go func() {
 			jm.checkStatus(tasksStatus)
 		}()
+		jm.stats = append(jm.stats, tasksStatus)
+
 	}
 	return MsgJobStatus{Status: tasksStatus}
 }

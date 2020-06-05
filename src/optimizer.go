@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"encoding/json"
 	"time"
+	"math"
 )
 
 type Optimizer struct {
@@ -19,6 +20,8 @@ type Optimizer struct {
 	jobUtilsGPU map[string]*OptimizerUtilGPU
 
 	cache map[string]*OptimizerJobExecutionTime
+
+	stats map[string]map[string]float64
 }
 
 var optimizerInstance *Optimizer
@@ -33,12 +36,72 @@ func InstanceOfOptimizer() *Optimizer {
 		optimizerInstance.predicts = map[string]*OptimizerJobExecutionTime{}
 		optimizerInstance.jobUtilsGPU = map[string]*OptimizerUtilGPU{}
 		optimizerInstance.cache = map[string]*OptimizerJobExecutionTime{}
+		optimizerInstance.stats = map[string]map[string]float64{}
 	}
 	return optimizerInstance
 }
 
 func (optimizer *Optimizer) init(conf Configuration) {
 	log.Info("optimizer started")
+}
+
+func (optimizer *Optimizer) feedStats(job string, stats [][]TaskStatus) {
+	var UtilsCPU []float64
+	var Mems []float64
+	var BwRxs []float64
+	var BwTxs []float64
+	for _, stat := range stats {
+		for _, task := range stat {
+			UtilsCPU = append(UtilsCPU, task.UtilCPU)
+			Mems = append(Mems, task.Mem)
+			BwRxs = append(BwRxs, task.BwRX)
+			BwTxs = append(BwTxs, task.BWTx)
+		}
+	}
+	optimizer.stats[job] = map[string]float64{
+		"cpu":     optimizer.mean(UtilsCPU),
+		"cpu_std": optimizer.std(UtilsCPU),
+		"mem":     optimizer.max(Mems),
+		"bw_rx":   optimizer.mean(BwRxs),
+		"bw_tx":   optimizer.mean(BwTxs),
+	}
+}
+
+func (optimizer *Optimizer) max(values []float64) float64 {
+	value := 0.0
+	for _, v := range values {
+		if v < value {
+			value = v
+		}
+	}
+	return value
+}
+
+func (optimizer *Optimizer) mean(values []float64) float64 {
+	sum := 0.0
+	for _, v := range values {
+		sum += v
+	}
+	return sum / float64(len(values))
+}
+
+func (optimizer *Optimizer) std(values []float64) float64 {
+	mean := optimizer.mean(values)
+	std := 0.0
+	for j := 0; j < len(values); j++ {
+		// The use of Pow math function func Pow(x, y float64) float64
+		std += math.Pow(values[j]-mean, 2)
+	}
+	// The use of Sqrt math function func Sqrt(x float64) float64
+	std = math.Sqrt(std / float64(len(values)))
+	return std
+}
+
+func (optimizer *Optimizer) describe(job string) map[string]float64 {
+	if stat, ok := optimizer.stats[job]; ok {
+		return stat
+	}
+	return map[string]float64{}
 }
 
 func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {

@@ -16,4 +16,8 @@ type TaskStatus struct {
 	FinishedAt  string                 `json:"finished_at"`
 	Status      string                 `json:"status"`
 	State       map[string]interface{} `json:"state"`
+	UtilCPU     float64                `json:"cpu"`
+	Mem         float64                `json:"mem"`
+	BwRX        float64                `json:"bw_rx"`
+	BWTx        float64                `json:"bw_tx"`
 }

@@ -256,6 +256,15 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_optimizer_describe_job":
+		log.Debug("debug_optimizer_describe_job")
+		var job string
+		job = r.URL.Query().Get("job")
+		js, _ := json.Marshal(InstanceOfOptimizer().describe(job))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "debug_optimizer_train_dl":
 		log.Debug("debug_optimizer_train_dl")
 		InstanceOfOptimizer().train(r.URL.Query().Get("job"))
