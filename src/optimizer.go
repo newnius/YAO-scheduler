@@ -76,7 +76,7 @@ func (optimizer *Optimizer) feedStats(job string, stats [][]TaskStatus) {
 func (optimizer *Optimizer) max(values []float64) float64 {
 	value := 0.0
 	for _, v := range values {
-		if v < value {
+		if v > value {
 			value = v
 		}
 	}
