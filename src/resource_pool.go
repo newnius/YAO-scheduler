@@ -61,6 +61,11 @@ type ResourcePool struct {
 	enableShareRatio       float64
 	enablePreSchedule      bool
 	enablePreScheduleRatio float64
+
+	enableBatch      bool
+	batchJobs        []Job
+	batchMu          sync.Mutex
+	batchAllocations map[string][]NodeStatus
 }
 
 func (pool *ResourcePool) init(conf Configuration) {
@@ -82,6 +87,8 @@ func (pool *ResourcePool) init(conf Configuration) {
 	pool.enableShareRatio = 0.75
 	pool.enablePreSchedule = true
 	pool.enablePreScheduleRatio = 0.95
+
+	pool.enableBatch = false
 
 	/* init pools */
 	pool.poolsCount = 300
@@ -114,6 +121,31 @@ func (pool *ResourcePool) init(conf Configuration) {
 	pool.history = []PoolStatus{}
 	go func() {
 		pool.saveStatusHistory()
+	}()
+
+	go func() {
+		time.Sleep(time.Second * 10)
+		pool.batchMu.Lock()
+		var tasks []Task
+		for _, job := range pool.batchJobs {
+			for _, task := range job.Tasks {
+				task.Job = job.Name
+				tasks = append(tasks, task)
+			}
+		}
+		job := Job{Tasks: tasks}
+
+		nodes := pool.doAcquireResource(job)
+		for i, task := range job.Tasks {
+			if _, ok := pool.batchAllocations[task.Job]; !ok {
+				pool.batchAllocations[task.Job] = []NodeStatus{}
+			}
+			pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
+		}
+		if len(nodes) > 0 {
+			pool.batchJobs = []Job{}
+		}
+		pool.batchMu.Unlock()
 	}()
 }
 
@@ -634,6 +666,27 @@ func (pool *ResourcePool) pickNode(candidates []*NodeStatus, availableGPUs map[s
 }
 
 func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
+	if !pool.enableBatch {
+		for i := range job.Tasks {
+			job.Tasks[i].Job = job.Name
+		}
+		return pool.acquireResource(job)
+	}
+	for {
+		if _, ok := pool.batchAllocations[job.Name]; ok {
+			break
+		} else {
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
+	pool.batchMu.Lock()
+	nodes := pool.batchAllocations[job.Name]
+	delete(pool.batchAllocations, job.Name)
+	pool.batchMu.Unlock()
+	return nodes
+}
+
+func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	if len(job.Tasks) == 0 {
 		return []NodeStatus{}
 	}
@@ -876,7 +929,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 						}
 					}
 					for _, t := range res.Status {
-						pool.attach(t.UUID, job.Name)
+						pool.attach(t.UUID, task.Job)
 					}
 
 					for i := range job.Tasks {

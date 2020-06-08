@@ -31,6 +31,7 @@ type Job struct {
 
 type Task struct {
 	Name      string `json:"name"`
+	Job       string `json:"job_name"`
 	Image     string `json:"image"`
 	Cmd       string `json:"cmd"`
 	NumberCPU int    `json:"cpu_number"`
