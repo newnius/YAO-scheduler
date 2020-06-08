@@ -670,7 +670,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 		for i := range job.Tasks {
 			job.Tasks[i].Job = job.Name
 		}
-		return pool.acquireResource(job)
+		return pool.doAcquireResource(job)
 	}
 	for {
 		if _, ok := pool.batchAllocations[job.Name]; ok {
