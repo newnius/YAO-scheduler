@@ -205,6 +205,10 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.stop(false)
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Failed)
+			} else if !jm.killFlag {
+				jm.stop(false)
+				jm.killFlag = true
+				jm.scheduler.UpdateProgress(jm.job, Finished)
 			}
 
 			if jm.resources[i].ClientID != "_released_" {
