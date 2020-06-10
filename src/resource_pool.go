@@ -164,7 +164,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 					}
 					pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
 				}
-				//bug
+				break
 			}
 			pool.batchJobs = map[string]Job{}
 			for _, job := range left {
