@@ -521,13 +521,13 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 	if len(candidates) == 0 {
 		return
 	}
-	log.Info("Can allocate ", availableGPU)
-	log.Info("Before ")
+	log.Debug("Can allocate ", availableGPU)
+	log.Debug("Before ")
 	for queue, quota := range scheduler.queuesQuota {
-		log.Info("Queue<->", queue)
-		log.Info("GPU:", quota.NumberGPU)
-		log.Info("CPU:", quota.CPU)
-		log.Info("Memory:", quota.Memory)
+		log.Debug("Queue<->", queue)
+		log.Debug("GPU:", quota.NumberGPU)
+		log.Debug("CPU:", quota.CPU)
+		log.Debug("Memory:", quota.Memory)
 	}
 
 	per := availableGPU / weights
@@ -563,12 +563,12 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			break
 		}
 	}
-	log.Info("After ")
+	log.Debug("After ")
 	for queue, quota := range scheduler.queuesQuota {
-		log.Info("Queue<->", queue)
-		log.Info("GPU:", quota.NumberGPU)
-		log.Info("CPU:", quota.CPU)
-		log.Info("Memory:", quota.Memory)
+		log.Debug("Queue<->", queue)
+		log.Debug("GPU:", quota.NumberGPU)
+		log.Debug("CPU:", quota.CPU)
+		log.Debug("Memory:", quota.Memory)
 	}
 
 	/* Phase 2: clear IOUs */
