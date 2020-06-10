@@ -315,8 +315,13 @@ func (jm *JobManager) status() MsgJobStatus {
 			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-1)}}
 			continue
 		}
+		if res.Code == 2 {
+			tasksStatus[i] = TaskStatus{Status: "unknown", State: map[string]interface{}{"ExitCode": float64(-2)}}
+			log.Warn(res.Error)
+			continue
+		}
 		if res.Code != 0 {
-			tasksStatus[i] = TaskStatus{Status: "notexist", State: map[string]interface{}{"ExitCode": float64(1)}}
+			tasksStatus[i] = TaskStatus{Status: "notexist", State: map[string]interface{}{"ExitCode": float64(res.Code)}}
 			continue
 		}
 		res.Status.Node = taskStatus.Node

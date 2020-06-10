@@ -886,6 +886,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 		}
 
 		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
+		log.Info(allocation, tasks)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order
