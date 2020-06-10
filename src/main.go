@@ -295,6 +295,20 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "pool_enable_batch":
+		log.Debug("pool_enable_batch")
+		js, _ := json.Marshal(InstanceOfResourcePool().EnableBatch())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "pool_disable_batch":
+		log.Debug("pool_disable_batch")
+		js, _ := json.Marshal(InstanceOfResourcePool().DisableBatch())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

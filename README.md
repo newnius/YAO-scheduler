@@ -91,3 +91,13 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_optimizer_describe_job&job=
 ```
+
+**EnableBatchAllocation**
+```
+?action=pool_enable_batch
+```
+
+**DisableBatchAllocation**
+```
+?action=pool_disable_batch
+```

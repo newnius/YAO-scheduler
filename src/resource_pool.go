@@ -124,28 +124,36 @@ func (pool *ResourcePool) init(conf Configuration) {
 	}()
 
 	go func() {
-		time.Sleep(time.Second * 10)
-		pool.batchMu.Lock()
-		var tasks []Task
-		for _, job := range pool.batchJobs {
-			for _, task := range job.Tasks {
-				task.Job = job.Name
-				tasks = append(tasks, task)
+		/* batch allocation */
+		for {
+			time.Sleep(time.Second * 15)
+			if !pool.enableBatch {
+				continue
 			}
-		}
-		job := Job{Tasks: tasks}
+			pool.batchMu.Lock()
+			var tasks []Task
+			for _, job := range pool.batchJobs {
+				for _, task := range job.Tasks {
+					task.Job = job.Name
+					tasks = append(tasks, task)
+				}
+			}
+			if len(tasks) != 0 {
+				job := Job{Tasks: tasks}
 
-		nodes := pool.doAcquireResource(job)
-		for i, task := range job.Tasks {
-			if _, ok := pool.batchAllocations[task.Job]; !ok {
-				pool.batchAllocations[task.Job] = []NodeStatus{}
+				nodes := pool.doAcquireResource(job)
+				for i, task := range job.Tasks {
+					if _, ok := pool.batchAllocations[task.Job]; !ok {
+						pool.batchAllocations[task.Job] = []NodeStatus{}
+					}
+					pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
+				}
+				if len(nodes) > 0 {
+					pool.batchJobs = []Job{}
+				}
 			}
-			pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
+			pool.batchMu.Unlock()
 		}
-		if len(nodes) > 0 {
-			pool.batchJobs = []Job{}
-		}
-		pool.batchMu.Unlock()
 	}()
 }
 
@@ -885,9 +893,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 			}
 		}
 
-		log.Info(tasks, factor)
+		//log.Info(tasks, factor)
 		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
-		log.Info(allocation)
+		//log.Info(allocation)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order
@@ -989,6 +997,18 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 			}
 		}
 	}
+}
+
+func (pool *ResourcePool) EnableBatch() bool {
+	pool.enableBatch = true
+	log.Info("enableBatch is set to true")
+	return true
+}
+
+func (pool *ResourcePool) DisableBatch() bool {
+	pool.enableBatch = false
+	log.Info("enableBatch is set to false")
+	return true
 }
 
 func (pool *ResourcePool) SetShareRatio(ratio float64) bool {
