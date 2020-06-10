@@ -155,6 +155,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 						left = append(left, pool.batchJobs[jobName])
 						delete(pool.batchJobs, jobName)
 						log.Info("cannot find a valid allocation, remove a job randomly: ", jobName)
+						break
 					}
 					continue
 				}
@@ -166,8 +167,9 @@ func (pool *ResourcePool) init(conf Configuration) {
 				}
 				//bug
 			}
+			pool.batchJobs = map[string]Job{}
 			for _, job := range left {
-				delete(pool.batchJobs, job.Name)
+				pool.batchJobs[job.Name] = job
 			}
 			pool.batchMu.Unlock()
 		}
