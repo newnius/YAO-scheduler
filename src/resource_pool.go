@@ -144,6 +144,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 						tasks = append(tasks, task)
 					}
 				}
+				log.Info(tasks)
 				job := Job{Tasks: tasks}
 				if len(tasks) == 0 {
 					break
