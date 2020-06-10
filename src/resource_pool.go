@@ -131,27 +131,35 @@ func (pool *ResourcePool) init(conf Configuration) {
 				continue
 			}
 			pool.batchMu.Lock()
-			var tasks []Task
-			for _, job := range pool.batchJobs {
-				for _, task := range job.Tasks {
-					task.Job = job.Name
-					tasks = append(tasks, task)
-				}
-			}
-			if len(tasks) != 0 {
-				job := Job{Tasks: tasks}
 
-				nodes := pool.doAcquireResource(job)
+			var nodes []NodeStatus
+			var left []Job
+			for {
+				var tasks []Task
+				for _, job := range pool.batchJobs {
+					for _, task := range job.Tasks {
+						task.Job = job.Name
+						tasks = append(tasks, task)
+					}
+				}
+				job := Job{Tasks: tasks}
+				if len(tasks) == 0 {
+					break
+				}
+				nodes = pool.doAcquireResource(job)
+				if len(nodes) == 0 {
+					left = append(left, pool.batchJobs[0])
+					pool.batchJobs = pool.batchJobs[1:]
+					continue
+				}
 				for i, task := range job.Tasks {
 					if _, ok := pool.batchAllocations[task.Job]; !ok {
 						pool.batchAllocations[task.Job] = []NodeStatus{}
 					}
 					pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
 				}
-				if len(nodes) > 0 {
-					pool.batchJobs = []Job{}
-				}
 			}
+			pool.batchJobs = left
 			pool.batchMu.Unlock()
 		}
 	}()
