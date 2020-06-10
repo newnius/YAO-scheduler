@@ -151,7 +151,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 				if len(nodes) == 0 {
 					left = append(left, pool.batchJobs[0])
 					pool.batchJobs = pool.batchJobs[1:]
-					log.Info("cannot find a valid allocation, remove a job randomly")
+					log.Info("cannot find a valid allocation, remove a job randomly: ", left[len(left)-1].Name)
 					continue
 				}
 				for i, task := range job.Tasks {
