@@ -150,6 +150,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 				if len(nodes) == 0 {
 					left = append(left, pool.batchJobs[0])
 					pool.batchJobs = pool.batchJobs[1:]
+					log.Info("cannot find a valid allocation, remove a job randomly")
 					continue
 				}
 				for i, task := range job.Tasks {
@@ -688,6 +689,9 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 		}
 		return pool.doAcquireResource(job)
 	}
+	pool.batchMu.Lock()
+	pool.batchJobs = append(pool.batchJobs, job)
+	pool.batchMu.Unlock()
 	for {
 		if _, ok := pool.batchAllocations[job.Name]; ok {
 			break
@@ -1029,4 +1033,11 @@ func (pool *ResourcePool) SetPreScheduleRatio(ratio float64) bool {
 	pool.enablePreScheduleRatio = ratio
 	log.Info("enablePreScheduleRatio is updated to ", ratio)
 	return true
+}
+
+func (pool *ResourcePool) DebugDump() map[string]interface{} {
+	res := map[string]interface{}{}
+	res["batchJobs"] = pool.batchJobs
+	res["pools"] = pool.pools
+	return res
 }

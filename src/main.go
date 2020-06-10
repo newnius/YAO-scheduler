@@ -309,6 +309,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_pool_dump":
+		log.Debug("debug_pool_dump")
+		js, _ := json.Marshal(InstanceOfResourcePool().DebugDump())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

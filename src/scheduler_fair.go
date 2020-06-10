@@ -261,8 +261,8 @@ func (scheduler *SchedulerFair) Start() {
 					Memorytmp += task.Memory
 				}
 
-				log.Info("schedulingJobs are ", scheduler.schedulingJobs)
-				log.Info("Before ")
+				log.Debug("schedulingJobs are ", scheduler.schedulingJobs)
+				log.Debug("Before ")
 				for queue, quota := range scheduler.queuesQuota {
 					log.Info("Queue<->", queue)
 					log.Info("GPU:", quota.NumberGPU)

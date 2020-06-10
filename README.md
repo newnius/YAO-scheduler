@@ -101,3 +101,8 @@ GPU is occupied by which job(s)
 ```
 ?action=pool_disable_batch
 ```
+
+**PoolDump**
+```
+?action=debug_pool_dump
+```
