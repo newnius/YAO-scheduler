@@ -89,6 +89,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 	pool.enablePreScheduleRatio = 0.95
 
 	pool.enableBatch = false
+	pool.batchAllocations = map[string][]NodeStatus{}
 
 	/* init pools */
 	pool.poolsCount = 300
