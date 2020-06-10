@@ -264,10 +264,10 @@ func (scheduler *SchedulerFair) Start() {
 				log.Debug("schedulingJobs are ", scheduler.schedulingJobs)
 				log.Debug("Before ")
 				for queue, quota := range scheduler.queuesQuota {
-					log.Info("Queue<->", queue)
-					log.Info("GPU:", quota.NumberGPU)
-					log.Info("CPU:", quota.CPU)
-					log.Info("Memory:", quota.Memory)
+					log.Debug("Queue<->", queue)
+					log.Debug("GPU:", quota.NumberGPU)
+					log.Debug("CPU:", quota.CPU)
+					log.Debug("Memory:", quota.Memory)
 				}
 				pool := InstanceOfResourcePool()
 				/* Make sure resource it enough */

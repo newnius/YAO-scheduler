@@ -45,7 +45,7 @@ func (jm *JobManager) start() {
 		}
 		jm.resources = jm.scheduler.AcquireResource(jm.job)
 		if len(jm.resources) > 0 {
-			log.Info("Receive resource", jm.resources)
+			log.Info(jm.job.Name, " receive resource", jm.resources)
 			break
 		}
 		/* sleep random Millisecond to avoid deadlock */

@@ -160,6 +160,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 					}
 					pool.batchAllocations[task.Job] = append(pool.batchAllocations[task.Job], nodes[i])
 				}
+				//bug
 			}
 			pool.batchJobs = left
 			pool.batchMu.Unlock()
