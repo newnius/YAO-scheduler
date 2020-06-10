@@ -1038,6 +1038,6 @@ func (pool *ResourcePool) SetPreScheduleRatio(ratio float64) bool {
 func (pool *ResourcePool) DebugDump() map[string]interface{} {
 	res := map[string]interface{}{}
 	res["batchJobs"] = pool.batchJobs
-	res["pools"] = pool.pools
+	//res["pools"] = pool.pools
 	return res
 }
