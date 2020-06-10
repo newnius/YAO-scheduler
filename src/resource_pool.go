@@ -63,7 +63,7 @@ type ResourcePool struct {
 	enablePreScheduleRatio float64
 
 	enableBatch      bool
-	batchJobs        []Job
+	batchJobs        map[string]Job
 	batchMu          sync.Mutex
 	batchAllocations map[string][]NodeStatus
 }
@@ -90,6 +90,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 
 	pool.enableBatch = false
 	pool.batchAllocations = map[string][]NodeStatus{}
+	pool.batchJobs = map[string]Job{}
 
 	/* init pools */
 	pool.poolsCount = 300
@@ -149,9 +150,11 @@ func (pool *ResourcePool) init(conf Configuration) {
 				}
 				nodes = pool.doAcquireResource(job)
 				if len(nodes) == 0 {
-					left = append(left, pool.batchJobs[0])
-					pool.batchJobs = pool.batchJobs[1:]
-					log.Info("cannot find a valid allocation, remove a job randomly: ", left[len(left)-1].Name)
+					for jobName := range pool.batchJobs {
+						left = append(left, pool.batchJobs[jobName])
+						delete(pool.batchJobs, jobName)
+						log.Info("cannot find a valid allocation, remove a job randomly: ", jobName)
+					}
 					continue
 				}
 				for i, task := range job.Tasks {
@@ -162,7 +165,9 @@ func (pool *ResourcePool) init(conf Configuration) {
 				}
 				//bug
 			}
-			pool.batchJobs = left
+			for _, job := range left {
+				delete(pool.batchJobs, job.Name)
+			}
 			pool.batchMu.Unlock()
 		}
 	}()
@@ -692,7 +697,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 		return pool.doAcquireResource(job)
 	}
 	pool.batchMu.Lock()
-	pool.batchJobs = append(pool.batchJobs, job)
+	pool.batchJobs[job.Name] = job
 	pool.batchMu.Unlock()
 	for {
 		if _, ok := pool.batchAllocations[job.Name]; ok {
