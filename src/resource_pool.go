@@ -140,7 +140,6 @@ func (pool *ResourcePool) init(conf Configuration) {
 				var tasks []Task
 				for _, job := range pool.batchJobs {
 					for _, task := range job.Tasks {
-						task.Job = job.Name
 						tasks = append(tasks, task)
 					}
 				}
@@ -693,10 +692,10 @@ func (pool *ResourcePool) pickNode(candidates []*NodeStatus, availableGPUs map[s
 }
 
 func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
+	for i := range job.Tasks {
+		job.Tasks[i].Job = job.Name
+	}
 	if !pool.enableBatch {
-		for i := range job.Tasks {
-			job.Tasks[i].Job = job.Name
-		}
 		return pool.doAcquireResource(job)
 	}
 	pool.batchMu.Lock()
