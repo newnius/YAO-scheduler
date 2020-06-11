@@ -143,7 +143,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 						tasks = append(tasks, task)
 					}
 				}
-				log.Info(tasks)
+				//log.Info(tasks)
 				job := Job{Tasks: tasks}
 				if len(tasks) == 0 {
 					break
@@ -916,7 +916,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 		//log.Info(tasks, factor)
 		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
-		//log.Info(allocation)
+		log.Info(allocation)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order
