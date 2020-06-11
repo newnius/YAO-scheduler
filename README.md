@@ -102,6 +102,11 @@ GPU is occupied by which job(s)
 ?action=pool_disable_batch
 ```
 
+**UpdateBatchInterval**
+```
+?action=pool_set_batch_interval&interval=30
+```
+
 **PoolDump**
 ```
 ?action=debug_pool_dump

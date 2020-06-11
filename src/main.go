@@ -312,6 +312,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "pool_set_batch_interval":
+		log.Debug("pool_set_batch_interval")
+		interval := str2int(r.URL.Query().Get("interval"), 1)
+		js, _ := json.Marshal(InstanceOfResourcePool().SetBatchInterval(interval))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "debug_pool_dump":
 		log.Debug("debug_pool_dump")
 		js, _ := json.Marshal(InstanceOfResourcePool().DebugDump())

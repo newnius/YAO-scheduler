@@ -66,6 +66,7 @@ type ResourcePool struct {
 	batchJobs        map[string]Job
 	batchMu          sync.Mutex
 	batchAllocations map[string][]NodeStatus
+	batchInterval    int
 }
 
 func (pool *ResourcePool) init(conf Configuration) {
@@ -91,6 +92,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 	pool.enableBatch = false
 	pool.batchAllocations = map[string][]NodeStatus{}
 	pool.batchJobs = map[string]Job{}
+	pool.batchInterval = 15
 
 	/* init pools */
 	pool.poolsCount = 300
@@ -128,7 +130,7 @@ func (pool *ResourcePool) init(conf Configuration) {
 	go func() {
 		/* batch allocation */
 		for {
-			time.Sleep(time.Second * 15)
+			time.Sleep(time.Second * time.Duration(pool.batchInterval))
 			if !pool.enableBatch {
 				continue
 			}
@@ -916,7 +918,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 		//log.Info(tasks, factor)
 		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
-		log.Info(allocation)
+		//log.Info(allocation)
 		if allocation.Flags["valid"] {
 
 			for range job.Tasks { //append would cause uncertain order
@@ -943,7 +945,6 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					res.ClientHost = node.ClientHost
 					res.NumCPU = task.NumberCPU
 					res.MemTotal = task.Memory
-					/* bug */
 					res.Status = available[0:task.NumberGPU]
 					available = available[task.NumberGPU:]
 
@@ -1030,6 +1031,15 @@ func (pool *ResourcePool) EnableBatch() bool {
 func (pool *ResourcePool) DisableBatch() bool {
 	pool.enableBatch = false
 	log.Info("enableBatch is set to false")
+	return true
+}
+
+func (pool *ResourcePool) SetBatchInterval(interval int) bool {
+	if interval < 1 {
+		interval = 1
+	}
+	pool.batchInterval = interval
+	log.Info("batchInterval is updated to ", interval)
 	return true
 }
 
