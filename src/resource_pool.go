@@ -965,7 +965,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					}
 
 					for i := range job.Tasks {
-						if job.Tasks[i].Name == task.Name {
+						if job.Tasks[i].ID == task.ID {
 							ress[i] = res
 						}
 					}

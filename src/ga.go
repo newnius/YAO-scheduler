@@ -141,7 +141,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		taskToNode := map[string]string{}
 		for nodeID, tasks := range X.TasksOnNode {
 			for _, task := range tasks {
-				taskToNode[task.Name] = nodeID
+				taskToNode[task.ID] = nodeID
 			}
 		}
 
@@ -158,17 +158,17 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		for _, task := range Y.(Allocation).TasksOnNode[nodeID] {
 			//fmt.Println(Y.(Allocation).TasksOnNode[nodeID])
 			idx := -1
-			nodeID2, ok := taskToNode[task.Name]
+			nodeID2, ok := taskToNode[task.ID]
 			if !ok {
-				log.Warn("Error", taskToNode, X.TasksOnNode, task.Name)
+				log.Warn("Error", taskToNode, X.TasksOnNode, task.ID)
 			}
 			for i, task2 := range X.TasksOnNode[nodeID2] {
-				if task2.Name == task.Name {
+				if task2.ID == task.ID {
 					idx = i
 				}
 			}
 			if idx == -1 {
-				log.Warn("Error 2", taskToNode, X.TasksOnNode, task.Name)
+				log.Warn("Error 2", taskToNode, X.TasksOnNode, task.ID)
 			}
 			//fmt.Println(X.TasksOnNode)
 			copy(X.TasksOnNode[nodeID2][idx:], X.TasksOnNode[nodeID2][idx+1:])

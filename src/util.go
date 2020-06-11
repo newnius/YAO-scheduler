@@ -30,6 +30,7 @@ type Job struct {
 }
 
 type Task struct {
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	Job       string `json:"job_name"`
 	Image     string `json:"image"`

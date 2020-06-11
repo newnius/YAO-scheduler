@@ -40,6 +40,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
 		} else {
+			for i := range job.Tasks {
+				job.Tasks[i].ID = job.Name + ":" + job.Tasks[i].Name
+			}
 			scheduler.Schedule(job)
 		}
 		js, err := json.Marshal(msgSubmit)
