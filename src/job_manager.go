@@ -206,6 +206,7 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Failed)
 			} else if !jm.killFlag {
+				log.Info("Some instance exited, close others")
 				jm.stop(false)
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Finished)
@@ -365,7 +366,7 @@ func (jm *JobManager) stop(force bool) MsgStop {
 			if res.Code != 0 {
 				log.Warn(res.Error)
 			}
-			log.Info(task.Id, " is killed")
+			log.Info(task.HostName, " is killed:", task.Id)
 
 		}(taskStatus)
 	}
