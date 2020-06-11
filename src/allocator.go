@@ -82,13 +82,13 @@ func (allocator *Allocator) fastBestFit(nodes []NodeStatus, tasks []Task) Alloca
 			if _, ok := allocation.TasksOnNode[node.ClientID]; !ok {
 				allocation.TasksOnNode[node.ClientID] = []Task{}
 			}
-			numberGPU := 0
+			available := 0
 			for _, gpu := range node.Status {
 				if gpu.MemoryAllocated == 0 {
-					numberGPU += 1
+					available += 1
 				}
 			}
-			if task.NumberGPU > numberGPU {
+			if task.NumberGPU > available {
 				continue
 			}
 			eva.add(node, task)
@@ -108,10 +108,13 @@ func (allocator *Allocator) fastBestFit(nodes []NodeStatus, tasks []Task) Alloca
 			//fmt.Println(task, nodeID, allocation.TasksOnNode, minCost)
 			allocation.TasksOnNode[best.ClientID] = append(allocation.TasksOnNode[best.ClientID], task)
 			eva.add(*best, task)
+			cnt := 0
 			for i := range best.Status {
-				//allocate more than 1
 				if best.Status[i].MemoryAllocated == 0 {
 					best.Status[i].MemoryAllocated += task.MemoryGPU
+					cnt++
+				}
+				if cnt >= task.NumberGPU {
 					break
 				}
 			}
@@ -205,9 +208,9 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 						if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
 							allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
 							cnt--
-							if cnt == 0 {
-								break
-							}
+						}
+						if cnt == 0 {
+							break
 						}
 					}
 				} else {
@@ -225,9 +228,9 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 						if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
 							allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
 							cnt--
-							if cnt == 0 {
-								break
-							}
+						}
+						if cnt == 0 {
+							break
 						}
 					}
 				} else {
@@ -258,13 +261,13 @@ func randomFit(allocation Allocation, task Task) (string, bool) {
 	flag := false
 	nodeID := ""
 	for nodeID = range allocation.Nodes {
-		numberGPU := 0
+		available := 0
 		for _, gpu := range allocation.Nodes[nodeID].Status {
 			if gpu.MemoryAllocated == 0 {
-				numberGPU += 1
+				available += 1
 			}
 		}
-		if task.NumberGPU <= numberGPU {
+		if task.NumberGPU <= available {
 			flag = true
 			break
 		}
@@ -279,13 +282,13 @@ func firstFit(allocation Allocation, task Task) (string, bool) {
 		if _, ok := allocation.Nodes[nodeID]; !ok {
 			continue
 		}
-		numberGPU := 0
+		available := 0
 		for _, gpu := range allocation.Nodes[nodeID].Status {
 			if gpu.MemoryAllocated == 0 {
-				numberGPU += 1
+				available += 1
 			}
 		}
-		if task.NumberGPU <= numberGPU {
+		if task.NumberGPU <= available {
 			flag = true
 			break
 		}

@@ -943,6 +943,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					res.ClientHost = node.ClientHost
 					res.NumCPU = task.NumberCPU
 					res.MemTotal = task.Memory
+					/* bug */
 					res.Status = available[0:task.NumberGPU]
 					available = available[task.NumberGPU:]
 
