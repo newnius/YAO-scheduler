@@ -271,7 +271,7 @@ func (scheduler *SchedulerFair) Start() {
 				}
 				pool := InstanceOfResourcePool()
 				/* Make sure resource it enough */
-				if len(scheduler.schedulingJobs) == 0 || (numberGPUtmp*10+(scheduler.allocatingGPU)*13 <= (pool.TotalGPU-pool.UsingGPU)*10) {
+				if len(scheduler.schedulingJobs) == 0 || (numberGPUtmp*10+(scheduler.allocatingGPU)*10 <= (pool.TotalGPU-pool.UsingGPU)*10) {
 					flag = true
 
 					log.Info("Before, ", scheduler.queuesQuota[bestQueue])
