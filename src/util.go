@@ -8,12 +8,6 @@ import (
 	"net/http"
 )
 
-type Configuration struct {
-	KafkaBrokers    []string `json:"kafkaBrokers"`
-	KafkaTopic      string   `json:"kafkaTopic"`
-	SchedulerPolicy string   `json:"schedulerPolicy"`
-}
-
 type Job struct {
 	ID        int         `json:"id"`
 	Name      string      `json:"name"`

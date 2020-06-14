@@ -52,6 +52,16 @@ func (jm *JobManager) start() {
 		time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 	}
 
+	if InstanceOfConfiguration().mock {
+		jm.isRunning = false
+		duration := InstanceOfMocker().GetDuration(jm.job, jm.resources)
+		log.Info("mock ", jm.job.Name, ", wait ", duration)
+		time.Sleep(time.Second * time.Duration(duration))
+		jm.returnResource([]TaskStatus{})
+		log.Info("JobMaster exited ", jm.job.Name)
+		return
+	}
+
 	if !jm.killFlag {
 		/* switch to Running state */
 		jm.scheduler.UpdateProgress(jm.job, Running)
@@ -147,7 +157,9 @@ func (jm *JobManager) returnResource(status []TaskStatus) {
 			InstanceOfResourcePool().detach(t.UUID, jm.job)
 		}
 
-		InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+		if !InstanceOfConfiguration().mock {
+			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+		}
 
 		/* remove exited containers */
 		//v := url.Values{}

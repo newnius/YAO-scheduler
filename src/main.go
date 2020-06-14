@@ -327,6 +327,20 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_enable_mock":
+		log.Debug("debug_enable_mock")
+		js, _ := json.Marshal(InstanceOfConfiguration().EnableMock())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_disable_mock":
+		log.Debug("debug_disable_mock")
+		js, _ := json.Marshal(InstanceOfConfiguration().DisableMock())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

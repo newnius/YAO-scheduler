@@ -111,3 +111,13 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_pool_dump
 ```
+
+**EnableMock**
+```
+?action=debug_enable_mock
+```
+
+**DisableMock**
+```
+?action=debug_disable_mock
+```
