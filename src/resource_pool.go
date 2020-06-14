@@ -704,9 +704,12 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 	pool.batchJobs[job.Name] = job
 	pool.batchMu.Unlock()
 	for {
+		pool.batchMu.Lock()
 		if _, ok := pool.batchAllocations[job.Name]; ok {
+			pool.batchMu.Unlock()
 			break
 		} else {
+			pool.batchMu.Unlock()
 			time.Sleep(time.Millisecond * 100)
 		}
 	}
