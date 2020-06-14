@@ -53,6 +53,7 @@ func (jm *JobManager) start() {
 	}
 
 	if InstanceOfConfiguration().mock {
+		jm.scheduler.UpdateProgress(jm.job, Running)
 		jm.isRunning = false
 		duration := InstanceOfMocker().GetDuration(jm.job, jm.resources)
 		log.Info("mock ", jm.job.Name, ", wait ", duration)
