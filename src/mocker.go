@@ -3,6 +3,7 @@ package main
 import (
 	"sync"
 	"strings"
+	"math/rand"
 )
 
 type Mocker struct {
@@ -93,7 +94,7 @@ func (mocker *Mocker) GetDuration(job Job, nodes []NodeStatus) int {
 
 		if vals, ok := durations[jobName]; ok {
 			if val, ok2 := vals[mode]; ok2 {
-				return val
+				return val * (100 + (rand.Intn(5) - 5)) / 100
 			}
 		}
 	}
