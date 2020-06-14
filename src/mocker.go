@@ -61,7 +61,7 @@ func (mocker *Mocker) GetDuration(job Job, nodes []NodeStatus) int {
 
 	}
 
-	if len(str) == 2 {
+	if len(str) > 1 {
 		jobName := str[0]
 
 		durations := map[string]map[string]int{
