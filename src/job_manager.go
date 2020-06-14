@@ -59,6 +59,7 @@ func (jm *JobManager) start() {
 		log.Info("mock ", jm.job.Name, ", wait ", duration)
 		time.Sleep(time.Second * time.Duration(duration))
 		jm.returnResource([]TaskStatus{})
+		jm.scheduler.UpdateProgress(jm.job, Finished)
 		log.Info("JobMaster exited ", jm.job.Name)
 		return
 	}
