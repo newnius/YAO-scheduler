@@ -97,6 +97,9 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 						}
 					}
 				}
+				if cnt != 0 {
+					log.Warn("task ", task.Name, " still need ", cnt)
+				}
 
 				//log.Info("After ", X.Nodes[nodeID].Status)
 			} else {

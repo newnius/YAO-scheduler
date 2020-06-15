@@ -241,6 +241,17 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 		}
 		//fmt.Println(evaluatue(allocation))
 		//fmt.Println(allocation)
+
+		cnt := 0
+		for _, tasks := range allocation.TasksOnNode {
+			for range tasks {
+				cnt++
+			}
+		}
+		if cnt != len(allocation.Tasks) && allocation.Flags["valid"] {
+			log.Warn("1:", cnt, len(allocation.Tasks))
+		}
+
 		return allocation
 	}
 
