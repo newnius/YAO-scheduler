@@ -924,6 +924,8 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 		//log.Info(allocation)
 		if allocation.Flags["valid"] {
 
+			log.Info(allocation.TasksOnNode)
+
 			for range job.Tasks { //append would cause uncertain order
 				ress = append(ress, NodeStatus{ClientID: "null"})
 			}
