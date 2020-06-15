@@ -138,7 +138,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 	// make sure n > 0 && round > 0
 	cnt := 0
 	for _, tasks := range X.TasksOnNode {
-		for _ := range tasks {
+		for range tasks {
 			cnt++
 		}
 	}
@@ -256,7 +256,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 	}
 	cnt = 0
 	for _, tasks := range X.TasksOnNode {
-		for _ := range tasks {
+		for range tasks {
 			cnt++
 		}
 	}
