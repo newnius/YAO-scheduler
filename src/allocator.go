@@ -195,7 +195,9 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 		if t == 0 && useBestFit {
 			/* best-fit */
 			//ts := time.Now()
-			allocation.TasksOnNode = allocator.fastBestFit(nodesT, tasks).TasksOnNode
+			allo := allocator.fastBestFit(nodesT, tasks)
+			allocation.TasksOnNode = allo.TasksOnNode
+			allocation.Flags = allo.Flags
 			//log.Println(time.Since(ts))
 			//fmt.Println("Best Fit")
 		} else if t%2 == 0 {
@@ -249,7 +251,7 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 			}
 		}
 		if cnt != len(allocation.Tasks) && allocation.Flags["valid"] {
-			log.Warn("factory:", cnt, len(allocation.Tasks))
+			log.Warn("factory:", cnt, len(allocation.Tasks), " t=", t)
 		}
 
 		return allocation
