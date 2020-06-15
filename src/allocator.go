@@ -239,7 +239,7 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 				}
 			}
 		}
-		//fmt.Println(evaluatue(allocation))
+		//fmt.Println(evaluate(allocation))
 		//fmt.Println(allocation)
 
 		cnt := 0
@@ -249,7 +249,7 @@ func (allocator *Allocator) GA(nodes []NodeStatus, tasks []Task, useBestFit bool
 			}
 		}
 		if cnt != len(allocation.Tasks) && allocation.Flags["valid"] {
-			log.Warn("1:", cnt, len(allocation.Tasks))
+			log.Warn("factory:", cnt, len(allocation.Tasks))
 		}
 
 		return allocation
