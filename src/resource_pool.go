@@ -968,10 +968,16 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 						pool.attach(t.UUID, task.Job)
 					}
 
+					flag := false
 					for i := range job.Tasks {
 						if job.Tasks[i].ID == task.ID {
 							ress[i] = res
+							flag = true
+							break
 						}
+					}
+					if !flag {
+						log.Warn("Unable to find task, ", res)
 					}
 
 				}
