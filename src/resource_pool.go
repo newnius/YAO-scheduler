@@ -923,13 +923,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 		allocation := InstanceOfAllocator().allocate(nodesT, tasks)
 		//log.Info(allocation)
 		if allocation.Flags["valid"] {
-
-			log.Info(allocation.TasksOnNode)
-
 			for range job.Tasks { //append would cause uncertain order
 				ress = append(ress, NodeStatus{ClientID: "null"})
 			}
 
+			cnt := 0
 			for nodeID, tasks := range allocation.TasksOnNode {
 				var node *NodeStatus
 				for i := range candidates {
@@ -945,6 +943,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					}
 				}
 				for _, task := range tasks {
+					cnt++
 					res := NodeStatus{}
 					res.ClientID = node.ClientID
 					res.ClientHost = node.ClientHost
@@ -983,6 +982,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					}
 
 				}
+			}
+
+			if cnt != len(job.Tasks) {
+				log.Warn("Allocation is invalid")
+				log.Warn(cnt, job.Tasks, allocation.TasksOnNode)
 			}
 
 		}
