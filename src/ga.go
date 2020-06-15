@@ -136,6 +136,15 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 // Crossover a Vector with another Vector by applying uniform crossover.
 func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 	// make sure n > 0 && round > 0
+	cnt := 0
+	for _, tasks := range X.TasksOnNode {
+		for _ := range tasks {
+			cnt++
+		}
+	}
+	if cnt != len(X.Tasks) && X.Flags["valid"] {
+		log.Warn("1:", cnt, len(X.Tasks))
+	}
 	round := rng.Intn(1+len(X.Nodes)/100)%10 + 1
 	for i := 0; i < round; i++ {
 		if !Y.(Allocation).Flags["valid"] || !X.Flags["valid"] {
@@ -244,6 +253,15 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 				break
 			}
 		}
+	}
+	cnt = 0
+	for _, tasks := range X.TasksOnNode {
+		for _ := range tasks {
+			cnt++
+		}
+	}
+	if cnt != len(X.Tasks) && X.Flags["valid"] {
+		log.Warn("1:", cnt, len(X.Tasks))
 	}
 	//fmt.Println()
 	//fmt.Println("crossover", X.TasksOnNode)
