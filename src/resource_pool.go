@@ -986,7 +986,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 			if cnt != len(job.Tasks) {
 				log.Warn("Allocation is invalid")
-				log.Warn(cnt, job.Tasks, allocation.TasksOnNode)
+				log.Warn(cnt, len(job.Tasks))
+				log.Warn(job.Tasks)
+				log.Warn(allocation.TasksOnNode)
 			}
 
 		}
