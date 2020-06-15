@@ -261,7 +261,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		}
 	}
 	if cnt != len(X.Tasks) && X.Flags["valid"] {
-		log.Warn("1:", cnt, len(X.Tasks))
+		log.Warn("2:", cnt, len(X.Tasks))
 	}
 	//fmt.Println()
 	//fmt.Println("crossover", X.TasksOnNode)
