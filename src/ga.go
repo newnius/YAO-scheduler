@@ -81,6 +81,9 @@ func (X Allocation) Mutate(rng *rand.Rand) {
 		/* random-fit */
 		for _, task := range tasks {
 			if nodeID, ok := randomFit(X, task); ok {
+				if len(X.TasksOnNode[nodeID]) == 0 {
+					X.TasksOnNode[nodeID] = []Task{}
+				}
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
 				cnt := task.NumberGPU
 				//log.Info("Add task ", task.Name, " in ", nodeID)
@@ -187,7 +190,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 				}
 			}
 			if cnt != 0 {
-				log.Warn("Cross remove ", cnt)
+				log.Warn("cross add, no enough GPU left on ", nodeID, ", still need", cnt)
 			}
 			//log.Info("After ", X.Nodes[nodeID].Status)
 			//fmt.Println(X.TasksOnNode)
@@ -216,6 +219,9 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 		/* random-fit */
 		for _, task := range tasks {
 			if nodeID, ok := randomFit(X, task); ok {
+				if len(X.TasksOnNode[nodeID]) == 0 {
+					X.TasksOnNode[nodeID] = []Task{}
+				}
 				X.TasksOnNode[nodeID] = append(X.TasksOnNode[nodeID], task)
 				cnt := task.NumberGPU
 				//log.Info("Remove task ", task.Name, " in ", nodeID)
@@ -231,7 +237,7 @@ func (X Allocation) Crossover(Y eaopt.Genome, rng *rand.Rand) {
 				}
 				//log.Info("After ", X.Nodes[nodeID].Status)
 				if cnt != 0 {
-					log.Warn("cross add", cnt)
+					log.Warn("cross add, no enough GPU left on ", nodeID, ", still need", cnt)
 				}
 			} else {
 				X.Flags["valid"] = false

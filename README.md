@@ -121,3 +121,8 @@ GPU is occupied by which job(s)
 ```
 ?action=debug_disable_mock
 ```
+
+**UpdateStrategy**
+```
+?aciotn=allocator_update_strategy&strategy=mixed
+```
