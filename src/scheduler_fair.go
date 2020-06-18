@@ -687,6 +687,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 					index = i
 				}
 			}
+			log.Info(index)
 			if index != -1 {
 				scheduler.queues[queue][index].Status = Stopped
 				scheduler.historyMu.Lock()
@@ -805,5 +806,7 @@ func (scheduler *SchedulerFair) DebugDump() map[string]interface{} {
 	res["resourceAllocations"] = scheduler.resourceAllocations
 	res["allocatingGPU"] = scheduler.allocatingGPU
 	res["IOUs"] = scheduler.IOUs
+	res["queues"] = scheduler.queues
+	res["history"] = scheduler.history
 	return res
 }
