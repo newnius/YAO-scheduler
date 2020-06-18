@@ -9,18 +9,19 @@ import (
 )
 
 type Job struct {
-	ID        int         `json:"id"`
-	Name      string      `json:"name"`
-	Tasks     []Task      `json:"tasks"`
-	Workspace string      `json:"workspace"`
-	Group     string      `json:"group"`
-	Priority  JobPriority `json:"priority"`
-	RunBefore int         `json:"run_before"`
-	CreatedAt int         `json:"created_at"`
-	UpdatedAt int         `json:"updated_at"`
-	CreatedBy int         `json:"created_by"`
-	Locality  int         `json:"locality"`
-	Status    State       `json:"status"`
+	ID           int         `json:"id"`
+	Name         string      `json:"name"`
+	Tasks        []Task      `json:"tasks"`
+	Workspace    string      `json:"workspace"`
+	Group        string      `json:"group"`
+	BasePriority float64     `json:"base_priority"`
+	Priority     JobPriority `json:"priority"`
+	RunBefore    int         `json:"run_before"`
+	CreatedAt    int         `json:"created_at"`
+	UpdatedAt    int         `json:"updated_at"`
+	CreatedBy    int         `json:"created_by"`
+	Locality     int         `json:"locality"`
+	Status       State       `json:"status"`
 }
 
 type Task struct {

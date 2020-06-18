@@ -13,7 +13,7 @@ type SchedulerFair struct {
 	historyMu sync.Mutex
 
 	jobs     map[string]*JobManager
-	queues   map[string][]Job
+	queues   map[string]JobList
 	queuesMu sync.Mutex
 
 	drfyarn       bool
@@ -35,12 +35,26 @@ type SchedulerFair struct {
 	allocatingGPUMu sync.Mutex
 }
 
+type JobList []Job
+
+func (jobs JobList) Len() int {
+	return len(jobs)
+}
+
+func (jobs JobList) Less(i, j int) bool {
+	return jobs[i].BasePriority < jobs[j].BasePriority
+}
+
+func (jobs JobList) Swap(i, j int) {
+	jobs[i], jobs[j] = jobs[j], jobs[i]
+}
+
 func (scheduler *SchedulerFair) Start() {
 	log.Info("JS (fairness) started")
 
 	scheduler.jobs = map[string]*JobManager{}
 	scheduler.history = []*Job{}
-	scheduler.queues = map[string][]Job{}
+	scheduler.queues = map[string]JobList{}
 	scheduler.queues["default"] = []Job{}
 	scheduler.drfyarn = false
 	scheduler.enableBorrow = true
@@ -411,6 +425,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	scheduler.queues[queue][index] = job
 
 	job.Status = Created
+	job.BasePriority = float64(len(scheduler.queues[queue])) / 10000
 }
 
 func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
@@ -498,7 +513,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		}
 		weights += InstanceOfGroupManager().groups[queue].Weight
 		request := ResourceCount{}
-		for _, job := range jobs {
+		for i, job := range jobs {
 			GPU := 0
 			CPU := 0
 			Memory := 0
@@ -510,7 +525,12 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			request.NumberGPU += GPU
 			request.CPU += CPU
 			request.Memory += Memory
+			if job.Priority == jobs[0].Priority {
+				scheduler.queues[queue][i].BasePriority += 1
+			}
 		}
+		sort.Sort(sort.Reverse(scheduler.queues[queue]))
+
 		if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= request.NumberGPU*1000 {
 			continue
 		}
