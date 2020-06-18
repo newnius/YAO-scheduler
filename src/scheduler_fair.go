@@ -423,9 +423,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 		}
 	}
 	scheduler.queues[queue] = append(scheduler.queues[queue], Job{})
-
 	copy(scheduler.queues[queue][index+1:], scheduler.queues[queue][index:])
-	scheduler.queues[queue][index] = job
 
 	numberGPU := 0
 	for _, task := range job.Tasks {
@@ -435,6 +433,8 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 
 	job.Status = Created
 	job.BasePriority = float64(len(scheduler.queues[queue])) / 10000
+
+	scheduler.queues[queue][index] = job
 }
 
 func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
@@ -535,7 +535,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			request.CPU += CPU
 			request.Memory += Memory
 			if job.Priority == jobs[0].Priority {
-				scheduler.queues[queue][i].BasePriority += 1
+				scheduler.queues[queue][i].BasePriority += 1.0
 			}
 		}
 		sort.Sort(sort.Reverse(scheduler.queues[queue]))
