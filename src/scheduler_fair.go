@@ -433,7 +433,7 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 
 	job.Status = Created
 
-	job.BasePriority = -float64(time.Now().UnixNano()) / 100000000000000
+	job.BasePriority = -float64(time.Now().UnixNano() / 100000) / 100000000000000
 	scheduler.queues[queue][index] = job
 }
 
