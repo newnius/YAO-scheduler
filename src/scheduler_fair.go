@@ -676,7 +676,9 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	scheduler.queuesMu.Lock()
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queuesMu.Unlock()
-	if !ok {
+	if ok {
+		return jm.stop(true)
+	} else {
 		found := false
 		for queue := range scheduler.queues {
 			index := -1
@@ -696,11 +698,11 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 				break
 			}
 		}
-		if !found {
-			return MsgStop{Code: 1, Error: "Job not exist!"}
+		if found {
+			return MsgStop{Code: 0}
 		}
 	}
-	return jm.stop(true)
+	return MsgStop{Code: 1, Error: "Job not exist!"}
 }
 
 func (scheduler *SchedulerFair) QueryLogs(jobName string, taskName string) MsgLog {
