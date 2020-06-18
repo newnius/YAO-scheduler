@@ -432,8 +432,8 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 	job.NumberGPU = numberGPU
 
 	job.Status = Created
-	job.BasePriority = float64(len(scheduler.queues[queue])) / 10000
 
+	job.BasePriority = -float64(time.Now().Unix()) / 10000000000
 	scheduler.queues[queue][index] = job
 }
 
@@ -673,6 +673,7 @@ func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
 }
 
 func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
+	log.Info("Stop job ", jobName)
 	scheduler.queuesMu.Lock()
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queuesMu.Unlock()
