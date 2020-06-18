@@ -677,7 +677,28 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
-		return MsgStop{Code: 1, Error: "Job not exist!"}
+		found := false
+		for queue := range scheduler.queues {
+			index := -1
+			for i, job := range scheduler.queues[queue] {
+				if job.Name == jobName {
+					index = i
+				}
+			}
+			if index != -1 {
+				scheduler.queues[queue][index].Status = Stopped
+				scheduler.historyMu.Lock()
+				scheduler.history = append(scheduler.history, &scheduler.queues[queue][index])
+				scheduler.historyMu.Unlock()
+				copy(scheduler.queues[queue][index:], scheduler.queues[queue][index+1:])
+				scheduler.queues[queue] = scheduler.queues[queue][:len(scheduler.queues[queue])-1]
+				found = true
+				break
+			}
+		}
+		if !found {
+			return MsgStop{Code: 1, Error: "Job not exist!"}
+		}
 	}
 	return jm.stop(true)
 }
