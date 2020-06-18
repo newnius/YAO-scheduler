@@ -689,7 +689,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 			}
 			log.Info(index)
 			if index != -1 {
-				scheduler.queues[queue][index].Status = Stopped
+				(&scheduler.queues[queue][index]).Status = Stopped
 				scheduler.historyMu.Lock()
 				scheduler.history = append(scheduler.history, &scheduler.queues[queue][index])
 				scheduler.historyMu.Unlock()
