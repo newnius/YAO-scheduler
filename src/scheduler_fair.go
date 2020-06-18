@@ -42,7 +42,10 @@ func (jobs JobList) Len() int {
 }
 
 func (jobs JobList) Less(i, j int) bool {
-	return jobs[i].BasePriority < jobs[j].BasePriority
+	if jobs[i].Priority != jobs[j].Priority {
+		return jobs[i].Priority < jobs[j].Priority
+	}
+	return jobs[i].BasePriority/float64(jobs[i].NumberGPU) < jobs[j].BasePriority/float64(jobs[j].NumberGPU)
 }
 
 func (jobs JobList) Swap(i, j int) {
@@ -423,6 +426,12 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 
 	copy(scheduler.queues[queue][index+1:], scheduler.queues[queue][index:])
 	scheduler.queues[queue][index] = job
+
+	numberGPU := 0
+	for _, task := range job.Tasks {
+		numberGPU += task.NumberGPU
+	}
+	job.NumberGPU = numberGPU
 
 	job.Status = Created
 	job.BasePriority = float64(len(scheduler.queues[queue])) / 10000

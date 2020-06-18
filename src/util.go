@@ -22,6 +22,7 @@ type Job struct {
 	CreatedBy    int         `json:"created_by"`
 	Locality     int         `json:"locality"`
 	Status       State       `json:"status"`
+	NumberGPU    int         `json:"number_GPU"`
 }
 
 type Task struct {
