@@ -45,6 +45,10 @@ func (jobs JobList) Less(i, j int) bool {
 	if jobs[i].Priority != jobs[j].Priority {
 		return jobs[i].Priority < jobs[j].Priority
 	}
+	/* lower jobs, which unable to be scheduled */
+	if InstanceOfResourcePool().TotalGPU < jobs[i].NumberGPU {
+		return true
+	}
 	return jobs[i].BasePriority/float64(jobs[i].NumberGPU) < jobs[j].BasePriority/float64(jobs[j].NumberGPU)
 }
 

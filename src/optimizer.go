@@ -296,3 +296,7 @@ func (optimizer *Optimizer) predict(job string, seq int) (OptimizerJobExecutionT
 	}
 	return OptimizerJobExecutionTime{}, false
 }
+
+func (optimizer *Optimizer) PredictReq(jobName string, cmd string) MsgJobReq {
+	return MsgJobReq{CPU: 4, Mem: 4096, GPU: 1, MemGPU: 8192, BW: 150}
+}

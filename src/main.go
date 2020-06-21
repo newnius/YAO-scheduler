@@ -42,6 +42,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		} else {
 			for i := range job.Tasks {
 				job.Tasks[i].ID = job.Name + ":" + job.Tasks[i].Name
+				job.Tasks[i].Job = job.Name
 			}
 			scheduler.Schedule(job)
 		}
@@ -56,6 +57,15 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 	case "job_status":
 		log.Debug("job_status")
 		js, _ := json.Marshal(scheduler.QueryState(r.URL.Query().Get("id")))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "job_predict_req":
+		log.Debug("job_predict_req")
+		jobName := r.URL.Query().Get("name")
+		cmd := r.URL.Query().Get("cmd")
+		js, _ := json.Marshal(InstanceOfOptimizer().PredictReq(jobName, cmd))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

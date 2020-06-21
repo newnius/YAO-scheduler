@@ -81,3 +81,13 @@ type MsgOptimizerPredict struct {
 	Main  int    `json:"main"`
 	Post  int    `json:"post"`
 }
+
+type MsgJobReq struct {
+	Code   int    `json:"code"`
+	Error  string `json:"error"`
+	CPU    int    `json:"cpu"`
+	Mem    int    `json:"mem"`
+	GPU    int    `json:"gpu"`
+	MemGPU int    `json:"cpu"`
+	BW     int    `json:"bw"`
+}
