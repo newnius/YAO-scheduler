@@ -138,17 +138,25 @@ func (jm *JobManager) start() {
 
 	/* make sure resources are released */
 	var stats [][]TaskStatus
-	for i, task := range jm.job.Tasks {
-		if task.IsPS {
-			stats = append(stats, jm.stats[i])
+	for _, vals := range jm.stats {
+		var stat []TaskStatus
+		for i, task := range jm.job.Tasks {
+			if task.IsPS {
+				stat = append(stat, vals[i])
+			}
 		}
+		stats = append(stats, stat)
 	}
 	InstanceOfOptimizer().feedStats(jm.job, "PS", stats)
 	stats = [][]TaskStatus{}
-	for i, task := range jm.job.Tasks {
-		if !task.IsPS {
-			stats = append(stats, jm.stats[i])
+	for _, vals := range jm.stats {
+		var stat []TaskStatus
+		for i, task := range jm.job.Tasks {
+			if !task.IsPS {
+				stat = append(stat, vals[i])
+			}
 		}
+		stats = append(stats, stat)
 	}
 	log.Info(jm.stats)
 	log.Info(stats)
