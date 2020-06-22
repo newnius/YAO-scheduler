@@ -47,31 +47,38 @@ func (optimizer *Optimizer) init(conf Configuration) {
 }
 
 func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus) {
+	if len(stats) == 0 {
+		return
+	}
+	str := strings.Split(job.Name, "-")
+	if len(str) == 1 {
+		return
+	}
+	jobName := str[0]
 	go func() {
+
 		var UtilsCPU []float64
 		var Mems []float64
 		var BwRxs []float64
 		var BwTxs []float64
-		str := strings.Split(job.Name, "-")
-		if len(str) == 2 {
-			jobName := str[0]
-			for _, stat := range stats {
-				for _, task := range stat {
-					UtilsCPU = append(UtilsCPU, task.UtilCPU)
-					Mems = append(Mems, task.Mem)
-					BwRxs = append(BwRxs, task.BwRX)
-					BwTxs = append(BwTxs, task.BWTx)
-				}
-			}
-			optimizer.stats[jobName] = map[string]float64{
-				"cpu":      optimizer.max(UtilsCPU),
-				"cpu_std":  optimizer.std(UtilsCPU),
-				"cpu_mean": optimizer.mean(UtilsCPU),
-				"mem":      optimizer.max(Mems),
-				"bw_rx":    optimizer.mean(BwRxs),
-				"bw_tx":    optimizer.mean(BwTxs),
+		for _, stat := range stats {
+			for _, task := range stat {
+				UtilsCPU = append(UtilsCPU, task.UtilCPU)
+				Mems = append(Mems, task.Mem)
+				BwRxs = append(BwRxs, task.BwRX)
+				BwTxs = append(BwTxs, task.BWTx)
 			}
 		}
+		tmp := map[string]float64{
+			"cpu":      optimizer.max(UtilsCPU),
+			"cpu_std":  optimizer.std(UtilsCPU),
+			"cpu_mean": optimizer.mean(UtilsCPU),
+			"mem":      optimizer.max(Mems),
+			"bw_rx":    optimizer.mean(BwRxs),
+			"bw_tx":    optimizer.mean(BwTxs),
+		}
+		labels, _ := json.Marshal(tmp)
+
 		cmd := job.Tasks[0].Cmd
 		params := map[string]int{}
 
@@ -118,7 +125,29 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 				}
 			}
 		}
-		log.Info(job.Name, params)
+		//log.Info(job.Name, params)
+
+		features, _ := json.Marshal(params)
+
+		spider := Spider{}
+		spider.Method = "GET"
+		spider.URL = "http://yao-optimizer:8080/feed?job=" + jobName + "&features=" + string(features) + "&labels=" + string(labels)
+
+		err := spider.do()
+		if err != nil {
+			log.Warn(err)
+			return
+		}
+
+		resp := spider.getResponse()
+		if _, err := ioutil.ReadAll(resp.Body); err != nil {
+			log.Warn(err)
+		}
+		resp.Body.Close()
+		if err != nil {
+			log.Warn(err)
+			return
+		}
 	}()
 }
 
