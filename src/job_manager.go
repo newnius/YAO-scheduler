@@ -120,7 +120,7 @@ func (jm *JobManager) start() {
 					log.Warn(res)
 					return
 				}
-				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost}
+				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost, HostName: jm.job.Tasks[i].Name}
 			}(i)
 		}
 		wg.Wait()
@@ -143,6 +143,8 @@ func (jm *JobManager) start() {
 			stats = append(stats, jm.stats[i])
 		}
 	}
+	log.Info(jm.stats)
+	log.Info(stats)
 	InstanceOfOptimizer().feedStats(jm.job, "PS", stats)
 	stats = [][]TaskStatus{}
 	for i, task := range jm.job.Tasks {

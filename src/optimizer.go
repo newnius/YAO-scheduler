@@ -69,7 +69,6 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 				BwTxs = append(BwTxs, task.BWTx)
 			}
 		}
-		log.Info(UtilsCPU)
 		tmp := map[string]float64{
 			"cpu":      optimizer.max(UtilsCPU),
 			"cpu_std":  optimizer.std(UtilsCPU),
