@@ -131,7 +131,7 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 
 		spider := Spider{}
 		spider.Method = "GET"
-		spider.URL = "http://yao-optimizer:8080/feed?job=" + jobName + "&features=" + string(features) + "&labels=" + string(labels)
+		spider.URL = "http://yao-optimizer:8090/feed?job=" + jobName + "&features=" + string(features) + "&labels=" + string(labels)
 
 		err := spider.do()
 		if err != nil {
