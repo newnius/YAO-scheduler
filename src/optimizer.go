@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"time"
 	"math"
+	"hash/fnv"
 )
 
 type Optimizer struct {
@@ -45,13 +46,13 @@ func (optimizer *Optimizer) init(conf Configuration) {
 	log.Info("optimizer started")
 }
 
-func (optimizer *Optimizer) feedStats(job string, stats [][]TaskStatus) {
+func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus) {
 	go func() {
 		var UtilsCPU []float64
 		var Mems []float64
 		var BwRxs []float64
 		var BwTxs []float64
-		str := strings.Split(job, "-")
+		str := strings.Split(job.Name, "-")
 		if len(str) == 2 {
 			jobName := str[0]
 			for _, stat := range stats {
@@ -63,13 +64,61 @@ func (optimizer *Optimizer) feedStats(job string, stats [][]TaskStatus) {
 				}
 			}
 			optimizer.stats[jobName] = map[string]float64{
-				"cpu":     optimizer.mean(UtilsCPU),
-				"cpu_std": optimizer.std(UtilsCPU),
-				"mem":     optimizer.max(Mems),
-				"bw_rx":   optimizer.mean(BwRxs),
-				"bw_tx":   optimizer.mean(BwTxs),
+				"cpu":      optimizer.max(UtilsCPU),
+				"cpu_std":  optimizer.std(UtilsCPU),
+				"cpu_mean": optimizer.mean(UtilsCPU),
+				"mem":      optimizer.max(Mems),
+				"bw_rx":    optimizer.mean(BwRxs),
+				"bw_tx":    optimizer.mean(BwTxs),
 			}
 		}
+		cmd := job.Tasks[0].Cmd
+		params := map[string]int{}
+
+		psNumber := 0
+		workerNumber := 0
+		for _, task := range job.Tasks {
+			if (role == "PS" && task.IsPS) || (role == "Worker" && !task.IsPS) {
+				params["num_gpus"] = task.NumberGPU
+				cmd = task.Cmd
+			}
+			if task.IsPS {
+				psNumber++
+			} else {
+				workerNumber++
+			}
+		}
+		params["ps_number"] = psNumber
+		params["worker_number"] = workerNumber
+
+		exceptions := map[string]bool{}
+		exceptions["train_dir"] = true
+		exceptions["variable_update"] = true
+		exceptions["ps_hosts"] = true
+		exceptions["worker_hosts"] = true
+		exceptions["task_index"] = true
+
+		pairs := strings.Split(cmd, " ")
+		for _, pair := range pairs {
+			v := strings.Split(pair, "=")
+			if len(v) == 2 && v[0][:2] == "--" {
+				var param string
+				var value int
+				param = v[0][2:]
+
+				if val, err := strconv.Atoi(v[1]); err == nil {
+					value = val
+				} else {
+					h := fnv.New32a()
+					h.Write([]byte(v[1]))
+					value = int(h.Sum32())
+				}
+				if _, ok := exceptions[param]; !ok {
+					params[param] = value
+				}
+			}
+		}
+		log.Info(job.Name, params)
 	}()
 }
 
@@ -111,7 +160,7 @@ func (optimizer *Optimizer) describe(job string) map[string]float64 {
 }
 
 func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
-	log.Info("optimizer feed")
+	log.Info("optimizer feed ", job)
 	//log.Info(job, utils)
 
 	if len(utils) == 0 {

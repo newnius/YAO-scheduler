@@ -137,7 +137,20 @@ func (jm *JobManager) start() {
 	}
 
 	/* make sure resources are released */
-	InstanceOfOptimizer().feedStats(jm.job.Name, jm.stats)
+	var stats [][]TaskStatus
+	for i, task := range jm.job.Tasks {
+		if task.IsPS {
+			stats = append(stats, jm.stats[i])
+		}
+	}
+	InstanceOfOptimizer().feedStats(jm.job, "PS", stats)
+	stats = [][]TaskStatus{}
+	for i, task := range jm.job.Tasks {
+		if !task.IsPS {
+			stats = append(stats, jm.stats[i])
+		}
+	}
+	InstanceOfOptimizer().feedStats(jm.job, "Worker", stats)
 	jm.returnResource(jm.status().Status)
 	log.Info("JobMaster exited ", jm.job.Name)
 }
