@@ -20,4 +20,7 @@ type TaskStatus struct {
 	Mem         float64                `json:"mem"`
 	BwRX        float64                `json:"bw_rx"`
 	BWTx        float64                `json:"bw_tx"`
+	UtilGPU     int                    `json:"gpu_util"`
+	UtilMemGPU  int                    `json:"gpu_mem_util"`
+	MemGPU      int                    `json:"gpu_mem"`
 }

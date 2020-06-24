@@ -403,8 +403,7 @@ func (jm *JobManager) stop(force bool) MsgStop {
 			if res.Code != 0 {
 				log.Warn(res.Error)
 			}
-			log.Info(task.HostName, " is killed:", task.Id)
-
+			log.Info(jm.job.Name, ":", task.HostName, " is killed:", task.Id)
 		}(taskStatus)
 	}
 

@@ -61,21 +61,28 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 		var Mems []float64
 		var BwRxs []float64
 		var BwTxs []float64
+		var UtilGPUs []float64
+		var MemGPUs []float64
 		for _, stat := range stats {
 			for _, task := range stat {
 				UtilsCPU = append(UtilsCPU, task.UtilCPU)
 				Mems = append(Mems, task.Mem)
 				BwRxs = append(BwRxs, task.BwRX)
 				BwTxs = append(BwTxs, task.BWTx)
+				UtilGPUs = append(UtilGPUs, float64(task.UtilGPU))
+				MemGPUs = append(MemGPUs, float64(task.MemGPU))
 			}
 		}
 		tmp := map[string]float64{
-			"cpu":      optimizer.max(UtilsCPU),
-			"cpu_std":  optimizer.std(UtilsCPU),
-			"cpu_mean": optimizer.mean(UtilsCPU),
-			"mem":      optimizer.max(Mems),
-			"bw_rx":    optimizer.mean(BwRxs),
-			"bw_tx":    optimizer.mean(BwTxs),
+			"cpu":          optimizer.max(UtilsCPU),
+			"cpu_std":      optimizer.std(UtilsCPU),
+			"cpu_mean":     optimizer.mean(UtilsCPU),
+			"mem":          optimizer.max(Mems),
+			"bw_rx":        optimizer.mean(BwRxs),
+			"bw_tx":        optimizer.mean(BwTxs),
+			"gpu_util":     optimizer.mean(UtilGPUs),
+			"gpu_util_std": optimizer.std(UtilGPUs),
+			"gpu_mem":      optimizer.max(MemGPUs),
 		}
 		labels, _ := json.Marshal(tmp)
 
