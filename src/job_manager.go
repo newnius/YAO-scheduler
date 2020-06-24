@@ -156,7 +156,9 @@ func (jm *JobManager) start() {
 				stat = append(stat, vals[i])
 			}
 		}
-		stats = append(stats, stat)
+		if len(stat) > 0 {
+			stats = append(stats, stat)
+		}
 	}
 	//log.Info(jm.stats)
 	//log.Info(stats)
