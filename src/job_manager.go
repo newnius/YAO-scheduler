@@ -158,8 +158,8 @@ func (jm *JobManager) start() {
 		}
 		stats = append(stats, stat)
 	}
-	log.Info(jm.stats)
-	log.Info(stats)
+	//log.Info(jm.stats)
+	//log.Info(stats)
 	InstanceOfOptimizer().feedStats(jm.job, "Worker", stats)
 	jm.returnResource(jm.status().Status)
 	log.Info("JobMaster exited ", jm.job.Name)
