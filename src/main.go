@@ -63,9 +63,20 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "job_predict_req":
 		log.Debug("job_predict_req")
-		jobName := r.URL.Query().Get("name")
-		cmd := r.URL.Query().Get("cmd")
-		js, _ := json.Marshal(InstanceOfOptimizer().PredictReq(jobName, cmd))
+		var job Job
+		role := r.URL.Query().Get("role")
+		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
+		msgJobReq := MsgJobReq{Code: 0}
+		if err != nil {
+			msgJobReq.Code = 1
+			msgJobReq.Error = err.Error()
+		} else {
+			msgJobReq = InstanceOfOptimizer().PredictReq(job, role)
+		}
+		js, err := json.Marshal(msgJobReq)
+		if err != nil {
+			log.Warn(err)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

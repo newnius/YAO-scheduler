@@ -83,11 +83,11 @@ type MsgOptimizerPredict struct {
 }
 
 type MsgJobReq struct {
-	Code   int    `json:"code"`
-	Error  string `json:"error"`
-	CPU    int    `json:"cpu"`
-	Mem    int    `json:"mem"`
-	GPU    int    `json:"gpu"`
-	MemGPU int    `json:"cpu"`
-	BW     int    `json:"bw"`
+	Code    int    `json:"code"`
+	Error   string `json:"error"`
+	CPU     int    `json:"cpu"`
+	Mem     int    `json:"mem"`
+	UtilGPU int    `json:"gpu_util"`
+	MemGPU  int    `json:"gpu_mem"`
+	BW      int    `json:"bw"`
 }
