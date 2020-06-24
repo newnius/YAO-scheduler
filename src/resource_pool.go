@@ -593,7 +593,7 @@ func (pool *ResourcePool) detach(GPU string, job Job) {
 	if _, ok := pool.bindings[GPU]; ok {
 		if _, ok2 := pool.utils[GPU]; ok2 {
 			if len(pool.bindings[GPU]) == 1 && job.Status == Finished {
-				InstanceOfOptimizer().feed(job.Name, pool.utils[GPU])
+				//InstanceOfOptimizer().feed(job.Name, pool.utils[GPU])
 			}
 			delete(pool.utils, GPU)
 		}

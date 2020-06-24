@@ -195,7 +195,7 @@ func (optimizer *Optimizer) describe(job string) map[string]float64 {
 	return map[string]float64{}
 }
 
-func (optimizer *Optimizer) feed(job string, utils []UtilGPUTimeSeries) {
+func (optimizer *Optimizer) feed3(job string, utils []UtilGPUTimeSeries) {
 	log.Info("optimizer feed ", job)
 	//log.Info(job, utils)
 
