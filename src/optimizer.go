@@ -391,7 +391,12 @@ func (optimizer *Optimizer) predict(job string, seq int) (OptimizerJobExecutionT
 }
 
 func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
-	cmd := job.Tasks[0].Cmd
+	var jobName string
+	str := strings.Split(job.Name, "-")
+	if len(str) == 2 {
+		jobName = str[0]
+	}
+	cmd := ""
 	params := map[string]int{}
 
 	psNumber := 0
@@ -443,7 +448,7 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 
 	spider := Spider{}
 	spider.Method = "GET"
-	spider.URL = "http://yao-optimizer:8080/predict?job=" + job.Name + "&features=" + string(features)
+	spider.URL = "http://yao-optimizer:8080/predict?job=" + jobName + "&features=" + string(features)
 
 	err := spider.do()
 	if err != nil {
@@ -473,6 +478,9 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 		}
 		if v, ok := tmp["gpu_mem"]; ok {
 			req.MemGPU = int(math.Ceil(v/1024)) * 1024
+		}
+		if v, ok := tmp["bw"]; ok {
+			req.BW = int(math.Ceil(v/10)) * 10
 		}
 	}
 	return req
