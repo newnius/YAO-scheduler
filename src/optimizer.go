@@ -399,6 +399,9 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	cmd := ""
 	params := map[string]int{}
 
+	log.Info(job)
+	log.Info(role)
+
 	psNumber := 0
 	workerNumber := 0
 	for _, task := range job.Tasks {
