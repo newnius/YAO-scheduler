@@ -91,3 +91,9 @@ type MsgJobReq struct {
 	MemGPU  int    `json:"gpu_mem"`
 	BW      int    `json:"bw"`
 }
+
+type MsgJobReqPredict struct {
+	Code   int                `json:"code"`
+	Error  string             `json:"error"`
+	Labels map[string]float64 `json:"labels"`
+}
