@@ -93,7 +93,7 @@ type MsgJobReq struct {
 }
 
 type MsgJobReqPredict struct {
-	Code   int                `json:"code"`
-	Error  string             `json:"error"`
-	Labels map[string]float64 `json:"labels"`
+	Code   int    `json:"code"`
+	Error  string `json:"error"`
+	Labels string `json:"labels"`
 }

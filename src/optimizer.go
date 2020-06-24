@@ -470,7 +470,8 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	var msg MsgJobReqPredict
 	err = json.Unmarshal([]byte(string(body)), &msg)
 	if err == nil && msg.Code == 0 {
-		tmp := msg.Labels
+		var tmp map[string]float64
+		err = json.Unmarshal([]byte(msg.Labels), &tmp)
 		if v, ok := tmp["cpu"]; ok {
 			req.CPU = int(math.Ceil(v / 100))
 		}
