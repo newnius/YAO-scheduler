@@ -391,6 +391,8 @@ func (optimizer *Optimizer) predict(job string, seq int) (OptimizerJobExecutionT
 }
 
 func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
+	res := MsgJobReq{CPU: 4, Mem: 4096, UtilGPU: 100, MemGPU: 8192, BW: 0}
+
 	var jobName string
 	str := strings.Split(job.Name, "-")
 	if len(str) == 2 {
@@ -404,10 +406,12 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 
 	psNumber := 0
 	workerNumber := 0
+	flag := false
 	for _, task := range job.Tasks {
 		if (role == "PS" && task.IsPS) || (role == "Worker" && !task.IsPS) {
 			params["num_gpus"] = task.NumberGPU
 			cmd = task.Cmd
+			flag = true
 		}
 		if task.IsPS {
 			psNumber++
@@ -417,6 +421,9 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	}
 	params["ps_number"] = psNumber
 	params["worker_number"] = workerNumber
+	if !flag {
+		return res
+	}
 
 	exceptions := map[string]bool{}
 	exceptions["train_dir"] = true
@@ -466,26 +473,25 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 		return MsgJobReq{Code: 3, Error: err.Error()}
 	}
 
-	req := MsgJobReq{CPU: 4, Mem: 4096, UtilGPU: 100, MemGPU: 8192, BW: 0}
 	var msg MsgJobReqPredict
 	err = json.Unmarshal([]byte(string(body)), &msg)
 	if err == nil && msg.Code == 0 {
 		tmp := msg.Labels
 		if v, ok := tmp["cpu"]; ok {
-			req.CPU = int(math.Ceil(v / 100))
+			res.CPU = int(math.Ceil(v / 100))
 		}
 		if v, ok := tmp["mem"]; ok {
-			req.Mem = int(math.Ceil(v/1024)) * 1024
+			res.Mem = int(math.Ceil(v/1024)) * 1024
 		}
 		if v, ok := tmp["gpu_util"]; ok {
-			req.UtilGPU = int(math.Ceil(v)/10) * 10
+			res.UtilGPU = int(math.Ceil(v)/10) * 10
 		}
 		if v, ok := tmp["gpu_mem"]; ok {
-			req.MemGPU = int(math.Ceil(v/1024)) * 1024
+			res.MemGPU = int(math.Ceil(v/1024)) * 1024
 		}
 		if v, ok := tmp["bw"]; ok {
-			req.BW = int(math.Ceil(v/10)) * 10
+			res.BW = int(math.Ceil(v/10)) * 10
 		}
 	}
-	return req
+	return res
 }
