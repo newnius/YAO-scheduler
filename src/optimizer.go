@@ -107,6 +107,11 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 		}
 		params["ps_number"] = psNumber
 		params["worker_number"] = workerNumber
+		if role == "PS" {
+			params["role"] = 1
+		} else {
+			params["role"] = 0
+		}
 
 		exceptions := map[string]bool{}
 		exceptions["train_dir"] = true
@@ -401,9 +406,6 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	cmd := ""
 	params := map[string]int{}
 
-	log.Info(job)
-	log.Info(role)
-
 	psNumber := 0
 	workerNumber := 0
 	flag := false
@@ -421,6 +423,11 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	}
 	params["ps_number"] = psNumber
 	params["worker_number"] = workerNumber
+	if role == "PS" {
+		params["role"] = 1
+	} else {
+		params["role"] = 0
+	}
 	if !flag {
 		return res
 	}
