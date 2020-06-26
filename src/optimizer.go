@@ -119,6 +119,7 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 		exceptions["ps_hosts"] = true
 		exceptions["worker_hosts"] = true
 		exceptions["task_index"] = true
+		exceptions["job_name"] = true
 
 		pairs := strings.Split(cmd, " ")
 		for _, pair := range pairs {
@@ -165,7 +166,7 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 		}
 
 		optimizer.versions[jobName]++
-		if optimizer.versions[jobName]%5 == 0 {
+		if optimizer.versions[jobName]%3 == 0 {
 			optimizer.train(jobName)
 		}
 	}()
@@ -438,6 +439,7 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	exceptions["ps_hosts"] = true
 	exceptions["worker_hosts"] = true
 	exceptions["task_index"] = true
+	exceptions["job_name"] = true
 
 	pairs := strings.Split(cmd, " ")
 	for _, pair := range pairs {
