@@ -87,6 +87,9 @@ func (optimizer *Optimizer) feedStats(job Job, role string, stats [][]TaskStatus
 			"gpu_util_std": optimizer.std(UtilGPUs),
 			"gpu_mem":      optimizer.max(MemGPUs),
 		}
+		for k, v := range tmp {
+			tmp[k] = float64(int(v))
+		}
 		labels, _ := json.Marshal(tmp)
 
 		cmd := job.Tasks[0].Cmd
