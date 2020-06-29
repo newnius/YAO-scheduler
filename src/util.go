@@ -40,8 +40,8 @@ type Task struct {
 }
 
 type UtilGPUTimeSeries struct {
-	Time int `json:"time"`
-	Util int `json:"util"`
+	Time int64 `json:"time"`
+	Util int   `json:"util"`
 }
 
 type OptimizerJobExecutionTime struct {

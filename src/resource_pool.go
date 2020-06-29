@@ -336,7 +336,7 @@ func (pool *ResourcePool) update(node NodeStatus) {
 			if _, ok := pool.bindings[gpu.UUID]; ok {
 				if _, ok2 := pool.utils[gpu.UUID]; ok2 {
 					pool.utils[gpu.UUID] = append(pool.utils[gpu.UUID],
-						UtilGPUTimeSeries{Time: (int)(time.Now().Unix()), Util: gpu.UtilizationGPU})
+						UtilGPUTimeSeries{Time: time.Now().Unix(), Util: gpu.UtilizationGPU})
 				}
 			}
 
@@ -743,58 +743,59 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	if pool.TotalGPU == 0 {
 		return []NodeStatus{}
 	}
-	loadRatio := float64(pool.UsingGPU) / float64(pool.TotalGPU)
+	//loadRatio := float64(pool.UsingGPU) / float64(pool.TotalGPU)
 
 	/* first, choose sharable GPUs */
+	/*
 	if pool.enableShare && len(job.Tasks) == 1 && task.NumberGPU == 1 && loadRatio >= pool.enableShareRatio {
 		// check sharable
 		allocationType = 1
-		if util, valid := InstanceOfOptimizer().predictUtilGPU(job.Name); valid {
+		pred := InstanceOfOptimizer().PredictReq(job, "Worker")
 
-			for cur := start; ; {
-				if _, ok := locks[cur.ID]; !ok {
-					cur.Lock.Lock()
-					locks[cur.ID] = &cur.Lock
-				}
+		for cur := start; ; {
+			if _, ok := locks[cur.ID]; !ok {
+				cur.Lock.Lock()
+				locks[cur.ID] = &cur.Lock
+			}
 
-				for _, node := range cur.Nodes {
-					var available []GPUStatus
-					for _, status := range node.Status {
-						if status.MemoryAllocated > 0 && status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated {
+			for _, node := range cur.Nodes {
+				var available []GPUStatus
+				for _, status := range node.Status {
+					if status.MemoryAllocated > 0 && status.MemoryTotal > task.MemoryGPU+status.MemoryAllocated {
 
-							if jobs, ok := pool.bindings[status.UUID]; ok {
-								totalUtil := util
-								for job := range jobs {
-									if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
-										totalUtil += utilT
-									} else {
-										totalUtil += 100
-									}
+						if jobs, ok := pool.bindings[status.UUID]; ok {
+							totalUtil := pred.UtilGPU
+							for job := range jobs {
+								if utilT, ok := InstanceOfOptimizer().predictUtilGPU(job); ok {
+									totalUtil += utilT
+								} else {
+									totalUtil += 100
 								}
-								if totalUtil < 100 {
-									available = append(available, status)
-								}
+							}
+							if totalUtil < 100 {
+								available = append(available, status)
 							}
 						}
 					}
-					if len(available) >= task.NumberGPU {
-						candidates = append(candidates, *node)
-						if len(candidates) >= len(job.Tasks)*3+5 {
-							break
-						}
+				}
+				if len(available) >= task.NumberGPU {
+					candidates = append(candidates, *node)
+					if len(candidates) >= len(job.Tasks)*3+5 {
+						break
 					}
 				}
-				if len(candidates) >= len(job.Tasks)*3+5 {
-					break
-				}
-				if cur.ID > cur.Next.ID {
-					break
-				}
-				cur = cur.Next
 			}
+			if len(candidates) >= len(job.Tasks)*3+5 {
+				break
+			}
+			if cur.ID > cur.Next.ID {
+				break
+			}
+			cur = cur.Next
 		}
-		//log.Info(candidates)
 	}
+	*/
+	//log.Info(candidates)
 
 	/* second round, find vacant gpu */
 	if len(candidates) == 0 {
@@ -831,10 +832,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	}
 
 	/* third round, find gpu to be released */
+	/*
 	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && pool.enablePreSchedule {
-		estimate, valid := InstanceOfOptimizer().predictTime(job.Name)
+		estimate := InstanceOfOptimizer().PredictTime(job)
 
-		if loadRatio >= pool.enablePreScheduleRatio && valid {
+		if loadRatio >= pool.enablePreScheduleRatio {
 			allocationType = 3
 			for cur := start; ; {
 				if _, ok := locks[cur.ID]; !ok {
@@ -850,13 +852,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 								continue
 							}
 							for taskT, s := range tasks {
-								est, valid2 := InstanceOfOptimizer().predictTime(taskT)
-								if valid2 {
-									now := (int)(time.Now().Unix())
-									log.Info(s, now, estimate, est)
-									if now-s > est.Total-est.Post-estimate.Pre-15 {
-										available = append(available, status)
-									}
+								est := InstanceOfOptimizer().PredictTime(taskT)
+								now := (int)(time.Now().Unix())
+								log.Info(s, now, estimate, est)
+								if now-s > est.Total-est.Post-estimate.Pre-15 {
+									available = append(available, status)
 								}
 							}
 						}
@@ -879,6 +879,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 			//log.Info(candidates)
 		}
 	}
+	*/
 
 	if len(candidates) > 0 {
 		log.Info("allocationType is ", allocationType)

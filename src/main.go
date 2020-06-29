@@ -81,6 +81,28 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "job_predict_time":
+		log.Debug("job_predict_time")
+		var job Job
+		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
+		msgJobReq := MsgOptimizerPredict{Code: 0}
+		if err != nil {
+			msgJobReq.Code = 1
+			msgJobReq.Error = err.Error()
+		} else {
+			msg := InstanceOfOptimizer().PredictTime(job)
+			msgJobReq.Pre = msg.Pre
+			msgJobReq.Post = msg.Post
+			msgJobReq.Total = msg.Total
+		}
+		js, err := json.Marshal(msgJobReq)
+		if err != nil {
+			log.Warn(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "job_stop":
 		log.Debug("job_stop")
 		js, _ := json.Marshal(scheduler.Stop(string(r.PostFormValue("id"))))
@@ -248,69 +270,6 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "debug_get_predicts":
-		log.Debug("debug_get_predicts")
-		js, _ := json.Marshal(InstanceOfOptimizer().getAllPredicts())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_get_gpu_utils":
-		log.Debug("debug_get_gpu_utils")
-		js, _ := json.Marshal(InstanceOfOptimizer().getAllGPUUtils())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_optimizer_feed_dl":
-		log.Debug("debug_optimizer_feed_dl")
-		var job string
-		var seq int
-		var value int
-		job = r.URL.Query().Get("job")
-		if t, err := strconv.Atoi(r.URL.Query().Get("seq")); err == nil {
-			seq = t
-		}
-		if t, err := strconv.Atoi(r.URL.Query().Get("value")); err == nil {
-			value = t
-		}
-		InstanceOfOptimizer().feedData(job, seq, 0, 0, 0, value)
-		js, _ := json.Marshal(OptimizerJobExecutionTime{})
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_optimizer_describe_job":
-		log.Debug("debug_optimizer_describe_job")
-		var job string
-		job = r.URL.Query().Get("job")
-		js, _ := json.Marshal(InstanceOfOptimizer().describe(job))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_optimizer_train_dl":
-		log.Debug("debug_optimizer_train_dl")
-		InstanceOfOptimizer().train(r.URL.Query().Get("job"))
-		js, _ := json.Marshal(OptimizerJobExecutionTime{})
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_get_predict_dl":
-		log.Debug("debug_get_predict_dl")
-		if seq, err := strconv.Atoi(r.URL.Query().Get("seq")); err == nil {
-			est, _ := InstanceOfOptimizer().predict(r.URL.Query().Get("job"), seq)
-			js, _ := json.Marshal(est)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(js)
-		} else {
-			js, _ := json.Marshal(OptimizerJobExecutionTime{})
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(js)
-		}
-		break
-
 	case "allocator_update_strategy":
 		log.Debug("allocator_update_strategy")
 		strategy := r.URL.Query().Get("strategy")
@@ -389,7 +348,7 @@ func main() {
 	InstanceOfResourcePool().init(config)
 	InstanceOfCollector().init(config)
 	InstanceJobHistoryLogger().init(config)
-	InstanceOfOptimizer().init(config)
+	InstanceOfOptimizer().Init(config)
 	InstanceOfGroupManager().init(config)
 
 	switch config.SchedulerPolicy {

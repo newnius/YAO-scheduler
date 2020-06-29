@@ -54,12 +54,14 @@ func (jm *JobManager) start() {
 
 	if InstanceOfConfiguration().mock {
 		jm.scheduler.UpdateProgress(jm.job, Running)
+		jm.job.Status = Running
 		jm.isRunning = false
 		duration := InstanceOfMocker().GetDuration(jm.job, jm.resources)
 		log.Info("mock ", jm.job.Name, ", wait ", duration)
 		time.Sleep(time.Second * time.Duration(duration))
 		jm.returnResource([]TaskStatus{})
 		jm.scheduler.UpdateProgress(jm.job, Finished)
+		jm.job.Status = Finished
 		log.Info("JobMaster exited ", jm.job.Name)
 		return
 	}
@@ -67,6 +69,7 @@ func (jm *JobManager) start() {
 	if !jm.killFlag {
 		/* switch to Running state */
 		jm.scheduler.UpdateProgress(jm.job, Running)
+		jm.job.Status = Running
 
 		/* bring up containers */
 		wg := sync.WaitGroup{}
@@ -149,7 +152,7 @@ func (jm *JobManager) start() {
 			stats = append(stats, stat)
 		}
 	}
-	InstanceOfOptimizer().feedStats(jm.job, "PS", stats)
+	InstanceOfOptimizer().FeedStats(jm.job, "PS", stats)
 	stats = [][]TaskStatus{}
 	for _, vals := range jm.stats {
 		var stat []TaskStatus
@@ -164,7 +167,7 @@ func (jm *JobManager) start() {
 	}
 	//log.Info(jm.stats)
 	//log.Info(stats)
-	InstanceOfOptimizer().feedStats(jm.job, "Worker", stats)
+	InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
 	jm.returnResource(jm.status().Status)
 	log.Info("JobMaster exited ", jm.job.Name)
 }
@@ -246,11 +249,13 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 				jm.stop(false)
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Failed)
+				jm.job.Status = Failed
 			} else if !jm.killFlag {
 				log.Info("Some instance exited, close others")
 				jm.stop(false)
 				jm.killFlag = true
 				jm.scheduler.UpdateProgress(jm.job, Finished)
+				jm.job.Status = Finished
 			}
 
 			if jm.resources[i].ClientID != "_released_" {
@@ -271,10 +276,12 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 		jm.stop(false)
 		jm.killFlag = true
 		jm.scheduler.UpdateProgress(jm.job, Finished)
+		jm.job.Status = Finished
 	}
 
 	if !flagRunning && !jm.killFlag {
 		jm.scheduler.UpdateProgress(jm.job, Finished)
+		jm.job.Status = Finished
 		log.Info("finish job ", jm.job.Name)
 	}
 
@@ -320,7 +327,7 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 func (jm *JobManager) status() MsgJobStatus {
 	var tasksStatus []TaskStatus
 	for range jm.job.Tasks { //append would cause uncertain order
-		tasksStatus = append(tasksStatus, TaskStatus{})
+		tasksStatus = append(tasksStatus, TaskStatus{TimeStamp: time.Now().Unix()})
 	}
 
 	for i, task := range jm.job.Tasks {
@@ -415,6 +422,7 @@ func (jm *JobManager) stop(force bool) MsgStop {
 		if force {
 			jm.killFlag = true
 			jm.scheduler.UpdateProgress(jm.job, Stopped)
+			jm.job.Status = Stopped
 			log.Info("kill job, ", jm.job.Name)
 		}
 	}()

@@ -23,4 +23,5 @@ type TaskStatus struct {
 	UtilGPU     int                    `json:"gpu_util"`
 	UtilMemGPU  int                    `json:"gpu_mem_util"`
 	MemGPU      int                    `json:"gpu_mem"`
+	TimeStamp   int64                  `json:"timestamp"`
 }

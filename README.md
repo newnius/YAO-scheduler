@@ -3,6 +3,7 @@
 
 ## API
 
+#### ResourcePool
 **GetHeartCounter**
 
 ```
@@ -23,6 +24,7 @@ GPU is occupied by which job(s)
 ?action=get_bindings
 ```
 
+#### Scheduler
 **EnableSchedule**
 ```
 ?action=debug_enable
@@ -60,21 +62,6 @@ GPU is occupied by which job(s)
 **SetPreScheduleRatio**
 ```
 ?action=debug_update_enable_pre_schedule_ratio&ratio=0.95
-```
-
-**FeedDLData**
-```
-?action=debug_optimizer_feed_dl&job=lstm&seq=1&value=2
-```
-
-**TrainDL**
-```
-?action=debug_optimizer_train_dl&job=lstm
-```
-
-**PredictDL**
-```
-?action=debug_get_predict_dl&job=lstm&seq=1
 ```
 
 **UpdateAllocateStrategy**
