@@ -331,7 +331,7 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 func (jm *JobManager) status() MsgJobStatus {
 	var tasksStatus []TaskStatus
 	for range jm.job.Tasks { //append would cause uncertain order
-		tasksStatus = append(tasksStatus, TaskStatus{TimeStamp: time.Now().Unix()})
+		tasksStatus = append(tasksStatus, TaskStatus{})
 	}
 
 	for i, task := range jm.job.Tasks {
@@ -379,6 +379,9 @@ func (jm *JobManager) status() MsgJobStatus {
 		}
 		res.Status.Node = taskStatus.Node
 		tasksStatus[i] = res.Status
+	}
+	for i := range jm.job.Tasks {
+		tasksStatus[i].TimeStamp = time.Now().Unix()
 	}
 
 	if jm.isRunning {
