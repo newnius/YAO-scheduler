@@ -140,6 +140,9 @@ func (jm *JobManager) start() {
 	}
 
 	/* make sure resources are released */
+	jm.returnResource(jm.status().Status)
+
+	/* feed data to optimizer */
 	var stats [][]TaskStatus
 	for _, vals := range jm.stats {
 		var stat []TaskStatus
@@ -165,10 +168,11 @@ func (jm *JobManager) start() {
 			stats = append(stats, stat)
 		}
 	}
-	//log.Info(jm.stats)
-	//log.Info(stats)
 	InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
-	jm.returnResource(jm.status().Status)
+
+	if len(jm.job.Tasks) == 1 {
+		InstanceOfOptimizer().FeedTime(jm.job, stats)
+	}
 	log.Info("JobMaster exited ", jm.job.Name)
 }
 
