@@ -51,6 +51,7 @@ func (jm *JobManager) start() {
 		/* sleep random Millisecond to avoid deadlock */
 		time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 	}
+	jm.job.StartedAt = time.Now().Unix()
 
 	if InstanceOfConfiguration().mock {
 		jm.scheduler.UpdateProgress(jm.job, Running)

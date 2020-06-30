@@ -18,6 +18,7 @@ type Job struct {
 	Priority     JobPriority `json:"priority"`
 	RunBefore    int         `json:"run_before"`
 	CreatedAt    int         `json:"created_at"`
+	StartedAt    int64       `json:"started_at"`
 	UpdatedAt    int         `json:"updated_at"`
 	CreatedBy    int         `json:"created_by"`
 	Locality     int         `json:"locality"`
