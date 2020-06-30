@@ -271,6 +271,19 @@ func (scheduler *SchedulerFair) Start() {
 				}
 			}
 
+			/* support schedule ahead & share */
+			if bestQueue != "" && len(scheduler.schedulingJobs) == 0 {
+				maxQuota := 0
+				for queue, jobs := range scheduler.queues {
+					if len(jobs) > 0 && len(jobs[0].Tasks) == 1 && jobs[0].Tasks[0].NumberGPU == 1 {
+						if quota, ok := scheduler.queuesQuota[queue]; ok && (bestQueue == "" || quota.NumberGPU > maxQuota) {
+							maxQuota = quota.NumberGPU
+							bestQueue = queue
+						}
+					}
+				}
+			}
+
 			/* launch that job */
 			if bestQueue != "" {
 				numberGPUtmp := 0
