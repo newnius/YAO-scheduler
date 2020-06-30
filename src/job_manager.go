@@ -84,7 +84,7 @@ func (jm *JobManager) start() {
 					UUIDs = append(UUIDs, GPU.UUID)
 
 					/* attach to GPUs */
-					InstanceOfResourcePool().attach(GPU.UUID, jm.job.Name)
+					InstanceOfResourcePool().attach(GPU.UUID, jm.job)
 				}
 				GPUs := strings.Join(UUIDs, ",")
 
