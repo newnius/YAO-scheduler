@@ -743,7 +743,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	if pool.TotalGPU == 0 {
 		return []NodeStatus{}
 	}
-	var res []NodeStatus
+	var ress []NodeStatus
 
 	loadRatio := float64(pool.UsingGPU) / float64(pool.TotalGPU)
 	/* first, choose sharable GPUs */
@@ -795,29 +795,30 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 		if len(candidates) > 0 {
 			node := candidates[0]
-			res = append(res, NodeStatus{})
-			res[0].ClientID = node.ClientID
-			res[0].ClientHost = node.ClientHost
-			res[0].NumCPU = task.NumberCPU
-			res[0].MemTotal = task.Memory
-			res[0].Status = availables[node.ClientHost][0:task.NumberGPU]
+			res := NodeStatus{}
+			res.ClientID = node.ClientID
+			res.ClientHost = node.ClientHost
+			res.NumCPU = task.NumberCPU
+			res.MemTotal = task.Memory
+			res.Status = availables[node.ClientHost][0:task.NumberGPU]
 
-			for i := range res[0].Status {
+			for i := range res.Status {
 				for j := range node.Status {
-					if res[0].Status[i].UUID == node.Status[j].UUID {
+					if res.Status[i].UUID == node.Status[j].UUID {
 						if node.Status[j].MemoryAllocated == 0 {
 							pool.UsingGPUMu.Lock()
 							pool.UsingGPU ++
 							pool.UsingGPUMu.Unlock()
 						}
 						node.Status[j].MemoryAllocated += task.MemoryGPU
-						res[0].Status[i].MemoryTotal = task.MemoryGPU
+						res.Status[i].MemoryTotal = task.MemoryGPU
 					}
 				}
 			}
-			for _, t := range res[0].Status {
+			for _, t := range res.Status {
 				pool.attach(t.UUID, job)
 			}
+			ress = append(ress, res)
 		}
 	}
 	//log.Info(candidates)
@@ -904,29 +905,30 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 			//log.Info(candidates)
 			if len(candidates) > 0 {
 				node := candidates[0]
-				res = append(res, NodeStatus{})
-				res[0].ClientID = node.ClientID
-				res[0].ClientHost = node.ClientHost
-				res[0].NumCPU = task.NumberCPU
-				res[0].MemTotal = task.Memory
-				res[0].Status = availables[node.ClientHost][0:task.NumberGPU]
+				res := NodeStatus{}
+				res.ClientID = node.ClientID
+				res.ClientHost = node.ClientHost
+				res.NumCPU = task.NumberCPU
+				res.MemTotal = task.Memory
+				res.Status = availables[node.ClientHost][0:task.NumberGPU]
 
-				for i := range res[0].Status {
+				for i := range res.Status {
 					for j := range node.Status {
-						if res[0].Status[i].UUID == node.Status[j].UUID {
+						if res.Status[i].UUID == node.Status[j].UUID {
 							if node.Status[j].MemoryAllocated == 0 {
 								pool.UsingGPUMu.Lock()
 								pool.UsingGPU ++
 								pool.UsingGPUMu.Unlock()
 							}
 							node.Status[j].MemoryAllocated += task.MemoryGPU
-							res[0].Status[i].MemoryTotal = task.MemoryGPU
+							res.Status[i].MemoryTotal = task.MemoryGPU
 						}
 					}
 				}
-				for _, t := range res[0].Status {
+				for _, t := range res.Status {
 					pool.attach(t.UUID, job)
 				}
+				ress = append(ress, res)
 			}
 		}
 	}
@@ -937,8 +939,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	}
 
 	/* assign */
-	var ress []NodeStatus
-	if len(candidates) > 0 && len(res) == 0 {
+	if len(candidates) > 0 && len(ress) == 0 {
 		var nodesT []NodeStatus
 		for _, node := range candidates {
 			nodesT = append(nodesT, node.Copy())
