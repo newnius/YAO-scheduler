@@ -769,10 +769,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 								utilT := InstanceOfOptimizer().PredictReq(job, "Worker").UtilGPU
 								totalUtil += utilT
 							}
-							if totalUtil < 250 {
+							if totalUtil < 100 {
 								available = append(available, status)
 							}
-							log.Info(pred.UtilGPU, totalUtil)
 						}
 					}
 				}
@@ -860,6 +859,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	/* third round, find gpu to be released */
 	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && pool.enablePreSchedule {
 		estimate := InstanceOfOptimizer().PredictTime(job)
+		log.Info(estimate)
 
 		if loadRatio >= pool.enablePreScheduleRatio {
 			allocationType = 3
