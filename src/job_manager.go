@@ -80,9 +80,12 @@ func (jm *JobManager) start() {
 			go func(index int) {
 				defer wg.Done()
 				var UUIDs []string
+				shouldWait := "0"
 				for _, GPU := range jm.resources[index].Status {
 					UUIDs = append(UUIDs, GPU.UUID)
-
+					if GPU.MemoryUsed == GPU.MemoryTotal {
+						shouldWait = "1"
+					}
 					/* attach to GPUs */
 					InstanceOfResourcePool().attach(GPU.UUID, jm.job)
 				}
@@ -97,7 +100,7 @@ func (jm *JobManager) start() {
 				v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[index].Memory)+"m")
 				v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[index].NumberCPU))
 				v.Set("network", jm.network)
-				v.Set("should_wait", "0")
+				v.Set("should_wait", shouldWait)
 				v.Set("output_dir", "/tmp/")
 				v.Set("hdfs_address", "http://192.168.100.104:50070/")
 				v.Set("hdfs_dir", "/user/yao/output/"+jm.job.Name)

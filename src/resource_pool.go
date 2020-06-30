@@ -811,6 +811,8 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 						}
 						node.Status[j].MemoryAllocated += task.MemoryGPU
 						res.Status[i].MemoryTotal = task.MemoryGPU
+						/* being used, means share */
+						res.Status[i].MemoryUsed = 100
 					}
 				}
 			}
@@ -922,6 +924,8 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 							}
 							node.Status[j].MemoryAllocated += task.MemoryGPU
 							res.Status[i].MemoryTotal = task.MemoryGPU
+							/* being fully used, means ahead */
+							res.Status[i].MemoryUsed = task.MemoryGPU
 						}
 					}
 				}
