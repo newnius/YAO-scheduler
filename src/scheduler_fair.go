@@ -551,7 +551,8 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 			request.NumberGPU += GPU
 			request.CPU += CPU
 			request.Memory += Memory
-			if job.Priority == jobs[0].Priority {
+			/* increase priority at most 10 jobs, to avoid small jobs always goes first in a batch */
+			if job.Priority == jobs[0].Priority && i < 10 {
 				scheduler.queues[queue][i].BasePriority += 1.0
 			}
 		}
