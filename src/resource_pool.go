@@ -768,9 +768,10 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 								utilT := InstanceOfOptimizer().PredictReq(job, "Worker").UtilGPU
 								totalUtil += utilT
 							}
-							if totalUtil < 200 {
+							if totalUtil < 250 {
 								available = append(available, status)
 							}
+							log.Info(pred.UtilGPU, totalUtil)
 						}
 					}
 				}
