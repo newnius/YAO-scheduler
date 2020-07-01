@@ -403,6 +403,10 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 	str := strings.Split(job.Name, "-")
 	if len(str) == 2 {
 		jobName = str[0]
+	} else if len(str) == 1 {
+		jobName = job.Name
+	} else {
+		return res
 	}
 	cmd := ""
 	params := map[string]int{}
