@@ -42,8 +42,8 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgSubmit.Error = err.Error()
 		} else {
 			job.Name = job.Name + "-"
-			job.Name += strconv.FormatInt(time.Now().Unix(), 10)
-			job.Name += strconv.Itoa(1000 + rand.Intn(8999))
+			job.Name += strconv.FormatInt(time.Now().UnixNano(), 10)
+			job.Name += strconv.Itoa(10000 + rand.Intn(89999))
 			for i := range job.Tasks {
 				job.Tasks[i].ID = job.Name + ":" + job.Tasks[i].Name
 				job.Tasks[i].Job = job.Name
