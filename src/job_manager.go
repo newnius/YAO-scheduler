@@ -67,6 +67,8 @@ func (jm *JobManager) start() {
 		return
 	}
 
+	isShare := false
+	isScheduleAhead := false
 	if !jm.killFlag {
 		/* switch to Running state */
 		jm.scheduler.UpdateProgress(jm.job, Running)
@@ -85,6 +87,9 @@ func (jm *JobManager) start() {
 					UUIDs = append(UUIDs, GPU.UUID)
 					if GPU.MemoryUsed == GPU.MemoryTotal {
 						shouldWait = "1"
+						isScheduleAhead = true
+					} else if GPU.MemoryUsed > 0 {
+						isShare = true
 					}
 					/* attach to GPUs */
 					InstanceOfResourcePool().attach(GPU.UUID, jm.job)
@@ -174,7 +179,7 @@ func (jm *JobManager) start() {
 	}
 	InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
 
-	if len(jm.job.Tasks) == 1 {
+	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead {
 		InstanceOfOptimizer().FeedTime(jm.job, stats)
 	}
 	log.Info("JobMaster exited ", jm.job.Name)
