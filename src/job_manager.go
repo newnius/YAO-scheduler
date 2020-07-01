@@ -179,7 +179,7 @@ func (jm *JobManager) start() {
 	}
 	InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
 
-	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead {
+	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead && jm.job.Status == Finished {
 		InstanceOfOptimizer().FeedTime(jm.job, stats)
 	}
 	log.Info("JobMaster exited ", jm.job.Name)
