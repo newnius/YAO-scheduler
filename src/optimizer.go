@@ -34,7 +34,7 @@ func (optimizer *Optimizer) Init(conf Configuration) {
 }
 
 func (optimizer *Optimizer) FeedTime(job Job, stats [][]TaskStatus) {
-	log.Info("optimizer feedTime", job)
+	//log.Info("optimizer feedTime", job)
 	if len(stats) == 0 || len(job.Tasks) != 1 {
 		return
 	}
@@ -237,13 +237,13 @@ func (optimizer *Optimizer) PredictTime(job Job) OptimizerJobExecutionTime {
 	if err == nil && msg.Code == 0 {
 		tmp := msg.Labels
 		if v, ok := tmp["pre"]; ok {
-			res.Pre = int(math.Ceil(v / 100))
+			res.Pre = int(math.Ceil(v))
 		}
 		if v, ok := tmp["post"]; ok {
-			res.Post = int(math.Ceil(v/1024)) * 1024
+			res.Post = int(math.Ceil(v))
 		}
 		if v, ok := tmp["total"]; ok {
-			res.Total = int(math.Ceil(v)/10) * 10
+			res.Total = int(math.Ceil(v))
 		}
 	}
 	return res
