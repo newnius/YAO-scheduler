@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 	"strconv"
+	"math/rand"
 )
 
 var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
@@ -40,6 +41,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
 		} else {
+			job.Name = job.Name + "-" + string(time.Now().Unix()) + string(1000+rand.Intn(8999))
 			for i := range job.Tasks {
 				job.Tasks[i].ID = job.Name + ":" + job.Tasks[i].Name
 				job.Tasks[i].Job = job.Name

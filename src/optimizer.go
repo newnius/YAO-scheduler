@@ -118,7 +118,7 @@ func (optimizer *Optimizer) FeedTime(job Job, stats [][]TaskStatus) {
 
 			spider := Spider{}
 			spider.Method = "GET"
-			spider.URL = "http://yao-optimizer:8080/feed?job=" + jobName + ":time" + "&features=" + string(features) + "&labels=" + string(labels)
+			spider.URL = "http://yao-optimizer:8080/feed?job=" + jobName + "-time" + "&features=" + string(features) + "&labels=" + string(labels)
 
 			err := spider.do()
 			if err != nil {
@@ -146,7 +146,7 @@ func (optimizer *Optimizer) FeedTime(job Job, stats [][]TaskStatus) {
 func (optimizer *Optimizer) trainTime(jobName string) {
 	spider := Spider{}
 	spider.Method = "GET"
-	params := "job=" + jobName + ":time"
+	params := "job=" + jobName + "-time"
 	spider.URL = "http://yao-optimizer:8080/train?" + params
 
 	err := spider.do()
@@ -213,7 +213,7 @@ func (optimizer *Optimizer) PredictTime(job Job) OptimizerJobExecutionTime {
 
 	spider := Spider{}
 	spider.Method = "GET"
-	spider.URL = "http://yao-optimizer:8080/predict?job=" + jobName + ":time" + "&features=" + string(features)
+	spider.URL = "http://yao-optimizer:8080/predict?job=" + jobName + "-time" + "&features=" + string(features)
 
 	err := spider.do()
 	if err != nil {
