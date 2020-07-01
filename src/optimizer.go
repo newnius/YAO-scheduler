@@ -171,6 +171,10 @@ func (optimizer *Optimizer) PredictTime(job Job) OptimizerJobExecutionTime {
 	str := strings.Split(job.Name, "-")
 	if len(str) == 2 {
 		jobName = str[0]
+	} else if len(str) == 1 {
+		jobName = job.Name
+	} else {
+		return res
 	}
 	cmd := job.Tasks[0].Cmd
 	params := map[string]int{}
