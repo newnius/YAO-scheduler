@@ -137,7 +137,7 @@ func (optimizer *Optimizer) FeedTime(job Job, stats [][]TaskStatus) {
 			}
 
 			if optimizer.versions[jobName]%3 == 0 {
-				optimizer.trainReq(jobName)
+				optimizer.trainTime(jobName)
 			}
 		}
 	}()
