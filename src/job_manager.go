@@ -146,7 +146,7 @@ func (jm *JobManager) start() {
 	/* monitor job execution */
 	for {
 		//jm.status()
-		if !jm.isRunning {
+		if !jm.isRunning || jm.killFlag {
 			break
 		}
 		time.Sleep(time.Second * 1)
