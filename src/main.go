@@ -342,7 +342,7 @@ func main() {
 			os.Mkdir(loggerDir, os.ModePerm)
 		}
 		t := time.Now()
-		file := t.Format("20060102.15:04:05") + ".log"
+		file := t.Format("20060102.15_04_05") + ".log"
 		f, err := os.OpenFile(loggerDir+file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		defer f.Close()
 		if err != nil {
