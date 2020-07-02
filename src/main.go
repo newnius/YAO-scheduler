@@ -336,9 +336,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	value := os.Getenv("LoggerOutputDir")
-	if len(value) != 0 {
-		f, err := os.OpenFile(value, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	loggerDir := os.Getenv("LoggerOutputDir")
+	if len(loggerDir) != 0 {
+		if _, err := os.Stat(loggerDir); os.IsNotExist(err) {
+			os.Mkdir(loggerDir, os.ModePerm)
+		}
+		file := strconv.FormatInt(time.Now().Unix(), 10) + ".log"
+		f, err := os.OpenFile(loggerDir+file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		defer f.Close()
 		if err != nil {
 			log.Fatalf("error opening file: %v", err)
