@@ -110,7 +110,11 @@ func (jm *JobManager) start() {
 				v.Set("hdfs_address", InstanceOfConfiguration().HDFSAddress)
 				v.Set("hdfs_dir", InstanceOfConfiguration().HDFSBaseDir+jm.job.Name)
 				v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[index].MemoryGPU))
-				v.Set("dfs_src", InstanceOfConfiguration().DFSBaseDir+jm.job.Name+"/task-"+strconv.Itoa(index))
+				if InstanceOfConfiguration().DFSBaseDir != "" {
+					v.Set("dfs_src", InstanceOfConfiguration().DFSBaseDir+jm.job.Name+"/task-"+strconv.Itoa(index))
+				} else {
+					v.Set("dfs_src", "")
+				}
 				v.Set("dfs_dst", "/tmp")
 
 				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
