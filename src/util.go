@@ -46,11 +46,11 @@ type UtilGPUTimeSeries struct {
 }
 
 type OptimizerJobExecutionTime struct {
-	Pre     int `json:"pre"`
-	Post    int `json:"post"`
-	Total   int `json:"total"`
-	Main    int `json:"main"`
-	Version int `json:"version"`
+	Pre     int   `json:"pre"`
+	Post    int   `json:"post"`
+	Total   int   `json:"total"`
+	Main    int   `json:"main"`
+	Version int64 `json:"version"`
 }
 
 type OptimizerUtilGPU struct {

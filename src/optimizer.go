@@ -9,10 +9,13 @@ import (
 	"encoding/json"
 	"math"
 	"hash/fnv"
+	"time"
 )
 
 type Optimizer struct {
 	versions map[string]int
+	cache    map[string]OptimizerJobExecutionTime
+	cacheMu  sync.Mutex
 }
 
 var optimizerInstance *Optimizer
@@ -25,6 +28,25 @@ func InstanceOfOptimizer() *Optimizer {
 	if optimizerInstance == nil {
 		optimizerInstance = &Optimizer{}
 		optimizerInstance.versions = map[string]int{}
+		optimizerInstance.cache = map[string]OptimizerJobExecutionTime{}
+
+		go func() {
+			/* remove expired cache */
+			for {
+				time.Sleep(time.Second * 30)
+				optimizerInstance.cacheMu.Lock()
+				var expired []string
+				for k, v := range optimizerInstance.cache {
+					if time.Now().Unix()-v.Version > 300 {
+						expired = append(expired, k)
+					}
+				}
+				for _, k := range expired {
+					delete(optimizerInstance.cache, k)
+				}
+				optimizerInstance.cacheMu.Unlock()
+			}
+		}()
 	}
 	return optimizerInstance
 }
@@ -165,8 +187,14 @@ func (optimizer *Optimizer) trainTime(jobName string) {
 }
 
 func (optimizer *Optimizer) PredictTime(job Job) OptimizerJobExecutionTime {
-	res := OptimizerJobExecutionTime{Pre: 0, Post: 0, Total: math.MaxInt64}
+	optimizer.cacheMu.Lock()
+	if val, ok := optimizer.cache[job.Name]; ok {
+		optimizer.cacheMu.Unlock()
+		return val
+	}
+	optimizer.cacheMu.Unlock()
 
+	res := OptimizerJobExecutionTime{Pre: 0, Post: 0, Total: math.MaxInt64}
 	var jobName string
 	str := strings.Split(job.Name, "-")
 	if len(str) == 2 {
@@ -246,6 +274,10 @@ func (optimizer *Optimizer) PredictTime(job Job) OptimizerJobExecutionTime {
 			res.Total = int(math.Ceil(v))
 		}
 	}
+	res.Version = time.Now().Unix()
+	optimizer.cacheMu.Lock()
+	optimizer.cache[job.Name] = res
+	optimizer.cacheMu.Unlock()
 	return res
 }
 

@@ -1,18 +1,14 @@
 package main
 
 import (
-	"flag"
 	"net/http"
 	log "github.com/sirupsen/logrus"
 	"encoding/json"
-	"os"
 	"time"
 	"strconv"
 	"math/rand"
+	"os"
 )
-
-var addr = flag.String("addr", "0.0.0.0:8080", "http service address")
-var confFile = flag.String("conf", "/etc/yao/config.json", "configuration file path")
 
 var scheduler Scheduler
 
@@ -326,6 +322,13 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "debug_conf_dump":
+		log.Debug("debug_conf_dump")
+		js, _ := json.Marshal(InstanceOfConfiguration().Dump())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break
@@ -333,21 +336,19 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
-	/* read configuration */
-	file, err := os.Open(*confFile)
-	if err != nil {
-		log.Fatal(err)
+	value := os.Getenv("LoggerOutputDir")
+	if len(value) != 0 {
+		f, err := os.OpenFile(value, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		defer f.Close()
+		if err != nil {
+			log.Fatalf("error opening file: %v", err)
+		}
+		log.SetOutput(f)
 	}
-	defer file.Close()
+	//log.SetLevel(log.InfoLevel)
 
 	/* parse configuration */
-	decoder := json.NewDecoder(file)
-	config := Configuration{}
-	err = decoder.Decode(&config)
-	if err != nil {
-		log.Fatal(err)
-	}
+	config := *InstanceOfConfiguration()
 
 	/* init components */
 	InstanceOfResourcePool().init(config)
@@ -378,9 +379,8 @@ func main() {
 		serverAPI(w, r)
 	})
 
-	err = http.ListenAndServe(*addr, nil)
+	err := http.ListenAndServe(config.ListenAddr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
-
 }
