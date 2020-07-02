@@ -145,11 +145,11 @@ func (jm *JobManager) start() {
 
 	/* monitor job execution */
 	for {
-		jm.status()
+		//jm.status()
 		if !jm.isRunning {
 			break
 		}
-		time.Sleep(time.Second * 25)
+		time.Sleep(time.Second * 1)
 	}
 
 	/* make sure resources are released */
