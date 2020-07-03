@@ -5,18 +5,22 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+	"strconv"
 )
 
 type Configuration struct {
-	KafkaBrokers    []string `json:"KafkaBrokers"`
-	KafkaTopic      string   `json:"KafkaTopic"`
-	SchedulerPolicy string   `json:"SchedulerPolicy"`
-	ListenAddr      string   `json:"ListenAddr"`
-	HDFSAddress     string   `json:"HDFSAddress"`
-	HDFSBaseDir     string   `json:"HDFSBaseDir"`
-	DFSBaseDir      string   `json:"DFSBaseDir"`
-	mock            bool
-	mu              sync.Mutex
+	KafkaBrokers           []string `json:"KafkaBrokers"`
+	KafkaTopic             string   `json:"KafkaTopic"`
+	SchedulerPolicy        string   `json:"SchedulerPolicy"`
+	ListenAddr             string   `json:"ListenAddr"`
+	HDFSAddress            string   `json:"HDFSAddress"`
+	HDFSBaseDir            string   `json:"HDFSBaseDir"`
+	DFSBaseDir             string   `json:"DFSBaseDir"`
+	EnableShareRatio       float64  `json:"EnableShareRatio"`
+	EnablePreScheduleRatio float64  `json:"EnablePreScheduleRatio"`
+
+	mock bool
+	mu   sync.Mutex
 }
 
 var configurationInstance *Configuration
@@ -35,12 +39,14 @@ func InstanceOfConfiguration() *Configuration {
 				"kafka-node2:9092",
 				"kafka-node3:9092",
 			},
-			KafkaTopic:      "yao",
-			SchedulerPolicy: "fair",
-			ListenAddr:      "0.0.0.0:8080",
-			HDFSAddress:     "",
-			HDFSBaseDir:     "/user/root/",
-			DFSBaseDir:      "",
+			KafkaTopic:             "yao",
+			SchedulerPolicy:        "fair",
+			ListenAddr:             "0.0.0.0:8080",
+			HDFSAddress:            "",
+			HDFSBaseDir:            "/user/root/",
+			DFSBaseDir:             "",
+			EnableShareRatio:       1.5,
+			EnablePreScheduleRatio: 1.5,
 		}
 
 		/* override conf value from env */
@@ -68,9 +74,17 @@ func InstanceOfConfiguration() *Configuration {
 		if len(value) != 0 {
 			configurationInstance.HDFSBaseDir = value
 		}
-		value = os.Getenv("DFSBaseDir")
+		value = os.Getenv("EnableShareRatio")
 		if len(value) != 0 {
-			configurationInstance.DFSBaseDir = value
+			if val, err := strconv.ParseFloat(value, 32); err == nil {
+				configurationInstance.EnableShareRatio = val
+			}
+		}
+		value = os.Getenv("EnablePreScheduleRatio")
+		if len(value) != 0 {
+			if val, err := strconv.ParseFloat(value, 32); err == nil {
+				configurationInstance.EnablePreScheduleRatio = val
+			}
 		}
 	}
 	return configurationInstance
@@ -92,6 +106,18 @@ func (config *Configuration) DisableMock() bool {
 	return true
 }
 
+func (config *Configuration) SetShareRatio(ratio float64) bool {
+	config.EnableShareRatio = ratio
+	log.Info("enableShareRatio is updated to ", ratio)
+	return true
+}
+
+func (config *Configuration) SetPreScheduleRatio(ratio float64) bool {
+	config.EnablePreScheduleRatio = ratio
+	log.Info("enablePreScheduleRatio is updated to ", ratio)
+	return true
+}
+
 func (config *Configuration) Dump() map[string]interface{} {
 	res := map[string]interface{}{}
 	res["KafkaBrokers"] = config.KafkaBrokers
@@ -102,5 +128,7 @@ func (config *Configuration) Dump() map[string]interface{} {
 	res["HDFSAddress"] = config.HDFSAddress
 	res["HDFSBaseDir"] = config.HDFSBaseDir
 	res["DFSBaseDir"] = config.DFSBaseDir
+	res["EnableShareRatio"] = config.EnableShareRatio
+	res["EnablePreScheduleRatio"] = config.EnablePreScheduleRatio
 	return res
 }

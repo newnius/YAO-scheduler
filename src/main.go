@@ -255,7 +255,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
 			ratio = t
 		}
-		js, _ := json.Marshal(InstanceOfResourcePool().SetShareRatio(ratio))
+		js, _ := json.Marshal(InstanceOfConfiguration().SetShareRatio(ratio))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -266,7 +266,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
 			ratio = t
 		}
-		js, _ := json.Marshal(InstanceOfResourcePool().SetPreScheduleRatio(ratio))
+		js, _ := json.Marshal(InstanceOfConfiguration().SetPreScheduleRatio(ratio))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

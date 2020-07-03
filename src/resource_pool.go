@@ -57,11 +57,6 @@ type ResourcePool struct {
 	UsingGPU    int
 	UsingGPUMu  sync.Mutex
 
-	enableShare            bool
-	enableShareRatio       float64
-	enablePreSchedule      bool
-	enablePreScheduleRatio float64
-
 	enableBatch      bool
 	batchJobs        map[string]Job
 	batchMu          sync.Mutex
@@ -83,11 +78,6 @@ func (pool *ResourcePool) init(conf Configuration) {
 
 	pool.TotalCPU = 0
 	pool.TotalMemory = 0
-
-	pool.enableShare = true
-	pool.enableShareRatio = 0.75
-	pool.enablePreSchedule = true
-	pool.enablePreScheduleRatio = 0.95
 
 	pool.enableBatch = false
 	pool.batchAllocations = map[string][]NodeStatus{}
@@ -734,6 +724,8 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 		start = start.Next
 	}
 
+	config := InstanceOfConfiguration()
+
 	locks := map[int]*sync.Mutex{}
 
 	allocationType := 0
@@ -747,7 +739,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 	loadRatio := float64(pool.UsingGPU) / float64(pool.TotalGPU)
 	/* first, choose sharable GPUs */
-	if pool.enableShare && len(job.Tasks) == 1 && task.NumberGPU == 1 && loadRatio >= pool.enableShareRatio {
+	if len(job.Tasks) == 1 && task.NumberGPU == 1 && loadRatio >= config.EnableShareRatio {
 		// check sharable
 		allocationType = 1
 		pred := InstanceOfOptimizer().PredictReq(job, "Worker")
@@ -859,11 +851,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	}
 
 	/* third round, find gpu to be released */
-	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 && pool.enablePreSchedule {
+	if len(candidates) == 0 && len(job.Tasks) == 1 && task.NumberGPU == 1 {
 		estimate := InstanceOfOptimizer().PredictTime(job)
 		log.Debug(estimate)
 
-		if loadRatio >= pool.enablePreScheduleRatio {
+		if loadRatio >= config.EnablePreScheduleRatio {
 			allocationType = 3
 			availables := map[string][]GPUStatus{}
 			for cur := start; ; {
@@ -1113,18 +1105,6 @@ func (pool *ResourcePool) SetBatchInterval(interval int) bool {
 	}
 	pool.batchInterval = interval
 	log.Info("batchInterval is updated to ", interval)
-	return true
-}
-
-func (pool *ResourcePool) SetShareRatio(ratio float64) bool {
-	pool.enableShareRatio = ratio
-	log.Info("enableShareRatio is updated to ", ratio)
-	return true
-}
-
-func (pool *ResourcePool) SetPreScheduleRatio(ratio float64) bool {
-	pool.enablePreScheduleRatio = ratio
-	log.Info("enablePreScheduleRatio is updated to ", ratio)
 	return true
 }
 
