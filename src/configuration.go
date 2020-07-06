@@ -74,6 +74,10 @@ func InstanceOfConfiguration() *Configuration {
 		if len(value) != 0 {
 			configurationInstance.HDFSBaseDir = value
 		}
+		value = os.Getenv("DFSBaseDir")
+		if len(value) != 0 {
+			configurationInstance.DFSBaseDir = value
+		}
 		value = os.Getenv("EnableShareRatio")
 		if len(value) != 0 {
 			if val, err := strconv.ParseFloat(value, 32); err == nil {
