@@ -72,6 +72,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgJobReq.Code = 1
 			msgJobReq.Error = err.Error()
 		} else {
+			job.Name = job.Name + "-"
+			job.Name += strconv.FormatInt(time.Now().UnixNano(), 10)
+			job.Name += strconv.Itoa(10000 + rand.Intn(89999))
 			msgJobReq = InstanceOfOptimizer().PredictReq(job, role)
 		}
 		js, err := json.Marshal(msgJobReq)
@@ -91,6 +94,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			msgJobReq.Code = 1
 			msgJobReq.Error = err.Error()
 		} else {
+			job.Name = job.Name + "-"
+			job.Name += strconv.FormatInt(time.Now().UnixNano(), 10)
+			job.Name += strconv.Itoa(10000 + rand.Intn(89999))
 			msg := InstanceOfOptimizer().PredictTime(job)
 			msgJobReq.Pre = msg.Pre
 			msgJobReq.Post = msg.Post
