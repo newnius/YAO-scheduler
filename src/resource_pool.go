@@ -714,7 +714,6 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	if len(job.Tasks) == 0 {
 		return []NodeStatus{}
 	}
-	task := job.Tasks[0]
 	segID := rand.Intn(pool.poolsCount)
 	if pool.TotalGPU < 100 {
 		segID = 0
@@ -739,6 +738,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 
 	loadRatio := float64(pool.UsingGPU) / float64(pool.TotalGPU)
 	/* first, choose sharable GPUs */
+	task := job.Tasks[0]
 	if len(job.Tasks) == 1 && task.NumberGPU == 1 && loadRatio >= config.EnableShareRatio {
 		// check sharable
 		allocationType = 1
@@ -803,8 +803,6 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 						}
 						node.Status[j].MemoryAllocated += task.MemoryGPU
 						res.Status[i].MemoryTotal = task.MemoryGPU
-						/* being used, means share */
-						res.Status[i].MemoryUsed = 100
 					}
 				}
 			}
@@ -917,7 +915,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 							node.Status[j].MemoryAllocated += task.MemoryGPU
 							res.Status[i].MemoryTotal = task.MemoryGPU
 							/* being fully used, means ahead */
-							res.Status[i].MemoryUsed = task.MemoryGPU
+							res.Status[i].MemoryUsed = res.Status[i].MemoryTotal
 						}
 					}
 				}

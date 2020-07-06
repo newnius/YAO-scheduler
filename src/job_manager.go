@@ -88,7 +88,7 @@ func (jm *JobManager) start() {
 					if GPU.MemoryUsed == GPU.MemoryTotal {
 						shouldWait = "1"
 						isScheduleAhead = true
-					} else if GPU.MemoryUsed > 0 {
+					} else if GPU.MemoryAllocated > 0 {
 						isShare = true
 					}
 					/* attach to GPUs */
