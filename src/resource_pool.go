@@ -761,7 +761,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 								utilT := InstanceOfOptimizer().PredictReq(job, "Worker").UtilGPU
 								totalUtil += utilT
 							}
-							if totalUtil < 100 {
+							if totalUtil < int(InstanceOfConfiguration().ShareMaxUtilization*100) {
 								available = append(available, status)
 							}
 						}
@@ -872,7 +872,7 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 							for _, jobT := range jobs {
 								est := InstanceOfOptimizer().PredictTime(jobT)
 								now := time.Now().Unix()
-								if int(now-jobT.StartedAt) > est.Total-est.Post-estimate.Pre-15 {
+								if int(now-jobT.StartedAt) > est.Total-est.Post-estimate.Pre-InstanceOfConfiguration().PreScheduleExtraTime {
 									available = append(available, status)
 								}
 							}

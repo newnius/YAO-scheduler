@@ -120,6 +120,8 @@ func (jm *JobManager) start() {
 				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 				if err != nil {
 					log.Warn(err.Error())
+					jm.job.Status = Failed
+					jm.stop(false)
 					return
 				}
 
@@ -127,6 +129,8 @@ func (jm *JobManager) start() {
 				resp.Body.Close()
 				if err != nil {
 					log.Warn(err)
+					jm.job.Status = Failed
+					jm.stop(false)
 					return
 				}
 
@@ -134,6 +138,8 @@ func (jm *JobManager) start() {
 				err = json.Unmarshal([]byte(string(body)), &res)
 				if err != nil || res.Code != 0 {
 					log.Warn(res)
+					jm.job.Status = Failed
+					jm.stop(false)
 					return
 				}
 				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost, HostName: jm.job.Tasks[i].Name}

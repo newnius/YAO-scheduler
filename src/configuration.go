@@ -17,7 +17,10 @@ type Configuration struct {
 	HDFSBaseDir            string   `json:"HDFSBaseDir"`
 	DFSBaseDir             string   `json:"DFSBaseDir"`
 	EnableShareRatio       float64  `json:"EnableShareRatio"`
+	ShareMaxUtilization    float64  `json:"ShareMaxUtilization"`
 	EnablePreScheduleRatio float64  `json:"EnablePreScheduleRatio"`
+	PreScheduleExtraTime   int      `json:"PreScheduleExtraTime"` /* seconds to schedule ahead except pre+post */
+	PreScheduleTimeout     int      `json:"PreScheduleTimeout"`
 
 	mock bool
 	mu   sync.Mutex
@@ -46,7 +49,9 @@ func InstanceOfConfiguration() *Configuration {
 			HDFSBaseDir:            "/user/root/",
 			DFSBaseDir:             "",
 			EnableShareRatio:       1.5,
+			ShareMaxUtilization:    1.3, // more than 1.0 to expect more improvement
 			EnablePreScheduleRatio: 1.5,
+			PreScheduleExtraTime:   15,
 		}
 
 		/* override conf value from env */
@@ -84,10 +89,28 @@ func InstanceOfConfiguration() *Configuration {
 				configurationInstance.EnableShareRatio = val
 			}
 		}
+		value = os.Getenv("ShareMaxUtilization")
+		if len(value) != 0 {
+			if val, err := strconv.ParseFloat(value, 32); err == nil {
+				configurationInstance.ShareMaxUtilization = val
+			}
+		}
 		value = os.Getenv("EnablePreScheduleRatio")
 		if len(value) != 0 {
 			if val, err := strconv.ParseFloat(value, 32); err == nil {
 				configurationInstance.EnablePreScheduleRatio = val
+			}
+		}
+		value = os.Getenv("PreScheduleExtraTime")
+		if len(value) != 0 {
+			if val, err := strconv.Atoi(value); err == nil {
+				configurationInstance.PreScheduleExtraTime = val
+			}
+		}
+		value = os.Getenv("PreScheduleTimeout")
+		if len(value) != 0 {
+			if val, err := strconv.Atoi(value); err == nil {
+				configurationInstance.PreScheduleTimeout = val
 			}
 		}
 	}
@@ -133,6 +156,9 @@ func (config *Configuration) Dump() map[string]interface{} {
 	res["HDFSBaseDir"] = config.HDFSBaseDir
 	res["DFSBaseDir"] = config.DFSBaseDir
 	res["EnableShareRatio"] = config.EnableShareRatio
+	res["ShareMaxUtilization"] = config.ShareMaxUtilization
 	res["EnablePreScheduleRatio"] = config.EnablePreScheduleRatio
+	res["PreScheduleExtraTime"] = config.PreScheduleExtraTime
+	res["PreScheduleTimeout"] = config.PreScheduleTimeout
 	return res
 }
