@@ -105,6 +105,8 @@ func (optimizer *Optimizer) FeedTime(job Job, stats [][]TaskStatus) {
 
 			exceptions := map[string]bool{}
 			exceptions["train_dir"] = true
+			exceptions["data__dir"] = true
+			exceptions["tmp__dir"] = true
 			exceptions["variable_update"] = true
 			exceptions["ps_hosts"] = true
 			exceptions["worker_hosts"] = true

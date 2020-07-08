@@ -1,5 +1,10 @@
 package main
 
+type MsgAgentReport struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
 type MsgSubmit struct {
 	Code  int    `json:"code"`
 	Error string `json:"error"`

@@ -14,6 +14,28 @@ var scheduler Scheduler
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Query().Get("action") {
+	case "agent_report":
+		log.Debug("agent_report")
+		msgAgentReport := MsgAgentReport{Code: 0}
+		var nodeStatus NodeStatus
+		err := json.Unmarshal([]byte(string(r.PostFormValue("data"))), &nodeStatus)
+		if err != nil {
+			msgAgentReport.Code = 1
+			msgAgentReport.Error = err.Error()
+			log.Warn(err)
+		} else {
+			go func() {
+				InstanceOfResourcePool().update(nodeStatus)
+			}()
+		}
+		js, err := json.Marshal(msgAgentReport)
+		if err != nil {
+			log.Warn(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	case "resource_list":
 		js, _ := json.Marshal(InstanceOfResourcePool().list())
 		w.Header().Set("Content-Type", "application/json")
@@ -363,7 +385,7 @@ func main() {
 
 	/* init components */
 	InstanceOfResourcePool().init(config)
-	InstanceOfCollector().init(config)
+	//InstanceOfCollector().init(config)
 	InstanceJobHistoryLogger().init(config)
 	InstanceOfOptimizer().Init(config)
 	InstanceOfGroupManager().init(config)
