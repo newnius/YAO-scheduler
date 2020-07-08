@@ -67,6 +67,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 				job.Tasks[i].Job = job.Name
 			}
 			job.CreatedAt = int(time.Now().Unix())
+			msgSubmit.JobName = job.Name
 			scheduler.Schedule(job)
 		}
 		js, err := json.Marshal(msgSubmit)

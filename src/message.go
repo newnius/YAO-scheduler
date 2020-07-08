@@ -6,8 +6,9 @@ type MsgAgentReport struct {
 }
 
 type MsgSubmit struct {
-	Code  int    `json:"code"`
-	Error string `json:"error"`
+	Code    int    `json:"code"`
+	Error   string `json:"error"`
+	JobName string `json:"jobName"`
 }
 
 type MsgPoolStatusHistory struct {
