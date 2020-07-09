@@ -358,6 +358,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "conf_set_share_max_utilization":
+		log.Debug("conf_set_share_max_utilization")
+		util, _ := strconv.ParseFloat(r.URL.Query().Get("util"), 32)
+		js, _ := json.Marshal(InstanceOfConfiguration().SetShareMaxUtilization(util))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
 	default:
 		http.Error(w, "Not Found", http.StatusNotFound)
 		break

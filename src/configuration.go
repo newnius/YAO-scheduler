@@ -145,6 +145,12 @@ func (config *Configuration) SetPreScheduleRatio(ratio float64) bool {
 	return true
 }
 
+func (config *Configuration) SetShareMaxUtilization(value float64) bool {
+	config.ShareMaxUtilization = value
+	log.Info("ShareMaxUtilization is set to ", value)
+	return true
+}
+
 func (config *Configuration) Dump() map[string]interface{} {
 	res := map[string]interface{}{}
 	res["KafkaBrokers"] = config.KafkaBrokers

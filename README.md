@@ -113,3 +113,8 @@ GPU is occupied by which job(s)
 ```
 ?aciotn=allocator_update_strategy&strategy=mixed
 ```
+
+**UpdateShareMaxUtilization**
+```
+?aciotn=conf_set_share_max_utilization&util=1.5
+```
