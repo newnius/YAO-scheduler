@@ -175,13 +175,6 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "get_bindings":
-		log.Debug("get_bindings")
-		js, _ := json.Marshal(InstanceOfResourcePool().getBindings())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
 	case "group_list":
 		log.Debug("group_list")
 		js, _ := json.Marshal(InstanceOfGroupManager().List())
@@ -332,7 +325,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 	case "debug_pool_dump":
 		log.Debug("debug_pool_dump")
-		js, _ := json.Marshal(InstanceOfResourcePool().DebugDump())
+		js, _ := json.Marshal(InstanceOfResourcePool().Dump())
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

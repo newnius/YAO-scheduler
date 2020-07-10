@@ -162,6 +162,8 @@ func (jm *JobManager) start() {
 	jm.returnResource(jm.status().Status)
 
 	/* feed data to optimizer */
+	isExclusive := InstanceOfResourcePool().isExclusive(jm.job.Name)
+
 	var stats [][]TaskStatus
 	for _, vals := range jm.stats {
 		var stat []TaskStatus
@@ -174,7 +176,9 @@ func (jm *JobManager) start() {
 			stats = append(stats, stat)
 		}
 	}
-	InstanceOfOptimizer().FeedStats(jm.job, "PS", stats)
+	if isExclusive {
+		InstanceOfOptimizer().FeedStats(jm.job, "PS", stats)
+	}
 	stats = [][]TaskStatus{}
 	for _, vals := range jm.stats {
 		var stat []TaskStatus
@@ -187,9 +191,11 @@ func (jm *JobManager) start() {
 			stats = append(stats, stat)
 		}
 	}
-	InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
+	if isExclusive {
+		InstanceOfOptimizer().FeedStats(jm.job, "Worker", stats)
+	}
 
-	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead && jm.job.Status == Finished {
+	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead && jm.job.Status == Finished && isExclusive {
 		InstanceOfOptimizer().FeedTime(jm.job, stats)
 	}
 	log.Info("JobMaster exited ", jm.job.Name)
