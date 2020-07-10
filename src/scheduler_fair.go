@@ -558,6 +558,10 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 		}
 		sort.Sort(sort.Reverse(scheduler.queues[queue]))
 
+		/* minimum is 1, to avoid divide by zero error following */
+		if request.NumberGPU == 0 {
+			request.NumberGPU = 1
+		}
 		if quota, ok := scheduler.queuesQuota[queue]; ok && quota.NumberGPU >= request.NumberGPU*1000 {
 			continue
 		}

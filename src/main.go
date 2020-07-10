@@ -54,10 +54,19 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		log.Debug("job_submit")
 		msgSubmit := MsgSubmit{Code: 0}
 		err := json.Unmarshal([]byte(string(r.PostFormValue("job"))), &job)
-		log.Info("Submit job ", job.Name, " at ", time.Now())
+
 		if err != nil {
 			msgSubmit.Code = 1
 			msgSubmit.Error = err.Error()
+		} else if len(job.Tasks) == 0 {
+			msgSubmit.Code = 2
+			msgSubmit.Error = "task not found in the job"
+		} else if InstanceOfGroupManager().get(job.Group) == nil {
+			msgSubmit.Code = 2
+			msgSubmit.Error = "Queue not found"
+		} else if len(job.Workspace) == 0 {
+			msgSubmit.Code = 2
+			msgSubmit.Error = "Docker image cannot be empty"
 		} else {
 			job.Name = job.Name + "-"
 			job.Name += strconv.FormatInt(time.Now().UnixNano(), 10)
