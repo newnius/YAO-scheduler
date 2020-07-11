@@ -31,9 +31,12 @@ func (allocator *Allocator) init(conf Configuration) {
 }
 
 func (allocator *Allocator) updateStrategy(strategy string) bool {
-	allocator.allocationStrategy = strategy
-	log.Info("Allocator strategy switched to ", strategy)
-	return true
+	if strategy == "bestfit" || strategy == "ga" || strategy == "mixed" {
+		allocator.allocationStrategy = strategy
+		log.Info("Allocator strategy switched to ", strategy)
+		return true
+	}
+	return false
 }
 
 func (allocator *Allocator) allocate(nodes []NodeStatus, tasks []Task) Allocation {

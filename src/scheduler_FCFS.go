@@ -167,13 +167,9 @@ func (scheduler *SchedulerFCFS) Summary() MsgSummary {
 	return summary
 }
 
-func (scheduler *SchedulerFCFS) Enable() bool {
-	scheduler.enabled = true
-	return true
-}
-
-func (scheduler *SchedulerFCFS) Disable() bool {
-	scheduler.enabled = false
+func (scheduler *SchedulerFCFS) SetEnabled(enabled bool) bool {
+	scheduler.enabled = enabled
+	log.Info("scheduler is set to ", enabled)
 	return true
 }
 

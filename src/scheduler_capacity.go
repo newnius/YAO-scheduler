@@ -381,15 +381,9 @@ func (scheduler *SchedulerCapacity) UpdateNextQueue() {
 	log.Debug("updateNextQueue ->", next)
 }
 
-func (scheduler *SchedulerCapacity) Enable() bool {
-	scheduler.enabled = true
-	log.Info("scheduler is enabled ", time.Now())
-	return true
-}
-
-func (scheduler *SchedulerCapacity) Disable() bool {
-	scheduler.enabled = false
-	log.Info("scheduler is disabled ", time.Now())
+func (scheduler *SchedulerCapacity) SetEnabled(enabled bool) bool {
+	scheduler.enabled = enabled
+	log.Info("scheduler is set to ", enabled)
 	return true
 }
 

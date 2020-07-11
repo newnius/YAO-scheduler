@@ -796,15 +796,9 @@ func (scheduler *SchedulerFair) Summary() MsgSummary {
 	return summary
 }
 
-func (scheduler *SchedulerFair) Enable() bool {
-	scheduler.enabled = true
-	log.Info("scheduler is enabled ", time.Now())
-	return true
-}
-
-func (scheduler *SchedulerFair) Disable() bool {
-	scheduler.enabled = false
-	log.Info("scheduler is disabled ", time.Now())
+func (scheduler *SchedulerFair) SetEnabled(enabled bool) bool {
+	scheduler.enabled = enabled
+	log.Info("scheduler is set to ", enabled)
 	return true
 }
 

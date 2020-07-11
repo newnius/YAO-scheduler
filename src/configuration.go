@@ -117,19 +117,11 @@ func InstanceOfConfiguration() *Configuration {
 	return configurationInstance
 }
 
-func (config *Configuration) EnableMock() bool {
+func (config *Configuration) SetMockEnabled(enabled bool) bool {
 	config.mu.Lock()
 	defer config.mu.Unlock()
-	config.mock = true
-	log.Info("configuration.mock = true")
-	return true
-}
-
-func (config *Configuration) DisableMock() bool {
-	config.mu.Lock()
-	defer config.mu.Unlock()
-	config.mock = false
-	log.Info("configuration.mock = false")
+	config.mock = enabled
+	log.Info("configuration.mock = ", enabled)
 	return true
 }
 

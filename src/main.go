@@ -250,84 +250,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "debug_enable":
-		log.Debug("enable schedule")
-		js, _ := json.Marshal(scheduler.Enable())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_disable":
-		log.Debug("disable schedule")
-		js, _ := json.Marshal(scheduler.Disable())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
 	case "debug_scheduler_dump":
 		log.Debug("debug_scheduler_dump")
 		js, _ := json.Marshal(scheduler.DebugDump())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_update_parallelism":
-		log.Debug("update_parallelism")
-		parallelism, _ := strconv.Atoi(r.URL.Query().Get("parallelism"))
-		js, _ := json.Marshal(scheduler.UpdateParallelism(parallelism))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_update_enable_share_ratio":
-		log.Debug("debug_update_enable_share_ratio")
-
-		ratio := 0.75
-		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
-			ratio = t
-		}
-		js, _ := json.Marshal(InstanceOfConfiguration().SetShareRatio(ratio))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_update_enable_pre_schedule_ratio":
-		log.Debug("debug_update_enable_pre_schedule_ratio")
-		ratio := 0.95
-		if t, err := strconv.ParseFloat(r.URL.Query().Get("ratio"), 32); err == nil {
-			ratio = t
-		}
-		js, _ := json.Marshal(InstanceOfConfiguration().SetPreScheduleRatio(ratio))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "allocator_update_strategy":
-		log.Debug("allocator_update_strategy")
-		strategy := r.URL.Query().Get("strategy")
-		js, _ := json.Marshal(InstanceOfAllocator().updateStrategy(strategy))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "pool_enable_batch":
-		log.Debug("pool_enable_batch")
-		js, _ := json.Marshal(InstanceOfResourcePool().EnableBatch())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "pool_disable_batch":
-		log.Debug("pool_disable_batch")
-		js, _ := json.Marshal(InstanceOfResourcePool().DisableBatch())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "pool_set_batch_interval":
-		log.Debug("pool_set_batch_interval")
-		interval := str2int(r.URL.Query().Get("interval"), 1)
-		js, _ := json.Marshal(InstanceOfResourcePool().SetBatchInterval(interval))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
@@ -339,31 +264,82 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "debug_enable_mock":
-		log.Debug("debug_enable_mock")
-		js, _ := json.Marshal(InstanceOfConfiguration().EnableMock())
+	case "conf_list":
+		log.Debug("conf_list")
+		var msg MsgConfList
+		msg.Code = 0
+		msg.Options = InstanceOfConfiguration().Dump()
+		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
-	case "debug_disable_mock":
-		log.Debug("debug_disable_mock")
-		js, _ := json.Marshal(InstanceOfConfiguration().DisableMock())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
+	case "conf_update":
+		log.Debug("conf_update")
+		option := r.URL.Query().Get("option")
+		value := r.URL.Query().Get("value")
+		ok := false
+		switch option {
+		/* pool.share */
+		case "pool.share.enable_threshold":
+			if threshold, err := strconv.ParseFloat(value, 32); err == nil {
+				ok = InstanceOfConfiguration().SetShareRatio(threshold)
+			}
+			break
 
-	case "debug_conf_dump":
-		log.Debug("debug_conf_dump")
-		js, _ := json.Marshal(InstanceOfConfiguration().Dump())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
+		case "pool.share.max_utilization":
+			util, err := strconv.ParseFloat(value, 32)
+			if err == nil {
+				ok = InstanceOfConfiguration().SetShareMaxUtilization(util)
+			}
+			break
 
-	case "conf_set_share_max_utilization":
-		log.Debug("conf_set_share_max_utilization")
-		util, _ := strconv.ParseFloat(r.URL.Query().Get("util"), 32)
-		js, _ := json.Marshal(InstanceOfConfiguration().SetShareMaxUtilization(util))
+			/* pool.pre_schedule */
+		case "pool.pre_schedule.enable_threshold":
+			if threshold, err := strconv.ParseFloat(value, 32); err == nil {
+				ok = InstanceOfConfiguration().SetPreScheduleRatio(threshold)
+			}
+			break
+
+			/* pool.batch */
+		case "pool.batch.enabled":
+			ok = InstanceOfResourcePool().SetBatchEnabled(value == "true")
+			break
+
+		case "pool.batch.interval":
+			interval := str2int(value, 1)
+			ok = InstanceOfResourcePool().SetBatchInterval(interval)
+			break
+
+			/* scheduler.mock */
+		case "scheduler.mock.enabled":
+			ok = InstanceOfConfiguration().SetMockEnabled(value == "true")
+			break
+
+			/* scheduler.enabled */
+		case "scheduler.enabled":
+			ok = scheduler.SetEnabled(value == "true")
+			break
+
+			/* scheduler.parallelism */
+		case "scheduler.parallelism":
+			parallelism, _ := strconv.Atoi(value)
+			ok = scheduler.UpdateParallelism(parallelism)
+			break
+
+			/* allocator.strategy */
+		case "allocator.strategy":
+			ok = InstanceOfAllocator().updateStrategy(value)
+			break
+
+		}
+		var msg MsgConfUpdate
+		msg.Code = 0
+		if !ok {
+			msg.Code = 1
+			msg.Error = "Option not exist or invalid value"
+		}
+		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break

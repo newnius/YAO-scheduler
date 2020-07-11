@@ -1073,15 +1073,9 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	}
 }
 
-func (pool *ResourcePool) EnableBatch() bool {
-	pool.enableBatch = true
-	log.Info("enableBatch is set to true")
-	return true
-}
-
-func (pool *ResourcePool) DisableBatch() bool {
-	pool.enableBatch = false
-	log.Info("enableBatch is set to false")
+func (pool *ResourcePool) SetBatchEnabled(enabled bool) bool {
+	pool.enableBatch = enabled
+	log.Info("enableBatch is set to ", enabled)
 	return true
 }
 

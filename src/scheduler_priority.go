@@ -311,13 +311,9 @@ func (scheduler *SchedulerPriority) Summary() MsgSummary {
 	return summary
 }
 
-func (scheduler *SchedulerPriority) Enable() bool {
-	scheduler.enabled = true
-	return true
-}
-
-func (scheduler *SchedulerPriority) Disable() bool {
-	scheduler.enabled = false
+func (scheduler *SchedulerPriority) SetEnabled(enabled bool) bool {
+	scheduler.enabled = enabled
+	log.Info("scheduler is set to ", enabled)
 	return true
 }
 

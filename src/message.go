@@ -103,3 +103,14 @@ type MsgJobReqPredict struct {
 	Error  string             `json:"error"`
 	Labels map[string]float64 `json:"labels"`
 }
+
+type MsgConfUpdate struct {
+	Code  int    `json:"code"`
+	Error string `json:"error"`
+}
+
+type MsgConfList struct {
+	Code    int                    `json:"code"`
+	Error   string                 `json:"error"`
+	Options map[string]interface{} `json:"options"`
+}

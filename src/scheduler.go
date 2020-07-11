@@ -21,9 +21,7 @@ type Scheduler interface {
 
 	Summary() MsgSummary
 
-	Enable() bool
-
-	Disable() bool
+	SetEnabled(enabled bool) bool
 
 	UpdateParallelism(parallelism int) bool
 
