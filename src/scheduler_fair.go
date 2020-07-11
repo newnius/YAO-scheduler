@@ -367,7 +367,11 @@ func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
 	defer scheduler.historyMu.Unlock()
 
 	scheduler.schedulingMu.Lock()
-	delete(scheduler.schedulingJobs, job.Name)
+	if _, ok := scheduler.schedulingJobs[job.Name]; ok {
+		delete(scheduler.schedulingJobs, job.Name)
+		scheduler.allocatingGPU -= job.NumberGPU
+		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
+	}
 	scheduler.schedulingMu.Unlock()
 
 	switch state {
@@ -456,15 +460,6 @@ func (scheduler *SchedulerFair) Schedule(job Job) {
 
 func (scheduler *SchedulerFair) AcquireResource(job Job) []NodeStatus {
 	res := InstanceOfResourcePool().acquireResource(job)
-	if len(res) != 0 {
-		for _, task := range job.Tasks {
-
-			scheduler.allocatingGPUMu.Lock()
-			scheduler.allocatingGPU -= task.NumberGPU
-			scheduler.allocatingGPUMu.Unlock()
-		}
-		log.Info("allocatingGPU is ", scheduler.allocatingGPU)
-	}
 	go func() {
 		scheduler.UpdateQuota()
 	}()
