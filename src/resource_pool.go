@@ -67,8 +67,6 @@ type ResourcePool struct {
 func (pool *ResourcePool) init(conf Configuration) {
 	log.Info("RM started ")
 
-	InstanceOfConfiguration().LoggerEnableModule("RM")
-
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
 

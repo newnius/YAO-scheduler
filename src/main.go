@@ -364,6 +364,8 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	log = Logger{}
+	log.Init()
 	loggerDir := os.Getenv("LoggerOutputDir")
 	if len(loggerDir) != 0 {
 		if _, err := os.Stat(loggerDir); os.IsNotExist(err) {

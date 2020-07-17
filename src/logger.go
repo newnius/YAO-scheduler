@@ -9,10 +9,6 @@ import (
 )
 
 type Logger struct {
-	DebugLevel int
-	InfoLevel  int
-	WarnLevel  int
-
 	LoggerLevel          string          `json:"logger.level"`
 	LoggerModuleDisabled map[string]bool `json:"logger.modules_disabled"`
 	mu                   sync.Mutex
