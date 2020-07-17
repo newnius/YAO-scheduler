@@ -3,7 +3,6 @@ package main
 import (
 	"strconv"
 	"time"
-	log "github.com/sirupsen/logrus"
 	"testing"
 )
 
@@ -50,8 +49,8 @@ func TestBestFit(t *testing.T) {
 	}
 	s := time.Now()
 	allocation := InstanceOfAllocator().fastBestFit(nodes, tasks)
-	log.Println(time.Since(s))
-	log.Println(allocation)
+	log.Info(time.Since(s))
+	log.Info(allocation)
 }
 
 func TestGA(t *testing.T) {

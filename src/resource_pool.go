@@ -5,7 +5,6 @@ import (
 	"time"
 	"net/url"
 	"strings"
-	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
 	"sort"
@@ -30,7 +29,8 @@ type ResourcePool struct {
 	pools      []PoolSeg
 	poolsMu    sync.Mutex
 
-	history []PoolStatus
+	history   []PoolStatus
+	historyMu sync.Mutex
 
 	heartBeat    map[string]time.Time
 	heartBeatMu  sync.Mutex
@@ -66,6 +66,8 @@ type ResourcePool struct {
 
 func (pool *ResourcePool) init(conf Configuration) {
 	log.Info("RM started ")
+
+	InstanceOfConfiguration().LoggerEnableModule("RM")
 
 	pool.networks = map[string]bool{}
 	pool.networksFree = map[string]bool{}
@@ -289,11 +291,12 @@ func (pool *ResourcePool) saveStatusHistory() {
 		summary.TotalMemGPU = TotalMemGPU
 		summary.AvailableMemGPU = AvailableMemGPU
 
+		pool.historyMu.Lock()
 		pool.history = append(pool.history, summary)
-
 		if len(pool.history) > 60 {
 			pool.history = pool.history[len(pool.history)-60:]
 		}
+		pool.historyMu.Unlock()
 
 		pool.TotalGPUMu.Lock()
 		pool.TotalGPU = TotalGPU
@@ -490,7 +493,10 @@ func (pool *ResourcePool) list() MsgResource {
 }
 
 func (pool *ResourcePool) statusHistory() MsgPoolStatusHistory {
-	return MsgPoolStatusHistory{Code: 0, Data: pool.history}
+	pool.historyMu.Lock()
+	defer pool.historyMu.Unlock()
+	history := pool.history
+	return MsgPoolStatusHistory{Code: 0, Data: history}
 }
 
 func (pool *ResourcePool) getCounter() map[string]int {
@@ -514,7 +520,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 			v.Set("name", network)
 			resp, err := doRequest("POST", "http://yao-agent-master:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
 			if err != nil {
-				log.Println(err.Error())
+				log.Warn(err.Error())
 				continue
 			}
 			resp.Body.Close()

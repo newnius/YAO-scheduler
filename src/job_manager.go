@@ -6,7 +6,6 @@ import (
 	"strings"
 	"io/ioutil"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"sync"
 	"strconv"
 	"math/rand"
@@ -346,7 +345,7 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 	var res MsgLog
 	err = json.Unmarshal([]byte(string(body)), &res)
 	if err != nil {
-		log.Println(err)
+		log.Warn(err)
 		return MsgLog{Code: 3, Error: "Unknown"}
 	}
 	return res

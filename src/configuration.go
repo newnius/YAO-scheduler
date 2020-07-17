@@ -2,7 +2,6 @@ package main
 
 import (
 	"sync"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
 	"strconv"
@@ -126,24 +125,32 @@ func (config *Configuration) SetMockEnabled(enabled bool) bool {
 }
 
 func (config *Configuration) SetShareRatio(ratio float64) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
 	config.EnableShareRatio = ratio
 	log.Info("enableShareRatio is updated to ", ratio)
 	return true
 }
 
 func (config *Configuration) SetPreScheduleRatio(ratio float64) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
 	config.EnablePreScheduleRatio = ratio
 	log.Info("enablePreScheduleRatio is updated to ", ratio)
 	return true
 }
 
 func (config *Configuration) SetShareMaxUtilization(value float64) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
 	config.ShareMaxUtilization = value
 	log.Info("ShareMaxUtilization is set to ", value)
 	return true
 }
 
 func (config *Configuration) Dump() map[string]interface{} {
+	config.mu.Lock()
+	defer config.mu.Unlock()
 	res := map[string]interface{}{}
 	res["KafkaBrokers"] = config.KafkaBrokers
 	res["KafkaTopic"] = config.KafkaTopic
@@ -158,5 +165,7 @@ func (config *Configuration) Dump() map[string]interface{} {
 	res["EnablePreScheduleRatio"] = config.EnablePreScheduleRatio
 	res["PreScheduleExtraTime"] = config.PreScheduleExtraTime
 	res["PreScheduleTimeout"] = config.PreScheduleTimeout
+	res["logger.level"] = log.LoggerLevel
+	res["logger.modules_disabled"] = log.LoggerModuleDisabled
 	return res
 }

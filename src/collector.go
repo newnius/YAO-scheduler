@@ -4,7 +4,6 @@ import (
 	"sync"
 	"github.com/Shopify/sarama"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 

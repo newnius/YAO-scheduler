@@ -3,7 +3,6 @@ package main
 import (
 	"testing"
 	"strconv"
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 

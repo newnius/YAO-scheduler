@@ -3,7 +3,6 @@ package main
 import (
 	"sync"
 	"time"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"sort"
 )

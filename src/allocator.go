@@ -2,7 +2,6 @@ package main
 
 import (
 	"sync"
-	log "github.com/sirupsen/logrus"
 	"math"
 	"time"
 	"github.com/MaxHalford/eaopt"

@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"github.com/MaxHalford/eaopt"
 	"math"
-	log "github.com/sirupsen/logrus"
 )
 
 // A resource allocation

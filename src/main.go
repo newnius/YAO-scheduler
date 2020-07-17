@@ -2,13 +2,14 @@ package main
 
 import (
 	"net/http"
-	log "github.com/sirupsen/logrus"
 	"encoding/json"
 	"time"
 	"strconv"
 	"math/rand"
 	"os"
 )
+
+var log Logger
 
 var scheduler Scheduler
 
@@ -332,6 +333,18 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			ok = InstanceOfAllocator().updateStrategy(value)
 			break
 
+		case "logger.level":
+			ok = log.SetLoggerLevel(value)
+			break
+
+		case "logger.enable_module":
+			ok = log.LoggerEnableModule(value)
+			break
+
+		case "logger.disable_module":
+			ok = log.LoggerDisableModule(value)
+			break
+
 		}
 		var msg MsgConfUpdate
 		msg.Code = 0
@@ -365,7 +378,6 @@ func main() {
 		}
 		log.SetOutput(f)
 	}
-	//log.SetLevel(log.InfoLevel)
 
 	/* parse configuration */
 	config := *InstanceOfConfiguration()
