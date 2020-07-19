@@ -30,11 +30,20 @@ func (allocator *Allocator) init(conf Configuration) {
 }
 
 func (allocator *Allocator) updateStrategy(strategy string) bool {
-	if strategy == "bestfit" || strategy == "ga" || strategy == "mixed" {
+	validStrategies := map[string]bool{
+		"bestfit": true,
+		"ga":      true,
+		"mixed":   true,
+		"random":  true,
+		"spread":  true,
+		"pack":    true,
+	}
+	if _, ok := validStrategies[strategy]; ok {
 		allocator.allocationStrategy = strategy
 		log.Info("Allocator strategy switched to ", strategy)
 		return true
 	}
+	log.Warn("Invalid Allocator strategy ", strategy)
 	return false
 }
 
@@ -43,6 +52,15 @@ func (allocator *Allocator) allocate(nodes []NodeStatus, tasks []Task) Allocatio
 	//log.Info(tasks)
 	var allocation Allocation
 	switch allocator.allocationStrategy {
+	case "random":
+		allocation = allocator.randomFitStrategy(nodes, tasks)
+		break
+	case "spread":
+		allocation = allocator.spreadStrategy(nodes, tasks, false)
+		break
+	case "pack":
+		allocation = allocator.spreadStrategy(nodes, tasks, true)
+		break
 	case "bestfit":
 		allocation = allocator.fastBestFit(nodes, tasks)
 		break
@@ -64,6 +82,111 @@ func (allocator *Allocator) allocate(nodes []NodeStatus, tasks []Task) Allocatio
 		allocation = allocator.fastBestFit(nodes, tasks)
 	}
 	return allocation
+}
+
+func (allocator *Allocator) randomFitStrategy(nodes []NodeStatus, tasks []Task) Allocation {
+	allocation := Allocation{TasksOnNode: map[string][]Task{}, Nodes: map[string]NodeStatus{}, Flags: map[string]bool{"valid": true}}
+	var nodesT []NodeStatus
+	for _, node := range nodes {
+		/* copy in order not to modify original data */
+		nodesT = append(nodesT, node.Copy())
+	}
+	for _, node := range nodesT {
+		allocation.Nodes[node.ClientID] = node
+	}
+	for _, task := range tasks {
+		allocation.Tasks = append(allocation.Tasks, task)
+	}
+	for _, node := range nodesT {
+		allocation.Nodes[node.ClientID] = node
+		allocation.NodeIDs = append(allocation.NodeIDs, node.ClientID)
+	}
+	/* random-fit */
+	for _, task := range tasks {
+		if nodeID, ok := randomFit(allocation, task); ok {
+			allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
+			cnt := task.NumberGPU
+			for i := range allocation.Nodes[nodeID].Status {
+				if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+					allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+					cnt--
+				}
+				if cnt == 0 {
+					break
+				}
+			}
+		} else {
+			allocation.Flags["valid"] = false
+			break
+		}
+	}
+	return allocation
+}
+
+func (allocator *Allocator) spreadStrategy(nodes []NodeStatus, tasks []Task, isPack bool) Allocation {
+	allocation := Allocation{TasksOnNode: map[string][]Task{}, Nodes: map[string]NodeStatus{}, Flags: map[string]bool{"valid": true}}
+	var nodesT []NodeStatus
+	for _, node := range nodes {
+		/* copy in order not to modify original data */
+		nodesT = append(nodesT, node.Copy())
+	}
+	for _, node := range nodesT {
+		allocation.Nodes[node.ClientID] = node
+	}
+	for _, task := range tasks {
+		allocation.Tasks = append(allocation.Tasks, task)
+	}
+	for _, node := range nodesT {
+		allocation.Nodes[node.ClientID] = node
+		allocation.NodeIDs = append(allocation.NodeIDs, node.ClientID)
+	}
+	for _, task := range tasks {
+		if nodeID, ok := allocator.pickNode(allocation, task, isPack); ok {
+			allocation.TasksOnNode[nodeID] = append(allocation.TasksOnNode[nodeID], task)
+			cnt := task.NumberGPU
+			for i := range allocation.Nodes[nodeID].Status {
+				if allocation.Nodes[nodeID].Status[i].MemoryAllocated == 0 {
+					allocation.Nodes[nodeID].Status[i].MemoryAllocated += task.MemoryGPU
+					cnt--
+				}
+				if cnt == 0 {
+					break
+				}
+			}
+		} else {
+			allocation.Flags["valid"] = false
+			break
+		}
+	}
+	return allocation
+}
+
+func (allocator *Allocator) pickNode(allocation Allocation, task Task, isPack bool) (string, bool) {
+	flag := false
+	bestNodeID := ""
+	bestUtil := math.MaxFloat64
+	for _, nodeID := range allocation.NodeIDs {
+		if _, ok := allocation.Nodes[nodeID]; !ok {
+			continue
+		}
+		available := 0
+		total := 0
+		for _, gpu := range allocation.Nodes[nodeID].Status {
+			if gpu.MemoryAllocated == 0 {
+				available += 1
+			}
+			total += 1
+		}
+		util := float64(available) / float64(total)
+		if task.NumberGPU <= available {
+			if bestNodeID == "" || (!isPack && util > bestUtil) || (isPack && util < bestUtil) {
+				flag = true
+				bestNodeID = nodeID
+				bestUtil = util
+			}
+		}
+	}
+	return bestNodeID, flag
 }
 
 func (allocator *Allocator) fastBestFit(nodes []NodeStatus, tasks []Task) Allocation {

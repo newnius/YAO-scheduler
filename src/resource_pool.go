@@ -236,6 +236,7 @@ func (pool *ResourcePool) saveStatusHistory() {
 	/* waiting for nodes */
 	time.Sleep(time.Second * 30)
 	for {
+		log.Debug("pool.saveStatusHistory")
 		summary := PoolStatus{}
 
 		UtilCPU := 0.0
