@@ -23,7 +23,7 @@ func InstanceOfMocker() *Mocker {
 	return MockerInstance
 }
 
-func (mocker *Mocker) GetDuration(job Job, nodes []NodeStatus) int {
+func (mocker *Mocker) GetDuration(job Job, nodes map[string]NodeStatus) int {
 	str := strings.Split(job.Name, "-")
 	duration := 300
 
@@ -37,11 +37,11 @@ func (mocker *Mocker) GetDuration(job Job, nodes []NodeStatus) int {
 	} else if len(job.Tasks) == 3 {
 		var psNodes []string
 		var workerNodes []string
-		for i, task := range job.Tasks {
+		for _, task := range job.Tasks {
 			if task.IsPS {
-				psNodes = append(psNodes, nodes[i].ClientHost)
+				psNodes = append(psNodes, nodes[task.Name].ClientHost)
 			} else {
-				workerNodes = append(workerNodes, nodes[i].ClientHost)
+				workerNodes = append(workerNodes, nodes[task.Name].ClientHost)
 			}
 		}
 		if psNodes[0] == workerNodes[0] {

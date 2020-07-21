@@ -272,7 +272,7 @@ func (scheduler *SchedulerCapacity) Stop(jobName string) MsgStop {
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
-	return jm.stop(true)
+	return jm.stop()
 }
 
 func (scheduler *SchedulerCapacity) QueryLogs(jobName string, taskName string) MsgLog {

@@ -379,6 +379,7 @@ func (scheduler *SchedulerFair) UpdateProgress(job Job, state State) {
 			if scheduler.history[i].Name == job.Name {
 				scheduler.history[i].Status = Running
 				scheduler.history[i].UpdatedAt = int(time.Now().Unix())
+				scheduler.history[i].StartedAt = time.Now().Unix()
 			}
 		}
 		break
@@ -694,7 +695,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	jm, ok := scheduler.jobs[jobName]
 	scheduler.queuesMu.Unlock()
 	if ok {
-		return jm.stop(true)
+		return jm.stop()
 	} else {
 		found := false
 		for queue := range scheduler.queues {
@@ -802,6 +803,9 @@ func (scheduler *SchedulerFair) SetEnabled(enabled bool) bool {
 }
 
 func (scheduler *SchedulerFair) UpdateParallelism(parallelism int) bool {
+	if parallelism < 1 {
+		parallelism = 1
+	}
 	scheduler.parallelism = parallelism
 	log.Info("parallelism is updated to ", parallelism)
 	return true

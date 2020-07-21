@@ -21,7 +21,7 @@ func InstanceOfGroupManager() *GroupManager {
 	return groupManagerInstance
 }
 
-func (gm *GroupManager) init(conf Configuration) {
+func (gm *GroupManager) Start() {
 
 }
 

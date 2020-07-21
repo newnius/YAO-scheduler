@@ -25,6 +25,7 @@ type Scheduler interface {
 
 	UpdateParallelism(parallelism int) bool
 
+	/* TODO: rearrange jobs to other queues */
 	updateGroup(group Group) bool
 
 	DebugDump() map[string]interface{}

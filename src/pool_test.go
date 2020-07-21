@@ -8,7 +8,7 @@ import (
 
 func TestPool(t *testing.T) {
 	return
-	InstanceOfResourcePool().init(Configuration{})
+	InstanceOfResourcePool().Start()
 
 	for j := 0; j < 100; j++ {
 		for i := 0; i < 1000; i++ {
@@ -36,7 +36,7 @@ func TestPool(t *testing.T) {
 }
 
 func TestAllocate(t *testing.T) {
-	InstanceOfResourcePool().init(Configuration{})
+	InstanceOfResourcePool().Start()
 
 	job := Job{Name: strconv.Itoa(int(time.Now().Unix() % 1000000000))}
 	job.Group = "default"

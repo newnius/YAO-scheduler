@@ -12,77 +12,85 @@ import (
 )
 
 type JobManager struct {
-	scheduler   Scheduler
-	job         Job
-	jobStatus   JobStatus
-	resources   []NodeStatus
+	/* meta */
+	scheduler Scheduler
+	job       Job
+
+	/* resource */
+	network     string
+	resources   map[string]NodeStatus
 	resourcesMu sync.Mutex
-	isRunning   bool
-	killFlag    bool
 
-	network string
+	/* status */
+	jobStatus     JobStatus
+	isRunning     bool
+	lastHeartBeat int64
 
+	/* history info */
 	stats [][]TaskStatus
 }
 
 func (jm *JobManager) start() {
 	log.Info("start job ", jm.job.Name, " at ", time.Now())
-	jm.isRunning = false
-	jm.killFlag = false
+	jm.isRunning = true
+	jm.lastHeartBeat = time.Now().Unix()
 	jm.jobStatus = JobStatus{Name: jm.job.Name, tasks: map[string]TaskStatus{}}
+	jm.resources = map[string]NodeStatus{}
 
 	/* register in JHL */
 	InstanceJobHistoryLogger().submitJob(jm.job)
 
-	/* request for private network */
-	jm.network = InstanceOfResourcePool().acquireNetwork()
-
 	/* request for resources */
+	jm.resourcesMu.Lock()
+	jm.network = InstanceOfResourcePool().acquireNetwork()
 	for {
-		if jm.killFlag {
+		if !jm.isRunning {
 			break
 		}
-		jm.resources = jm.scheduler.AcquireResource(jm.job)
-		if len(jm.resources) > 0 {
+		resources := jm.scheduler.AcquireResource(jm.job)
+		if len(resources) > 0 {
+			for i, node := range resources {
+				jm.resources[jm.job.Tasks[i].Name] = node
+			}
 			log.Info(jm.job.Name, " receive resource", jm.resources)
 			break
 		}
 		/* sleep random Millisecond to avoid deadlock */
 		time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 	}
-	jm.job.StartedAt = time.Now().Unix()
+	jm.resourcesMu.Unlock()
 
 	if InstanceOfConfiguration().mock {
-		jm.scheduler.UpdateProgress(jm.job, Running)
-		jm.job.Status = Running
-		jm.isRunning = false
-		duration := InstanceOfMocker().GetDuration(jm.job, jm.resources)
-		log.Info("mock ", jm.job.Name, ", wait ", duration)
-		time.Sleep(time.Second * time.Duration(duration))
-		jm.returnResource([]TaskStatus{})
-		jm.scheduler.UpdateProgress(jm.job, Finished)
-		jm.job.Status = Finished
+		if jm.isRunning {
+			jm.scheduler.UpdateProgress(jm.job, Running)
+			duration := InstanceOfMocker().GetDuration(jm.job, jm.resources)
+			log.Info("mock ", jm.job.Name, ", wait ", duration)
+			time.Sleep(time.Second * time.Duration(duration))
+			jm.isRunning = false
+			jm.scheduler.UpdateProgress(jm.job, Finished)
+		}
+		jm.returnResource()
 		log.Info("JobMaster exited ", jm.job.Name)
 		return
 	}
 
 	isShare := false
 	isScheduleAhead := false
-	if !jm.killFlag {
+	if jm.isRunning {
 		/* switch to Running state */
 		jm.scheduler.UpdateProgress(jm.job, Running)
-		jm.job.Status = Running
 
 		/* bring up containers */
 		wg := sync.WaitGroup{}
-		for i := range jm.job.Tasks {
+		success := true
+		for i, task := range jm.job.Tasks {
 			wg.Add(1)
 
-			go func(index int) {
+			go func(task Task, node NodeStatus) {
 				defer wg.Done()
 				var UUIDs []string
 				shouldWait := "0"
-				for _, GPU := range jm.resources[index].Status {
+				for _, GPU := range node.Status {
 					UUIDs = append(UUIDs, GPU.UUID)
 					if GPU.MemoryUsed == GPU.MemoryTotal {
 						shouldWait = "1"
@@ -96,40 +104,44 @@ func (jm *JobManager) start() {
 				GPUs := strings.Join(UUIDs, ",")
 
 				v := url.Values{}
-				v.Set("image", jm.job.Tasks[index].Image)
-				v.Set("cmd", jm.job.Tasks[index].Cmd)
-				v.Set("name", jm.job.Tasks[index].Name)
+				v.Set("image", task.Image)
+				v.Set("cmd", task.Cmd)
+				v.Set("name", task.Name)
 				v.Set("workspace", jm.job.Workspace)
 				v.Set("gpus", GPUs)
-				v.Set("mem_limit", strconv.Itoa(jm.job.Tasks[index].Memory)+"m")
-				v.Set("cpu_limit", strconv.Itoa(jm.job.Tasks[index].NumberCPU))
+				v.Set("mem_limit", strconv.Itoa(task.Memory)+"m")
+				v.Set("cpu_limit", strconv.Itoa(task.NumberCPU))
 				v.Set("network", jm.network)
 				v.Set("should_wait", shouldWait)
 				v.Set("output_dir", "/tmp/")
 				v.Set("hdfs_address", InstanceOfConfiguration().HDFSAddress)
 				v.Set("hdfs_dir", InstanceOfConfiguration().HDFSBaseDir+jm.job.Name)
-				v.Set("gpu_mem", strconv.Itoa(jm.job.Tasks[index].MemoryGPU))
+				v.Set("gpu_mem", strconv.Itoa(task.MemoryGPU))
 				if InstanceOfConfiguration().DFSBaseDir != "" {
-					v.Set("dfs_src", InstanceOfConfiguration().DFSBaseDir+jm.job.Name+"/task-"+strconv.Itoa(index))
+					v.Set("dfs_src", InstanceOfConfiguration().DFSBaseDir+jm.job.Name+"/task-"+task.Name)
 				} else {
 					v.Set("dfs_src", "")
 				}
 				v.Set("dfs_dst", "/tmp")
 
-				resp, err := doRequest("POST", "http://"+jm.resources[index].ClientHost+":8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+				spider := Spider{}
+				spider.Method = "POST"
+				spider.URL = "http://" + node.ClientHost + ":8000/create"
+				spider.Data = v
+				spider.ContentType = "application/x-www-form-urlencoded"
+				err := spider.do()
 				if err != nil {
 					log.Warn(err.Error())
-					jm.job.Status = Failed
-					jm.stop(false)
+					success = false
 					return
 				}
+				resp := spider.getResponse()
 
 				body, err := ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
 				if err != nil {
 					log.Warn(err)
-					jm.job.Status = Failed
-					jm.stop(false)
+					success = false
 					return
 				}
 
@@ -137,28 +149,36 @@ func (jm *JobManager) start() {
 				err = json.Unmarshal([]byte(string(body)), &res)
 				if err != nil || res.Code != 0 {
 					log.Warn(res)
-					jm.job.Status = Failed
-					jm.stop(false)
+					success = false
 					return
 				}
-				jm.jobStatus.tasks[jm.job.Tasks[index].Name] = TaskStatus{Id: res.Id, Node: jm.resources[index].ClientHost, HostName: jm.job.Tasks[i].Name}
-			}(i)
+				taskStatus := TaskStatus{Id: res.Id, Node: node.ClientHost, HostName: jm.job.Tasks[i].Name}
+				jm.jobStatus.tasks[task.Name] = taskStatus
+
+			}(task, jm.resources[task.Name])
 		}
 		wg.Wait()
-		jm.isRunning = true
+		/* start failed */
+		if !success {
+			jm.isRunning = false
+			jm.scheduler.UpdateProgress(jm.job, Failed)
+			jm.stop()
+		}
 	}
 
 	/* monitor job execution */
 	for {
-		//jm.status()
-		if !jm.isRunning || jm.killFlag {
+		if !jm.isRunning {
 			break
+		}
+		if time.Now().Unix()-jm.lastHeartBeat > 30 {
+			log.Warn(jm.job.Name, " heartbeat longer tha 30s")
 		}
 		time.Sleep(time.Second * 1)
 	}
 
-	/* make sure resources are released */
-	jm.returnResource(jm.status().Status)
+	/* release again to make sure resources are released */
+	jm.returnResource()
 
 	/* feed data to optimizer */
 	isExclusive := InstanceOfResourcePool().isExclusive(jm.job.Name)
@@ -197,47 +217,50 @@ func (jm *JobManager) start() {
 	if len(jm.job.Tasks) == 1 && !isShare && !isScheduleAhead && jm.job.Status == Finished && isExclusive {
 		InstanceOfOptimizer().FeedTime(jm.job, stats)
 	}
+
+	/* clear, to reduce memory usage */
+	jm.stats = [][]TaskStatus{}
+
+	/* remove exited containers */
+	//for _, task := range jm.jobStatus.tasks {
+	//	go func(container TaskStatus) {
+	//		v := url.Values{}
+	//		v.Set("id", container.Id)
+	//
+	//		spider := Spider{}
+	//		spider.Method = "POST"
+	//		spider.URL = "http://" + container.Node + ":8000/remove"
+	//		spider.Data = v
+	//		spider.ContentType = "application/x-www-form-urlencoded"
+	//		err := spider.do()
+	//		if err != nil {
+	//			log.Warn(err.Error())
+	//		}
+	//	}(task)
+	//}
+
 	log.Info("JobMaster exited ", jm.job.Name)
 }
 
 /* release all resource */
-func (jm *JobManager) returnResource(status []TaskStatus) {
+func (jm *JobManager) returnResource() {
 	jm.resourcesMu.Lock()
 	defer jm.resourcesMu.Unlock()
 	/* return resource */
 	for i := range jm.resources {
-		if jm.resources[i].ClientID == "_released_" {
-			continue
-		}
 		jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-		log.Info("return resource again ", jm.resources[i].ClientID)
-		jm.resources[i].ClientID = "_released_"
-
 		for _, t := range jm.resources[i].Status {
 			InstanceOfResourcePool().detach(t.UUID, jm.job)
 		}
-
-		if !InstanceOfConfiguration().mock {
-			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
-		}
-
-		/* remove exited containers */
-		//v := url.Values{}
-		//v.Set("id", res.Status[i].Id)
-		//
-		//_, err := doRequest("POST", "http://"+res.Status[i].Node+":8000/remove", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
-		//if err != nil {
-		//	log.Warn(err.Error())
-		//	continue
-		//}
 	}
+	jm.resources = map[string]NodeStatus{}
 	if jm.network != "" {
 		InstanceOfResourcePool().releaseNetwork(jm.network)
 		jm.network = ""
 	}
 }
 
-/* monitor all tasks */
+/* monitor all tasks, update job status */
 func (jm *JobManager) checkStatus(status []TaskStatus) {
 	if !jm.isRunning {
 		return
@@ -245,77 +268,57 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 	flagRunning := false
 	onlyPS := true
 	for i := range status {
-		if status[i].Status == "ready" {
-			log.Debug(jm.job.Name, "-", i, " is ready to run")
-			flagRunning = true
-			if !jm.job.Tasks[i].IsPS {
-				onlyPS = false
-			}
-		} else if status[i].Status == "running" {
-			log.Debug(jm.job.Name, "-", i, " is running")
+		if status[i].Status == "ready" || status[i].Status == "running" {
 			flagRunning = true
 			if !jm.job.Tasks[i].IsPS {
 				onlyPS = false
 			}
 			InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else if status[i].Status == "unknown" {
-			log.Warn(jm.job.Name, "-", i, " is unknown")
 			flagRunning = true
 			if !jm.job.Tasks[i].IsPS {
 				onlyPS = false
 			}
-			//InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
 		} else {
-			jm.resourcesMu.Lock()
-			if jm.resources[i].ClientID == "_released_" {
-				jm.resourcesMu.Unlock()
-				continue
-			}
 			log.Info(jm.job.Name, "-", i, " ", status[i].Status)
-			if exitCode, ok := status[i].State["ExitCode"].(float64); ok && exitCode != 0 && !jm.killFlag {
+			if exitCode, ok := status[i].State["ExitCode"].(float64); ok && exitCode != 0 && jm.isRunning {
 				log.Warn(jm.job.Name+"-"+jm.job.Tasks[i].Name+" exited unexpected, exitCode=", exitCode)
-				jm.stop(false)
-				jm.killFlag = true
+				jm.isRunning = false
 				jm.scheduler.UpdateProgress(jm.job, Failed)
-				jm.job.Status = Failed
-			} else if !jm.killFlag {
+				jm.stop()
+			} else if jm.isRunning {
 				log.Info("Some instance exited, close others")
-				jm.stop(false)
-				jm.killFlag = true
+				jm.isRunning = false
 				jm.scheduler.UpdateProgress(jm.job, Finished)
-				jm.job.Status = Finished
+				jm.stop()
 			}
 
-			if jm.resources[i].ClientID != "_released_" {
-				jm.scheduler.ReleaseResource(jm.job, jm.resources[i])
-				log.Info("return resource ", jm.resources[i].ClientID)
-				jm.resources[i].ClientID = "_released_"
+			jm.resourcesMu.Lock()
+			nodeID := jm.job.Tasks[i].Name
+			if _, ok := jm.resources[nodeID]; ok {
+				jm.scheduler.ReleaseResource(jm.job, jm.resources[nodeID])
+				log.Info("return resource ", jm.resources[nodeID].ClientID)
 
-				for _, t := range jm.resources[i].Status {
+				for _, t := range jm.resources[nodeID].Status {
 					InstanceOfResourcePool().detach(t.UUID, jm.job)
 				}
 				InstanceJobHistoryLogger().submitTaskStatus(jm.job.Name, status[i])
+				delete(jm.resources, nodeID)
 			}
 			jm.resourcesMu.Unlock()
 		}
 	}
-	if flagRunning && onlyPS && !jm.killFlag {
+	if flagRunning && onlyPS && jm.isRunning {
 		log.Info("Only PS is running, stop ", jm.job.Name)
-		jm.stop(false)
-		jm.killFlag = true
-		jm.scheduler.UpdateProgress(jm.job, Finished)
-		jm.job.Status = Finished
-	}
-
-	if !flagRunning && !jm.killFlag {
-		jm.scheduler.UpdateProgress(jm.job, Finished)
-		jm.job.Status = Finished
-		log.Info("finish job ", jm.job.Name)
-	}
-
-	if !flagRunning {
 		jm.isRunning = false
-		jm.returnResource(status)
+		jm.scheduler.UpdateProgress(jm.job, Finished)
+		jm.stop()
+	}
+
+	if !flagRunning && jm.isRunning {
+		log.Info("finish job ", jm.job.Name)
+		jm.isRunning = false
+		jm.scheduler.UpdateProgress(jm.job, Finished)
 	}
 }
 
@@ -354,7 +357,8 @@ func (jm *JobManager) logs(taskName string) MsgLog {
 /* fetch job tasks status */
 func (jm *JobManager) status() MsgJobStatus {
 	var tasksStatus []TaskStatus
-	for range jm.job.Tasks { //append would cause uncertain order
+	/* create slice ahead, since append would cause uncertain order */
+	for range jm.job.Tasks {
 		tasksStatus = append(tasksStatus, TaskStatus{})
 	}
 
@@ -418,18 +422,32 @@ func (jm *JobManager) status() MsgJobStatus {
 	return MsgJobStatus{Status: tasksStatus}
 }
 
-/* force stop all containers */
-func (jm *JobManager) stop(force bool) MsgStop {
+func (jm *JobManager) stop() MsgStop {
+	if jm.isRunning {
+		jm.isRunning = false
+		jm.scheduler.UpdateProgress(jm.job, Stopped)
+		log.Info("kill job, ", jm.job.Name)
+	}
+
 	for _, taskStatus := range jm.jobStatus.tasks {
 		/* stop at background */
 		go func(task TaskStatus) {
+			log.Info("kill ", jm.job.Name, "-", task.Id, " :", task.HostName)
 			v := url.Values{}
 			v.Set("id", task.Id)
 
-			resp, err := doRequest("POST", "http://"+task.Node+":8000/stop", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			spider := Spider{}
+			spider.Method = "POST"
+			spider.URL = "http://" + task.Node + ":8000/stop"
+			spider.Data = v
+			spider.ContentType = "application/x-www-form-urlencoded"
+
+			err := spider.do()
 			if err != nil {
 				log.Warn(err.Error())
+				return
 			}
+			resp := spider.getResponse()
 			body, err := ioutil.ReadAll(resp.Body)
 			resp.Body.Close()
 			if err != nil {
@@ -445,17 +463,7 @@ func (jm *JobManager) stop(force bool) MsgStop {
 			if res.Code != 0 {
 				log.Warn(res.Error)
 			}
-			log.Info(jm.job.Name, ":", task.HostName, " is killed:", task.Id)
 		}(taskStatus)
 	}
-
-	go func() {
-		if force {
-			jm.killFlag = true
-			jm.scheduler.UpdateProgress(jm.job, Stopped)
-			jm.job.Status = Stopped
-			log.Info("kill job, ", jm.job.Name)
-		}
-	}()
 	return MsgStop{Code: 0}
 }

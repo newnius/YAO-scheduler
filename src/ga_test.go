@@ -64,7 +64,7 @@ func TestGA(t *testing.T) {
 
 	allocation = InstanceOfAllocator().fastBestFit(nodes, tasks)
 
-	InstanceOfResourcePool().init(Configuration{})
+	InstanceOfResourcePool().Start()
 	allocatedNodes := InstanceOfResourcePool().acquireResource(Job{Tasks: tasks})
 	log.Info(allocatedNodes)
 }

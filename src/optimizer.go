@@ -50,7 +50,7 @@ func InstanceOfOptimizer() *Optimizer {
 	return optimizerInstance
 }
 
-func (optimizer *Optimizer) Init(conf Configuration) {
+func (optimizer *Optimizer) Start() {
 	log.Info("optimizer started")
 }
 

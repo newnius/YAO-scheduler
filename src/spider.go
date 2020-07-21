@@ -15,7 +15,7 @@ type Spider struct {
 	ContentType string
 	Referer     string
 	Data        url.Values
-	Response *http.Response
+	Response    *http.Response
 }
 
 func (spider *Spider) do() error {
@@ -25,17 +25,21 @@ func (spider *Spider) do() error {
 		return err
 	}
 
-	if len(spider.ContentType) > 0 {
-		req.Header.Set("Content-Type", spider.ContentType)
+	if len(spider.ContentType) == 0 {
+		spider.ContentType = ""
 	}
+	req.Header.Set("Content-Type", spider.ContentType)
 
+	/* set user-agent */
 	if len(spider.UserAgent) == 0 {
-		req.Header.Set("User-Agent", getUA())
+		spider.UserAgent = spider.getUA()
 	}
+	req.Header.Set("User-Agent", spider.UserAgent)
 
-	if len(spider.Referer) > 0 {
-		req.Header.Set("Referer", spider.Referer)
+	if len(spider.Referer) == 0 {
+		spider.Referer = ""
 	}
+	req.Header.Set("Referer", spider.Referer)
 
 	spider.Response, err = client.Do(req)
 	if err != nil {

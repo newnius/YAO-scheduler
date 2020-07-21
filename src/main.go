@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"math/rand"
 	"os"
+	"fmt"
 )
 
 var log Logger
@@ -15,6 +16,7 @@ var scheduler Scheduler
 
 func serverAPI(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Query().Get("action") {
+	/* resource pool */
 	case "agent_report":
 		log.Debug("agent_report")
 		msgAgentReport := MsgAgentReport{Code: 0}
@@ -50,6 +52,28 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "pool_status_history":
+		log.Debug("pool_status_history")
+		js, _ := json.Marshal(InstanceOfResourcePool().statusHistory())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "get_counter":
+		log.Debug("get_counters")
+		js, _ := json.Marshal(InstanceOfResourcePool().getCounter())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_pool_dump":
+		log.Debug("debug_pool_dump")
+		js, _ := json.Marshal(InstanceOfResourcePool().Dump())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+		/* scheduler */
 	case "job_submit":
 		var job Job
 		log.Debug("job_submit")
@@ -95,6 +119,42 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
+	case "job_stop":
+		log.Debug("job_stop")
+		js, _ := json.Marshal(scheduler.Stop(string(r.PostFormValue("id"))))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "task_logs":
+		log.Debug("task_logs")
+		js, _ := json.Marshal(scheduler.QueryLogs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "jobs":
+		log.Debug("job_list")
+		js, _ := json.Marshal(scheduler.ListJobs())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "debug_scheduler_dump":
+		log.Debug("debug_scheduler_dump")
+		js, _ := json.Marshal(scheduler.DebugDump())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+	case "summary":
+		log.Debug("summary")
+		js, _ := json.Marshal(scheduler.Summary())
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
+		break
+
+		/* optimizer */
 	case "job_predict_req":
 		log.Debug("job_predict_req")
 		var job Job
@@ -143,48 +203,15 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "job_stop":
-		log.Debug("job_stop")
-		js, _ := json.Marshal(scheduler.Stop(string(r.PostFormValue("id"))))
+		/* job history logger */
+	case "jhl_job_status":
+		log.Debug("jhl_job_status")
+		js, _ := json.Marshal(InstanceJobHistoryLogger().getTaskStatus(r.URL.Query().Get("job")))
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(js)
 		break
 
-	case "task_logs":
-		log.Debug("task_logs")
-		js, _ := json.Marshal(scheduler.QueryLogs(r.URL.Query().Get("job"), r.URL.Query().Get("task")))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "jobs":
-		log.Debug("job_list")
-		js, _ := json.Marshal(scheduler.ListJobs())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "summary":
-		log.Debug("summary")
-		js, _ := json.Marshal(scheduler.Summary())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "pool_status_history":
-		log.Debug("pool_status_history")
-		js, _ := json.Marshal(InstanceOfResourcePool().statusHistory())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "get_counter":
-		log.Debug("get_counters")
-		js, _ := json.Marshal(InstanceOfResourcePool().getCounter())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
+		/* group */
 	case "group_list":
 		log.Debug("group_list")
 		js, _ := json.Marshal(InstanceOfGroupManager().List())
@@ -227,7 +254,6 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		break
 
 	case "group_remove":
-		/* TODO: rearrange jobs to other queues */
 		log.Debug("group_remove")
 		var group Group
 		msg := MsgGroupCreate{Code: 0}
@@ -244,27 +270,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		w.Write(js)
 		break
 
-	case "jhl_job_status":
-		log.Debug("jhl_job_status")
-		js, _ := json.Marshal(InstanceJobHistoryLogger().getTaskStatus(r.URL.Query().Get("job")))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_scheduler_dump":
-		log.Debug("debug_scheduler_dump")
-		js, _ := json.Marshal(scheduler.DebugDump())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
-	case "debug_pool_dump":
-		log.Debug("debug_pool_dump")
-		js, _ := json.Marshal(InstanceOfResourcePool().Dump())
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-		break
-
+		/* configuration */
 	case "conf_list":
 		log.Debug("conf_list")
 		var msg MsgConfList
@@ -308,8 +314,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			break
 
 		case "pool.batch.interval":
-			interval := str2int(value, 1)
-			ok = InstanceOfResourcePool().SetBatchInterval(interval)
+			if interval, err := strconv.Atoi(value); err == nil {
+				ok = InstanceOfResourcePool().SetBatchInterval(interval)
+			}
 			break
 
 			/* scheduler.mock */
@@ -324,8 +331,9 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 
 			/* scheduler.parallelism */
 		case "scheduler.parallelism":
-			parallelism, _ := strconv.Atoi(value)
-			ok = scheduler.UpdateParallelism(parallelism)
+			if parallelism, err := strconv.Atoi(value); err == nil {
+				ok = scheduler.UpdateParallelism(parallelism)
+			}
 			break
 
 			/* allocator.strategy */
@@ -333,6 +341,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			ok = InstanceOfAllocator().updateStrategy(value)
 			break
 
+			/* logger */
 		case "logger.level":
 			ok = log.SetLoggerLevel(value)
 			break
@@ -350,7 +359,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 		msg.Code = 0
 		if !ok {
 			msg.Code = 1
-			msg.Error = "Option not exist or invalid value"
+			msg.Error = fmt.Sprintf("Option (%s) not exist or invalid value (%s)", option, value)
 		}
 		js, _ := json.Marshal(msg)
 		w.Header().Set("Content-Type", "application/json")
@@ -381,15 +390,14 @@ func main() {
 		log.SetOutput(f)
 	}
 
-	/* parse configuration */
-	config := *InstanceOfConfiguration()
+	config := InstanceOfConfiguration()
+	config.InitFromEnv()
 
 	/* init components */
-	InstanceOfResourcePool().init(config)
-	//InstanceOfCollector().init(config)
-	InstanceJobHistoryLogger().init(config)
-	InstanceOfOptimizer().Init(config)
-	InstanceOfGroupManager().init(config)
+	InstanceOfResourcePool().Start()
+	InstanceJobHistoryLogger().Start()
+	InstanceOfOptimizer().Start()
+	InstanceOfGroupManager().Start()
 
 	switch config.SchedulerPolicy {
 	case "FCFS":

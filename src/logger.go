@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 	"runtime"
-	"fmt"
 )
 
 type Logger struct {
@@ -19,29 +18,59 @@ func (logger *Logger) Init() {
 	logger.LoggerModuleDisabled = map[string]bool{}
 }
 
-func (logger *Logger) Debug(args ... interface{}) {
-	_log.Debug(args)
-}
-
-func (logger *Logger) Info(args ... interface{}) {
+func (logger *Logger) Debug(args ...interface{}) {
 	pc, _, _, ok := runtime.Caller(1)
 	details := runtime.FuncForPC(pc)
+	module := "unknown"
 	if ok && details != nil {
-		fmt.Printf("called from %s\n", details.Name())
+		module = details.Name()
 	}
-	_log.Info(args)
+	args = append(args, module)
+	_log.Debug(args...)
 }
 
-func (logger *Logger) Warn(args ... interface{}) {
-	_log.Warn(args)
+func (logger *Logger) Info(args ...interface{}) {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	module := "unknown"
+	if ok && details != nil {
+		module = details.Name()
+	}
+	args = append(args, module)
+	_log.Info(args...)
 }
 
-func (logger *Logger) Fatal(args ... interface{}) {
-	_log.Fatal(args)
+func (logger *Logger) Warn(args ...interface{}) {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	module := "unknown"
+	if ok && details != nil {
+		module = details.Name()
+	}
+	args = append(args, module)
+	_log.Warn(args...)
 }
 
-func (logger *Logger) Fatalf(format string, args ... interface{}) {
-	_log.Fatalf(format, args)
+func (logger *Logger) Fatal(args ...interface{}) {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	module := "unknown"
+	if ok && details != nil {
+		module = details.Name()
+	}
+	args = append(args, module)
+	_log.Fatal(args...)
+}
+
+func (logger *Logger) Fatalf(format string, args ...interface{}) {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	module := "unknown"
+	if ok && details != nil {
+		module = details.Name()
+	}
+	args = append(args, module)
+	_log.Fatalf(format, args...)
 }
 
 func (logger *Logger) SetOutput(f io.Writer) {

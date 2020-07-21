@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 	"net/url"
-	"strings"
 	"math/rand"
 	"strconv"
 	"sort"
@@ -51,11 +50,11 @@ type ResourcePool struct {
 	exclusiveJobs map[string]bool
 
 	TotalGPU    int
-	TotalGPUMu  sync.Mutex
 	TotalCPU    int
 	TotalMemory int
+	TotalMu     sync.Mutex
 	UsingGPU    int
-	UsingGPUMu  sync.Mutex
+	UsingMu     sync.Mutex
 
 	enableBatch      bool
 	batchJobs        map[string]Job
@@ -64,7 +63,7 @@ type ResourcePool struct {
 	batchInterval    int
 }
 
-func (pool *ResourcePool) init(conf Configuration) {
+func (pool *ResourcePool) Start() {
 	log.Info("RM started ")
 
 	pool.networks = map[string]bool{}
@@ -181,13 +180,13 @@ func (pool *ResourcePool) checkDeadNodes() {
 				}
 
 				seg.Lock.Lock()
-				pool.TotalGPUMu.Lock()
+				pool.TotalMu.Lock()
 				if _, ok := seg.Nodes[k]; ok {
 					pool.TotalGPU -= len(seg.Nodes[k].Status)
 					pool.TotalCPU -= seg.Nodes[k].NumCPU
 					pool.TotalMemory -= seg.Nodes[k].MemTotal
 				}
-				pool.TotalGPUMu.Unlock()
+				pool.TotalMu.Unlock()
 				delete(seg.Nodes, k)
 				seg.Lock.Unlock()
 				pool.versionsMu.Lock()
@@ -297,11 +296,11 @@ func (pool *ResourcePool) saveStatusHistory() {
 		}
 		pool.historyMu.Unlock()
 
-		pool.TotalGPUMu.Lock()
+		pool.TotalMu.Lock()
 		pool.TotalGPU = TotalGPU
 		pool.TotalCPU = TotalCPU
 		pool.TotalMemory = TotalMemGPU
-		pool.TotalGPUMu.Unlock()
+		pool.TotalMu.Unlock()
 		time.Sleep(time.Second * 60)
 	}
 }
@@ -359,11 +358,11 @@ func (pool *ResourcePool) update(node NodeStatus) {
 		}
 	} else {
 		/* TODO: double check node do belong to this seg */
-		pool.TotalGPUMu.Lock()
+		pool.TotalMu.Lock()
 		pool.TotalGPU += len(node.Status)
 		pool.TotalCPU += node.NumCPU
 		pool.TotalMemory += node.MemTotal
-		pool.TotalGPUMu.Unlock()
+		pool.TotalMu.Unlock()
 		log.Info("node ", node.ClientID, " is online")
 	}
 	seg.Nodes[node.ClientID] = &node
@@ -517,11 +516,17 @@ func (pool *ResourcePool) acquireNetwork() string {
 			}
 			v := url.Values{}
 			v.Set("name", network)
-			resp, err := doRequest("POST", "http://yao-agent-master:8000/create", strings.NewReader(v.Encode()), "application/x-www-form-urlencoded", "")
+			spider := Spider{}
+			spider.Method = "POST"
+			spider.URL = "http://yao-agent-master:8000/create"
+			spider.Data = v
+			spider.ContentType = "application/x-www-form-urlencoded"
+			err := spider.do()
 			if err != nil {
 				log.Warn(err.Error())
 				continue
 			}
+			resp := spider.getResponse()
 			resp.Body.Close()
 			pool.networksFree[network] = true
 			pool.networks[network] = true
@@ -580,86 +585,6 @@ func (pool *ResourcePool) countGPU() (int, int) {
 	return pool.TotalGPU - pool.UsingGPU, pool.UsingGPU
 }
 
-func (pool *ResourcePool) pickNode(candidates []*NodeStatus, availableGPUs map[string][]GPUStatus, task Task, job Job, nodes []NodeStatus) *NodeStatus {
-
-	/* shuffle */
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for n := len(candidates); n > 0; n-- {
-		randIndex := r.Intn(n)
-		candidates[n-1], candidates[randIndex] = candidates[randIndex], candidates[n-1]
-	}
-
-	/* sort */
-	// single node, single GPU
-	sort.Slice(candidates, func(a, b int) bool {
-		diffA := pool.GPUModelToPower(candidates[a].Status[0].ProductName) - pool.GPUModelToPower(task.ModelGPU)
-		diffB := pool.GPUModelToPower(candidates[b].Status[0].ProductName) - pool.GPUModelToPower(task.ModelGPU)
-
-		if diffA > 0 && diffB >= 0 && diffA > diffB {
-			return false //b
-		}
-		if diffA < 0 && diffB < 0 && diffA > diffB {
-			return false
-		}
-		if diffA < 0 && diffB >= 0 {
-			return false
-		}
-		if diffA == diffB {
-			if len(availableGPUs[candidates[a].ClientID]) == len(availableGPUs[candidates[b].ClientID]) {
-				return candidates[a].UtilCPU > candidates[b].UtilCPU
-			}
-			return len(availableGPUs[candidates[a].ClientID]) < len(availableGPUs[candidates[b].ClientID])
-		}
-		return true //a
-	})
-
-	var t []*NodeStatus
-	bestGPU := candidates[0].Status[0].ProductName
-	for _, node := range candidates {
-		if node.Status[0].ProductName != bestGPU {
-			break
-		}
-		t = append(t, node)
-	}
-	candidates = t
-
-	if (len(job.Tasks) == 1) && task.NumberGPU > 1 { //single node, multi GPUs
-		sort.Slice(candidates, func(a, b int) bool {
-			if len(availableGPUs[candidates[a].ClientID]) == len(availableGPUs[candidates[b].ClientID]) {
-				return candidates[a].UtilCPU > candidates[b].UtilCPU
-			}
-			return len(availableGPUs[candidates[a].ClientID]) < len(availableGPUs[candidates[b].ClientID])
-		})
-	}
-
-	if len(job.Tasks) > 1 { //multi nodes, multi GPUs
-		sort.Slice(candidates, func(a, b int) bool {
-			distanceA := 0
-			distanceB := 0
-			for _, node := range nodes {
-				if node.Rack != candidates[a].Rack {
-					distanceA += 10
-				}
-				if node.ClientID != candidates[a].ClientID {
-					distanceA += 1
-				}
-				if node.Rack != candidates[b].Rack {
-					distanceB += 10
-				}
-				if node.ClientID != candidates[b].ClientID {
-					distanceB += 1
-				}
-			}
-			if distanceA == distanceB {
-				return len(availableGPUs[candidates[a].ClientID]) > len(availableGPUs[candidates[b].ClientID])
-			}
-			return distanceA*job.Locality < distanceB*job.Locality
-		})
-	}
-
-	return candidates[0]
-}
-
 func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 	for i := range job.Tasks {
 		job.Tasks[i].Job = job.Name
@@ -671,6 +596,7 @@ func (pool *ResourcePool) acquireResource(job Job) []NodeStatus {
 	pool.batchJobs[job.Name] = job
 	pool.batchMu.Unlock()
 	for {
+		/* wait until request is satisfied */
 		pool.batchMu.Lock()
 		if _, ok := pool.batchAllocations[job.Name]; ok {
 			pool.batchMu.Unlock()
@@ -785,9 +711,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 				for j := range node.Status {
 					if res.Status[i].UUID == node.Status[j].UUID {
 						if node.Status[j].MemoryAllocated == 0 {
-							pool.UsingGPUMu.Lock()
+							pool.UsingMu.Lock()
 							pool.UsingGPU ++
-							pool.UsingGPUMu.Unlock()
+							pool.UsingMu.Unlock()
 						}
 						node.Status[j].MemoryAllocated += task.MemoryGPU
 						res.Status[i].MemoryTotal = task.MemoryGPU
@@ -895,9 +821,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 					for j := range node.Status {
 						if res.Status[i].UUID == node.Status[j].UUID {
 							if node.Status[j].MemoryAllocated == 0 {
-								pool.UsingGPUMu.Lock()
+								pool.UsingMu.Lock()
 								pool.UsingGPU ++
-								pool.UsingGPUMu.Unlock()
+								pool.UsingMu.Unlock()
 							}
 							node.Status[j].MemoryAllocated += task.MemoryGPU
 							res.Status[i].MemoryTotal = task.MemoryGPU
@@ -989,9 +915,9 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 						for j := range node.Status {
 							if res.Status[i].UUID == node.Status[j].UUID {
 								if node.Status[j].MemoryAllocated == 0 {
-									pool.UsingGPUMu.Lock()
+									pool.UsingMu.Lock()
 									pool.UsingGPU ++
-									pool.UsingGPUMu.Unlock()
+									pool.UsingMu.Unlock()
 								}
 								node.Status[j].MemoryAllocated += task.MemoryGPU
 								res.Status[i].MemoryTotal = task.MemoryGPU
@@ -1040,6 +966,11 @@ func (pool *ResourcePool) doAcquireResource(job Job) []NodeStatus {
 	return ress
 }
 
+/*
+TODO:
+bug-1: node is offline, unable to retrieve allocation info
+bug-2: when node offline & back, allocation info is lost
+*/
 func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	segID := pool.getNodePool(agent.ClientID)
 	seg := pool.pools[segID]
@@ -1052,7 +983,7 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 	node, ok := seg.Nodes[agent.ClientID]
 	/* in case node is offline */
 	if !ok {
-		/* TODO, update usingTotalGPU correctly */
+		/* bug-1 */
 		log.Warn("node ", agent.ClientID, " not present")
 		return
 	}
@@ -1060,19 +991,18 @@ func (pool *ResourcePool) releaseResource(job Job, agent NodeStatus) {
 		for j := range node.Status {
 			if gpu.UUID == node.Status[j].UUID {
 				node.Status[j].MemoryAllocated -= gpu.MemoryTotal
+				log.Debug(node.Status[j].MemoryAllocated)
 				if node.Status[j].MemoryAllocated < 0 {
-					// in case of error
-					/* Case 0: a node is offline and then online, the allocation info will be lost */
+					/* bug-2: a node is offline and then online, the allocation info will be lost */
 					log.Warn(node.ClientID, " UUID=", gpu.UUID, " More Memory Allocated")
 					node.Status[j].MemoryAllocated = 0
 				}
 				if node.Status[j].MemoryAllocated == 0 {
-					pool.UsingGPUMu.Lock()
+					pool.UsingMu.Lock()
 					pool.UsingGPU--
-					pool.UsingGPUMu.Unlock()
+					pool.UsingMu.Unlock()
 					log.Info(node.Status[j].UUID, " is released")
 				}
-				//log.Info(node.Status[j].MemoryAllocated)
 			}
 		}
 	}

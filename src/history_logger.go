@@ -27,7 +27,7 @@ func InstanceJobHistoryLogger() *JobHistoryLogger {
 	return jobHistoryLoggerInstance
 }
 
-func (jhl *JobHistoryLogger) init(conf Configuration) {
+func (jhl *JobHistoryLogger) Start() {
 	log.Info("jhl init")
 	jhl.jobs = map[string]Job{}
 	jhl.tasks = map[string][]TaskStatus{}

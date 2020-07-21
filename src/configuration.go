@@ -52,68 +52,70 @@ func InstanceOfConfiguration() *Configuration {
 			EnablePreScheduleRatio: 1.5,
 			PreScheduleExtraTime:   15,
 		}
-
-		/* override conf value from env */
-		value := os.Getenv("KafkaBrokers")
-		if len(value) != 0 {
-			configurationInstance.KafkaBrokers = strings.Split(value, ",")
-		}
-		value = os.Getenv("KafkaTopic")
-		if len(value) != 0 {
-			configurationInstance.KafkaTopic = value
-		}
-		value = os.Getenv("SchedulerPolicy")
-		if len(value) != 0 {
-			configurationInstance.SchedulerPolicy = value
-		}
-		value = os.Getenv("ListenAddr")
-		if len(value) != 0 {
-			configurationInstance.ListenAddr = value
-		}
-		value = os.Getenv("HDFSAddress")
-		if len(value) != 0 {
-			configurationInstance.HDFSAddress = value
-		}
-		value = os.Getenv("HDFSBaseDir")
-		if len(value) != 0 {
-			configurationInstance.HDFSBaseDir = value
-		}
-		value = os.Getenv("DFSBaseDir")
-		if len(value) != 0 {
-			configurationInstance.DFSBaseDir = value
-		}
-		value = os.Getenv("EnableShareRatio")
-		if len(value) != 0 {
-			if val, err := strconv.ParseFloat(value, 32); err == nil {
-				configurationInstance.EnableShareRatio = val
-			}
-		}
-		value = os.Getenv("ShareMaxUtilization")
-		if len(value) != 0 {
-			if val, err := strconv.ParseFloat(value, 32); err == nil {
-				configurationInstance.ShareMaxUtilization = val
-			}
-		}
-		value = os.Getenv("EnablePreScheduleRatio")
-		if len(value) != 0 {
-			if val, err := strconv.ParseFloat(value, 32); err == nil {
-				configurationInstance.EnablePreScheduleRatio = val
-			}
-		}
-		value = os.Getenv("PreScheduleExtraTime")
-		if len(value) != 0 {
-			if val, err := strconv.Atoi(value); err == nil {
-				configurationInstance.PreScheduleExtraTime = val
-			}
-		}
-		value = os.Getenv("PreScheduleTimeout")
-		if len(value) != 0 {
-			if val, err := strconv.Atoi(value); err == nil {
-				configurationInstance.PreScheduleTimeout = val
-			}
-		}
 	}
 	return configurationInstance
+}
+
+/* read conf value from env */
+func (config *Configuration) InitFromEnv() {
+	value := os.Getenv("KafkaBrokers")
+	if len(value) != 0 {
+		configurationInstance.KafkaBrokers = strings.Split(value, ",")
+	}
+	value = os.Getenv("KafkaTopic")
+	if len(value) != 0 {
+		configurationInstance.KafkaTopic = value
+	}
+	value = os.Getenv("SchedulerPolicy")
+	if len(value) != 0 {
+		configurationInstance.SchedulerPolicy = value
+	}
+	value = os.Getenv("ListenAddr")
+	if len(value) != 0 {
+		configurationInstance.ListenAddr = value
+	}
+	value = os.Getenv("HDFSAddress")
+	if len(value) != 0 {
+		configurationInstance.HDFSAddress = value
+	}
+	value = os.Getenv("HDFSBaseDir")
+	if len(value) != 0 {
+		configurationInstance.HDFSBaseDir = value
+	}
+	value = os.Getenv("DFSBaseDir")
+	if len(value) != 0 {
+		configurationInstance.DFSBaseDir = value
+	}
+	value = os.Getenv("EnableShareRatio")
+	if len(value) != 0 {
+		if val, err := strconv.ParseFloat(value, 32); err == nil {
+			configurationInstance.EnableShareRatio = val
+		}
+	}
+	value = os.Getenv("ShareMaxUtilization")
+	if len(value) != 0 {
+		if val, err := strconv.ParseFloat(value, 32); err == nil {
+			configurationInstance.ShareMaxUtilization = val
+		}
+	}
+	value = os.Getenv("EnablePreScheduleRatio")
+	if len(value) != 0 {
+		if val, err := strconv.ParseFloat(value, 32); err == nil {
+			configurationInstance.EnablePreScheduleRatio = val
+		}
+	}
+	value = os.Getenv("PreScheduleExtraTime")
+	if len(value) != 0 {
+		if val, err := strconv.Atoi(value); err == nil {
+			configurationInstance.PreScheduleExtraTime = val
+		}
+	}
+	value = os.Getenv("PreScheduleTimeout")
+	if len(value) != 0 {
+		if val, err := strconv.Atoi(value); err == nil {
+			configurationInstance.PreScheduleTimeout = val
+		}
+	}
 }
 
 func (config *Configuration) SetMockEnabled(enabled bool) bool {
