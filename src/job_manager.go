@@ -25,6 +25,7 @@ type JobManager struct {
 	jobStatus     JobStatus
 	isRunning     bool
 	lastHeartBeat map[string]int64
+	statusMu      sync.Mutex
 
 	/* history info */
 	stats [][]TaskStatus
@@ -153,8 +154,10 @@ func (jm *JobManager) start() {
 					return
 				}
 				taskStatus := TaskStatus{Id: res.Id, Node: node.ClientHost, HostName: jm.job.Tasks[i].Name}
+				jm.statusMu.Lock()
 				jm.jobStatus.tasks[task.Name] = taskStatus
 				jm.lastHeartBeat[task.Name] = time.Now().Unix()
+				jm.statusMu.Unlock()
 
 			}(task, jm.resources[task.Name])
 		}
@@ -175,11 +178,13 @@ func (jm *JobManager) start() {
 			break
 		}
 		now := time.Now().Unix()
+		jm.statusMu.Lock()
 		for task, pre := range jm.lastHeartBeat {
 			if now-pre > 30 {
 				log.Warn(jm.job.Name, "-", task, " heartbeat longer tha 30s")
 			}
 		}
+		jm.statusMu.Unlock()
 		time.Sleep(time.Second * 1)
 	}
 
@@ -313,7 +318,9 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 			}
 			jm.resourcesMu.Unlock()
 		}
+		jm.statusMu.Lock()
 		jm.lastHeartBeat[jm.job.Tasks[i].Name] = time.Now().Unix()
+		jm.statusMu.Unlock()
 	}
 	if flagRunning && onlyPS && jm.isRunning {
 		log.Info(jm.job.Name, " Only PS is running, stop ")
@@ -333,9 +340,11 @@ func (jm *JobManager) checkStatus(status []TaskStatus) {
 func (jm *JobManager) logs(taskName string) MsgLog {
 	spider := Spider{}
 	spider.Method = "GET"
+	jm.statusMu.Lock()
 	spider.URL = "http://" + jm.jobStatus.tasks[taskName].Node + ":8000/logs?id=" + jm.jobStatus.tasks[taskName].Id
-
-	if _, ok := jm.jobStatus.tasks[taskName]; !ok {
+	_, ok := jm.jobStatus.tasks[taskName]
+	jm.statusMu.Unlock()
+	if !ok {
 		return MsgLog{Code: -1, Error: "Task not exist"}
 	}
 
@@ -370,7 +379,9 @@ func (jm *JobManager) status() MsgJobStatus {
 	}
 
 	for i, task := range jm.job.Tasks {
+		jm.statusMu.Lock()
 		taskStatus := jm.jobStatus.tasks[task.Name]
+		jm.statusMu.Unlock()
 
 		/* still in launching phase */
 		if len(taskStatus.Node) == 0 {
@@ -437,6 +448,7 @@ func (jm *JobManager) stop() MsgStop {
 		log.Info("kill job, ", jm.job.Name)
 	}
 
+	jm.statusMu.Lock()
 	for _, taskStatus := range jm.jobStatus.tasks {
 		/* stop at background */
 		go func(task TaskStatus) {
@@ -473,5 +485,6 @@ func (jm *JobManager) stop() MsgStop {
 			}
 		}(taskStatus)
 	}
+	jm.statusMu.Unlock()
 	return MsgStop{Code: 0}
 }

@@ -18,8 +18,9 @@ type Configuration struct {
 	EnableShareRatio       float64  `json:"EnableShareRatio"`
 	ShareMaxUtilization    float64  `json:"ShareMaxUtilization"`
 	EnablePreScheduleRatio float64  `json:"EnablePreScheduleRatio"`
-	PreScheduleExtraTime   int      `json:"PreScheduleExtraTime"` /* seconds to schedule ahead except pre+post */
+	PreScheduleExtraTime   int      `json:"PreScheduleExtraTime"` /* seconds of schedule ahead except pre+post */
 	PreScheduleTimeout     int      `json:"PreScheduleTimeout"`
+	JobMaxRetries          int      `json:"scheduler.job_max_retries"`
 
 	mock bool
 	mu   sync.Mutex
@@ -51,6 +52,7 @@ func InstanceOfConfiguration() *Configuration {
 			ShareMaxUtilization:    1.3, // more than 1.0 to expect more improvement
 			EnablePreScheduleRatio: 1.5,
 			PreScheduleExtraTime:   15,
+			JobMaxRetries:          0,
 		}
 	}
 	return configurationInstance
@@ -116,6 +118,12 @@ func (config *Configuration) InitFromEnv() {
 			configurationInstance.PreScheduleTimeout = val
 		}
 	}
+	value = os.Getenv("scheduler.job_max_retries")
+	if len(value) != 0 {
+		if val, err := strconv.Atoi(value); err == nil && val >= 0 {
+			configurationInstance.JobMaxRetries = val
+		}
+	}
 }
 
 func (config *Configuration) SetMockEnabled(enabled bool) bool {
@@ -147,6 +155,14 @@ func (config *Configuration) SetShareMaxUtilization(value float64) bool {
 	defer config.mu.Unlock()
 	config.ShareMaxUtilization = value
 	log.Info("ShareMaxUtilization is set to ", value)
+	return true
+}
+
+func (config *Configuration) SetJobMaxRetries(value int) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
+	config.JobMaxRetries = value
+	log.Info("scheduler.job_max_retries is set to ", value)
 	return true
 }
 

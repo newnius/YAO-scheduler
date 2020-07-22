@@ -12,7 +12,7 @@ type SchedulerCapacity struct {
 	historyMu sync.Mutex
 
 	nextQueue string
-	jobs      map[string]*JobManager
+	jobMasters      map[string]*JobManager
 	queues    map[string][]Job
 	queuesMu  sync.Mutex
 
@@ -32,7 +32,7 @@ type SchedulerCapacity struct {
 func (scheduler *SchedulerCapacity) Start() {
 	log.Info("JS (capacity) started")
 
-	scheduler.jobs = map[string]*JobManager{}
+	scheduler.jobMasters = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.nextQueue = "default"
 	scheduler.queues = map[string][]Job{}
@@ -94,7 +94,7 @@ func (scheduler *SchedulerCapacity) Start() {
 
 				scheduler.queues[queue] = scheduler.queues[queue][1:]
 				jm.scheduler = scheduler
-				scheduler.jobs[jm.job.Name] = &jm
+				scheduler.jobMasters[jm.job.Name] = &jm
 
 				jm.job.Status = Starting
 				scheduler.historyMu.Lock()
@@ -257,7 +257,7 @@ func (scheduler *SchedulerCapacity) ReleaseResource(job Job, agent NodeStatus) {
 
 func (scheduler *SchedulerCapacity) QueryState(jobName string) MsgJobStatus {
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
@@ -267,7 +267,7 @@ func (scheduler *SchedulerCapacity) QueryState(jobName string) MsgJobStatus {
 
 func (scheduler *SchedulerCapacity) Stop(jobName string) MsgStop {
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
@@ -277,7 +277,7 @@ func (scheduler *SchedulerCapacity) Stop(jobName string) MsgStop {
 
 func (scheduler *SchedulerCapacity) QueryLogs(jobName string, taskName string) MsgLog {
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}

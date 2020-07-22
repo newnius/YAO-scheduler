@@ -17,13 +17,13 @@ type SchedulerPriority struct {
 	schedulingJobs map[string]bool
 	schedulingMu   sync.Mutex
 
-	jobs        map[string]*JobManager
+	jobMasters        map[string]*JobManager
 	enabled     bool
 	parallelism int
 }
 
 func (scheduler *SchedulerPriority) Start() {
-	scheduler.jobs = map[string]*JobManager{}
+	scheduler.jobMasters = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
 	scheduler.parallelism = 1
@@ -58,7 +58,7 @@ func (scheduler *SchedulerPriority) Start() {
 					jm.job = scheduler.queue[0]
 					scheduler.queue = scheduler.queue[1:]
 					jm.scheduler = scheduler
-					scheduler.jobs[jm.job.Name] = &jm
+					scheduler.jobMasters[jm.job.Name] = &jm
 
 					jm.job.Status = Starting
 					scheduler.historyMu.Lock()
@@ -136,7 +136,7 @@ func (scheduler *SchedulerPriority) Start() {
 						copy(scheduler.queue[idx+1:], scheduler.queue[idx:])
 						scheduler.queue[idx] = preempted
 
-						delete(scheduler.jobs, preempted.Name)
+						delete(scheduler.jobMasters, preempted.Name)
 
 						for {
 							after := InstanceOfResourcePool().UsingGPU
@@ -240,7 +240,7 @@ func (scheduler *SchedulerPriority) ReleaseResource(job Job, agent NodeStatus) {
 }
 
 func (scheduler *SchedulerPriority) QueryState(jobName string) MsgJobStatus {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
 	}
@@ -248,7 +248,7 @@ func (scheduler *SchedulerPriority) QueryState(jobName string) MsgJobStatus {
 }
 
 func (scheduler *SchedulerPriority) Stop(jobName string) MsgStop {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
@@ -256,7 +256,7 @@ func (scheduler *SchedulerPriority) Stop(jobName string) MsgStop {
 }
 
 func (scheduler *SchedulerPriority) QueryLogs(jobName string, taskName string) MsgLog {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}
 	}

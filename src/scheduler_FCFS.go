@@ -11,13 +11,13 @@ type SchedulerFCFS struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobs        map[string]*JobManager
+	jobMasters        map[string]*JobManager
 	enabled     bool
 	parallelism int
 }
 
 func (scheduler *SchedulerFCFS) Start() {
-	scheduler.jobs = map[string]*JobManager{}
+	scheduler.jobMasters = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
 
@@ -33,7 +33,7 @@ func (scheduler *SchedulerFCFS) Start() {
 				jm.job = scheduler.queue[0]
 				scheduler.queue = scheduler.queue[1:]
 				jm.scheduler = scheduler
-				scheduler.jobs[jm.job.Name] = &jm
+				scheduler.jobMasters[jm.job.Name] = &jm
 
 				jm.job.Status = Starting
 				scheduler.history = append(scheduler.history, &jm.job)
@@ -95,7 +95,7 @@ func (scheduler *SchedulerFCFS) ReleaseResource(job Job, agent NodeStatus) {
 }
 
 func (scheduler *SchedulerFCFS) QueryState(jobName string) MsgJobStatus {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
 	}
@@ -103,7 +103,7 @@ func (scheduler *SchedulerFCFS) QueryState(jobName string) MsgJobStatus {
 }
 
 func (scheduler *SchedulerFCFS) Stop(jobName string) MsgStop {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgStop{Code: 1, Error: "Job not exist!"}
 	}
@@ -111,7 +111,7 @@ func (scheduler *SchedulerFCFS) Stop(jobName string) MsgStop {
 }
 
 func (scheduler *SchedulerFCFS) QueryLogs(jobName string, taskName string) MsgLog {
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}
 	}

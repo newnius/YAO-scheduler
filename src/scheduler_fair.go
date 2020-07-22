@@ -11,9 +11,9 @@ type SchedulerFair struct {
 	history   []*Job
 	historyMu sync.Mutex
 
-	jobs     map[string]*JobManager
-	queues   map[string]JobList
-	queuesMu sync.Mutex
+	jobMasters map[string]*JobManager
+	queues     map[string]JobList
+	queuesMu   sync.Mutex
 
 	drfyarn       bool
 	enableBorrow  bool
@@ -58,7 +58,7 @@ func (jobs JobList) Swap(i, j int) {
 func (scheduler *SchedulerFair) Start() {
 	log.Info("JS (fairness) started")
 
-	scheduler.jobs = map[string]*JobManager{}
+	scheduler.jobMasters = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.queues = map[string]JobList{}
 	scheduler.queues["default"] = []Job{}
@@ -335,7 +335,7 @@ func (scheduler *SchedulerFair) Start() {
 					jm.scheduler = scheduler
 					jm.job.Status = Starting
 
-					scheduler.jobs[jm.job.Name] = &jm
+					scheduler.jobMasters[jm.job.Name] = &jm
 					scheduler.queues[bestQueue] = scheduler.queues[bestQueue][1:]
 
 					scheduler.historyMu.Lock()
@@ -681,7 +681,7 @@ func (scheduler *SchedulerFair) UpdateQuota() {
 
 func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
 		return MsgJobStatus{Code: 1, Error: "Job not exist!"}
@@ -692,7 +692,7 @@ func (scheduler *SchedulerFair) QueryState(jobName string) MsgJobStatus {
 func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 	log.Info("Stop job ", jobName)
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if ok {
 		return jm.stop()
@@ -727,7 +727,7 @@ func (scheduler *SchedulerFair) Stop(jobName string) MsgStop {
 
 func (scheduler *SchedulerFair) QueryLogs(jobName string, taskName string) MsgLog {
 	scheduler.queuesMu.Lock()
-	jm, ok := scheduler.jobs[jobName]
+	jm, ok := scheduler.jobMasters[jobName]
 	scheduler.queuesMu.Unlock()
 	if !ok {
 		return MsgLog{Code: 1, Error: "Job not exist!"}

@@ -354,6 +354,12 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			ok = log.LoggerDisableModule(value)
 			break
 
+		case "scheduler.job_max_retries":
+			if maxRetries, err := strconv.Atoi(value); err == nil {
+				ok = InstanceOfConfiguration().SetJobMaxRetries(maxRetries)
+			}
+			break
+
 		}
 		var msg MsgConfUpdate
 		msg.Code = 0
