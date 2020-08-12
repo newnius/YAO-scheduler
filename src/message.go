@@ -96,6 +96,7 @@ type MsgJobReq struct {
 	UtilGPU int    `json:"gpu_util"`
 	MemGPU  int    `json:"gpu_mem"`
 	BW      int    `json:"bw"`
+	Version int64  `json:"version"`
 }
 
 type MsgJobReqPredict struct {

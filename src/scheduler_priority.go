@@ -17,7 +17,7 @@ type SchedulerPriority struct {
 	schedulingJobs map[string]bool
 	schedulingMu   sync.Mutex
 
-	jobMasters        map[string]*JobManager
+	jobMasters  map[string]*JobManager
 	enabled     bool
 	parallelism int
 }
@@ -68,7 +68,7 @@ func (scheduler *SchedulerPriority) Start() {
 					go func() {
 						jm.start()
 					}()
-				} else {
+				} else if InstanceOfConfiguration().PreemptEnabled {
 					/* start preempt */
 					var jobs []Job
 					preemptee := scheduler.queue[0]

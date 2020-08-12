@@ -96,9 +96,11 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			job.Name = job.Name + "-"
 			job.Name += strconv.FormatInt(time.Now().UnixNano(), 10)
 			job.Name += strconv.Itoa(10000 + rand.Intn(89999))
+			bwWorker := InstanceOfOptimizer().PredictReq(job, "Worker").BW
 			for i := range job.Tasks {
 				job.Tasks[i].ID = job.Name + ":" + job.Tasks[i].Name
 				job.Tasks[i].Job = job.Name
+				job.Tasks[i].BW = bwWorker
 			}
 			job.CreatedAt = int(time.Now().Unix())
 			msgSubmit.JobName = job.Name
@@ -334,6 +336,11 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			if parallelism, err := strconv.Atoi(value); err == nil {
 				ok = scheduler.UpdateParallelism(parallelism)
 			}
+			break
+
+			/* scheduler.preempt_enabled */
+		case "scheduler.preempt_enabled":
+			ok = InstanceOfConfiguration().SetPreemptEnabled(value == "true")
 			break
 
 			/* allocator.strategy */

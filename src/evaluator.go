@@ -55,10 +55,11 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 	if _, ok := eva.domains[task.Job][node.Domain]; !ok {
 		eva.domains[task.Job][node.Domain] = map[string]int{"PS": 0, "Worker": 0}
 	}
+	bwFactor := float64(task.BW)
 	if task.IsPS {
-		eva.costNetwork += eva.factorNode * float64(eva.racks[task.Job][node.Rack]["Worker"]-eva.nodes[task.Job][node.ClientID]["Worker"])
-		eva.costNetwork += eva.factorRack * float64(eva.domains[task.Job][node.Domain]["Worker"]-eva.racks[task.Job][node.Rack]["Worker"])
-		eva.costNetwork += eva.factorDomain * float64(eva.totalWorkers[task.Job]-eva.domains[task.Job][node.Domain]["Worker"])
+		eva.costNetwork += bwFactor * eva.factorNode * float64(eva.racks[task.Job][node.Rack]["Worker"]-eva.nodes[task.Job][node.ClientID]["Worker"])
+		eva.costNetwork += bwFactor * eva.factorRack * float64(eva.domains[task.Job][node.Domain]["Worker"]-eva.racks[task.Job][node.Rack]["Worker"])
+		eva.costNetwork += bwFactor * eva.factorDomain * float64(eva.totalWorkers[task.Job]-eva.domains[task.Job][node.Domain]["Worker"])
 
 		eva.nodes[task.Job][node.ClientID]["PS"]++
 		eva.racks[task.Job][node.Rack]["PS"]++
@@ -66,9 +67,9 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 		eva.totalPSs[task.Job]++
 		eva.totalPS++
 	} else {
-		eva.costNetwork += eva.factorNode * float64(eva.racks[task.Job][node.Rack]["PS"]-eva.nodes[task.Job][node.ClientID]["PS"])
-		eva.costNetwork += eva.factorRack * float64(eva.domains[task.Job][node.Domain]["PS"]-eva.racks[task.Job][node.Rack]["PS"])
-		eva.costNetwork += eva.factorDomain * float64(eva.totalPSs[task.Job]-eva.domains[task.Job][node.Domain]["PS"])
+		eva.costNetwork += bwFactor * eva.factorNode * float64(eva.racks[task.Job][node.Rack]["PS"]-eva.nodes[task.Job][node.ClientID]["PS"])
+		eva.costNetwork += bwFactor * eva.factorRack * float64(eva.domains[task.Job][node.Domain]["PS"]-eva.racks[task.Job][node.Rack]["PS"])
+		eva.costNetwork += bwFactor * eva.factorDomain * float64(eva.totalPSs[task.Job]-eva.domains[task.Job][node.Domain]["PS"])
 
 		eva.nodes[task.Job][node.ClientID]["Worker"]++
 		eva.racks[task.Job][node.Rack]["Worker"]++
@@ -89,11 +90,12 @@ func (eva *Evaluator) add(node NodeStatus, task Task) {
 }
 
 func (eva *Evaluator) remove(node NodeStatus, task Task) {
+	bwFactor := float64(task.BW)
 	/* update network cost */
 	if task.IsPS {
-		eva.costNetwork -= eva.factorNode * float64(eva.racks[task.Job][node.Rack]["Worker"]-eva.nodes[task.Job][node.ClientID]["Worker"])
-		eva.costNetwork -= eva.factorRack * float64(eva.domains[task.Job][node.Domain]["Worker"]-eva.racks[task.Job][node.Rack]["Worker"])
-		eva.costNetwork -= eva.factorDomain * float64(eva.totalWorkers[task.Job]-eva.domains[task.Job][node.Domain]["Worker"])
+		eva.costNetwork -= bwFactor * eva.factorNode * float64(eva.racks[task.Job][node.Rack]["Worker"]-eva.nodes[task.Job][node.ClientID]["Worker"])
+		eva.costNetwork -= bwFactor * eva.factorRack * float64(eva.domains[task.Job][node.Domain]["Worker"]-eva.racks[task.Job][node.Rack]["Worker"])
+		eva.costNetwork -= bwFactor * eva.factorDomain * float64(eva.totalWorkers[task.Job]-eva.domains[task.Job][node.Domain]["Worker"])
 
 		eva.nodes[task.Job][node.ClientID]["PS"]--
 		eva.racks[task.Job][node.Rack]["PS"]--
@@ -101,9 +103,9 @@ func (eva *Evaluator) remove(node NodeStatus, task Task) {
 		eva.totalPSs[task.Job]--
 		eva.totalPS--
 	} else {
-		eva.costNetwork -= eva.factorNode * float64(eva.racks[task.Job][node.Rack]["PS"]-eva.nodes[task.Job][node.ClientID]["PS"])
-		eva.costNetwork -= eva.factorRack * float64(eva.domains[task.Job][node.Domain]["PS"]-eva.racks[task.Job][node.Rack]["PS"])
-		eva.costNetwork -= eva.factorDomain * float64(eva.totalPSs[task.Job]-eva.domains[task.Job][node.Domain]["PS"])
+		eva.costNetwork -= bwFactor * eva.factorNode * float64(eva.racks[task.Job][node.Rack]["PS"]-eva.nodes[task.Job][node.ClientID]["PS"])
+		eva.costNetwork -= bwFactor * eva.factorRack * float64(eva.domains[task.Job][node.Domain]["PS"]-eva.racks[task.Job][node.Rack]["PS"])
+		eva.costNetwork -= bwFactor * eva.factorDomain * float64(eva.totalPSs[task.Job]-eva.domains[task.Job][node.Domain]["PS"])
 
 		eva.nodes[task.Job][node.ClientID]["Worker"]--
 		eva.racks[task.Job][node.Rack]["Worker"]--

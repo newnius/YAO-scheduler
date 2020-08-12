@@ -21,6 +21,7 @@ type Configuration struct {
 	PreScheduleExtraTime   int      `json:"PreScheduleExtraTime"` /* seconds of schedule ahead except pre+post */
 	PreScheduleTimeout     int      `json:"PreScheduleTimeout"`
 	JobMaxRetries          int      `json:"scheduler.job_max_retries"`
+	PreemptEnabled         bool     `json:"scheduler.preempt_enabled"`
 
 	mock bool
 	mu   sync.Mutex
@@ -53,6 +54,7 @@ func InstanceOfConfiguration() *Configuration {
 			EnablePreScheduleRatio: 1.5,
 			PreScheduleExtraTime:   15,
 			JobMaxRetries:          0,
+			PreemptEnabled:         false,
 		}
 	}
 	return configurationInstance
@@ -124,6 +126,8 @@ func (config *Configuration) InitFromEnv() {
 			configurationInstance.JobMaxRetries = val
 		}
 	}
+	value = os.Getenv("scheduler.preempt_enabled")
+	configurationInstance.PreemptEnabled = value == "true"
 }
 
 func (config *Configuration) SetMockEnabled(enabled bool) bool {
@@ -166,6 +170,14 @@ func (config *Configuration) SetJobMaxRetries(value int) bool {
 	return true
 }
 
+func (config *Configuration) SetPreemptEnabled(enabled bool) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
+	config.PreemptEnabled = enabled
+	log.Info("scheduler.preempt_enabled is set to ", enabled)
+	return true
+}
+
 func (config *Configuration) Dump() map[string]interface{} {
 	config.mu.Lock()
 	defer config.mu.Unlock()
@@ -183,6 +195,7 @@ func (config *Configuration) Dump() map[string]interface{} {
 	res["EnablePreScheduleRatio"] = config.EnablePreScheduleRatio
 	res["PreScheduleExtraTime"] = config.PreScheduleExtraTime
 	res["PreScheduleTimeout"] = config.PreScheduleTimeout
+	res["scheduler.preempt_enabled"] = config.PreemptEnabled
 	res["logger.level"] = log.LoggerLevel
 	res["logger.modules_disabled"] = log.LoggerModuleDisabled
 	return res

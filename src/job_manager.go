@@ -181,7 +181,7 @@ func (jm *JobManager) start() {
 		jm.statusMu.Lock()
 		for task, pre := range jm.lastHeartBeat {
 			if now-pre > 30 {
-				log.Warn(jm.job.Name, "-", task, " heartbeat longer tha 30s")
+				log.Warn(jm.job.Name, "-", task, " heartbeat longer than 30s")
 			}
 		}
 		jm.statusMu.Unlock()

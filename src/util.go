@@ -33,6 +33,7 @@ type Task struct {
 	Memory    int    `json:"memory"`
 	NumberGPU int    `json:"gpu_number"`
 	MemoryGPU int    `json:"gpu_memory"`
+	BW        int    `json:"bw"`
 	IsPS      bool   `json:"is_ps"`
 	ModelGPU  string `json:"gpu_model"`
 }

@@ -13,6 +13,7 @@ import (
 
 type Optimizer struct {
 	versions map[string]int
+	reqCache map[string]MsgJobReq
 	cache    map[string]OptimizerJobExecutionTime
 	cacheMu  sync.Mutex
 }
@@ -28,6 +29,7 @@ func InstanceOfOptimizer() *Optimizer {
 		optimizerInstance = &Optimizer{}
 		optimizerInstance.versions = map[string]int{}
 		optimizerInstance.cache = map[string]OptimizerJobExecutionTime{}
+		optimizerInstance.reqCache = map[string]MsgJobReq{}
 
 		go func() {
 			/* remove expired cache */
@@ -42,6 +44,15 @@ func InstanceOfOptimizer() *Optimizer {
 				}
 				for _, k := range expired {
 					delete(optimizerInstance.cache, k)
+				}
+				expired = []string{}
+				for k, v := range optimizerInstance.reqCache {
+					if time.Now().Unix()-v.Version > 300 {
+						expired = append(expired, k)
+					}
+				}
+				for _, k := range expired {
+					delete(optimizerInstance.reqCache, k)
 				}
 				optimizerInstance.cacheMu.Unlock()
 			}
@@ -430,7 +441,13 @@ func (optimizer *Optimizer) trainReq(jobName string) {
 }
 
 func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
-	res := MsgJobReq{CPU: 4, Mem: 4096, UtilGPU: 100, MemGPU: 8192, BW: 0}
+	optimizer.cacheMu.Lock()
+	if val, ok := optimizer.reqCache[job.Name]; ok {
+		optimizer.cacheMu.Unlock()
+		return val
+	}
+	optimizer.cacheMu.Unlock()
+	res := MsgJobReq{CPU: 4, Mem: 4096, UtilGPU: 100, MemGPU: 8192, BW: 1}
 
 	var jobName string
 	str := strings.Split(job.Name, "-")
@@ -535,10 +552,14 @@ func (optimizer *Optimizer) PredictReq(job Job, role string) MsgJobReq {
 		if v, ok := tmp["gpu_mem"]; ok {
 			res.MemGPU = int(math.Ceil(v/1024)) * 1024
 		}
-		if v, ok := tmp["bw"]; ok {
-			res.BW = int(math.Ceil(v/10)) * 10
+		if v, ok := tmp["bw_rx"]; ok {
+			res.BW = int(math.Ceil(v / 100000))
 		}
 	}
+	res.Version = time.Now().Unix()
+	optimizer.cacheMu.Lock()
+	optimizer.reqCache[job.Name] = res
+	optimizer.cacheMu.Unlock()
 	return res
 }
 

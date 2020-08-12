@@ -25,7 +25,7 @@ func (logger *Logger) Debug(args ...interface{}) {
 	if ok && details != nil {
 		module = details.Name()
 	}
-	args = append(args, "<--"+module)
+	args = append(args, " <-- "+module)
 	_log.Debug(args...)
 }
 
@@ -36,7 +36,7 @@ func (logger *Logger) Info(args ...interface{}) {
 	if ok && details != nil {
 		module = details.Name()
 	}
-	args = append(args, "<--"+module)
+	args = append(args, " <-- "+module)
 	_log.Info(args...)
 }
 
@@ -47,7 +47,7 @@ func (logger *Logger) Warn(args ...interface{}) {
 	if ok && details != nil {
 		module = details.Name()
 	}
-	args = append(args, "<--"+module)
+	args = append(args, " <-- "+module)
 	_log.Warn(args...)
 }
 
@@ -58,7 +58,7 @@ func (logger *Logger) Fatal(args ...interface{}) {
 	if ok && details != nil {
 		module = details.Name()
 	}
-	args = append(args, "<--"+module)
+	args = append(args, " <-- "+module)
 	_log.Fatal(args...)
 }
 
@@ -69,7 +69,7 @@ func (logger *Logger) Fatalf(format string, args ...interface{}) {
 	if ok && details != nil {
 		module = details.Name()
 	}
-	args = append(args, "<--"+module)
+	args = append(args, " <-- "+module)
 	_log.Fatalf(format, args...)
 }
 
