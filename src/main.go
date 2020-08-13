@@ -321,6 +321,14 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			}
 			break
 
+			/* scheduler.strategy */
+			/* TODO: move jobs */
+		case "scheduler.strategy":
+			ok = InstanceOfConfiguration().SetSchedulePolicy(value)
+			scheduler = InstanceOfConfiguration().GetScheduler()
+			scheduler.Start()
+			break
+
 			/* scheduler.mock */
 		case "scheduler.mock.enabled":
 			ok = InstanceOfConfiguration().SetMockEnabled(value == "true")
@@ -344,11 +352,8 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			break
 
 			/* allocator.strategy */
-			/* TODO: move jobs */
 		case "allocator.strategy":
 			ok = InstanceOfAllocator().updateStrategy(value)
-			scheduler = InstanceOfConfiguration().GetScheduler()
-			scheduler.Start()
 			break
 
 			/* logger */
