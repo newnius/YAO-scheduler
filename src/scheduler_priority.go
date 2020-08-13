@@ -32,7 +32,7 @@ func (scheduler *SchedulerPriority) Start() {
 	go func() {
 		flag := true
 		for {
-			log.Debug("Scheduling")
+			log.Info("Scheduling")
 			if !flag { /* no more job */
 				time.Sleep(time.Millisecond * 100)
 			}
@@ -61,6 +61,9 @@ func (scheduler *SchedulerPriority) Start() {
 					scheduler.jobMasters[jm.job.Name] = &jm
 
 					jm.job.Status = Starting
+					scheduler.schedulingMu.Lock()
+					scheduler.schedulingJobs[jm.job.Name] = true
+					scheduler.schedulingMu.Unlock()
 					scheduler.historyMu.Lock()
 					scheduler.history = append(scheduler.history, &jm.job)
 					scheduler.historyMu.Unlock()
