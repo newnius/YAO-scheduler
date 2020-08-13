@@ -344,6 +344,7 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			break
 
 			/* allocator.strategy */
+			/* TODO: move jobs */
 		case "allocator.strategy":
 			ok = InstanceOfAllocator().updateStrategy(value)
 			scheduler = InstanceOfConfiguration().GetScheduler()
