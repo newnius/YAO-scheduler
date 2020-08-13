@@ -123,6 +123,7 @@ func (scheduler *SchedulerPriority) Start() {
 							copy(scheduler.history[idx:], scheduler.history[idx+1:])
 							scheduler.history = scheduler.history[:len(scheduler.history)-1]
 						}
+						scheduler.historyMu.Unlock()
 
 						/* add back */
 						idx = len(scheduler.queue)
@@ -149,8 +150,9 @@ func (scheduler *SchedulerPriority) Start() {
 							log.Info("before=", before, " after=", after)
 							time.Sleep(time.Millisecond * 100)
 						}
+					} else {
+						scheduler.historyMu.Unlock()
 					}
-					scheduler.historyMu.Unlock()
 				}
 			}
 			scheduler.queueMu.Unlock()
