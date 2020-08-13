@@ -108,10 +108,6 @@ func (scheduler *SchedulerPriority) Start() {
 							}
 						}
 
-						before := InstanceOfResourcePool().UsingGPU
-						log.Info("Start preempt ", preempted.Name)
-						scheduler.Stop(preempted.Name)
-
 						/* Remove from history */
 						idx := -1
 						for i, job := range scheduler.history {
@@ -124,6 +120,10 @@ func (scheduler *SchedulerPriority) Start() {
 							scheduler.history = scheduler.history[:len(scheduler.history)-1]
 						}
 						scheduler.historyMu.Unlock()
+
+						before := InstanceOfResourcePool().UsingGPU
+						log.Info("Start preempt ", preempted.Name)
+						scheduler.Stop(preempted.Name)
 
 						/* add back */
 						idx = len(scheduler.queue)
