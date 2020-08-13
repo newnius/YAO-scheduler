@@ -143,6 +143,7 @@ func (scheduler *SchedulerPriority) Start() {
 							if after != before {
 								break
 							}
+							log.Info("before=", before, " after=", after)
 							time.Sleep(time.Millisecond * 100)
 						}
 					}

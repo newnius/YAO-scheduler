@@ -11,7 +11,7 @@ type SchedulerFCFS struct {
 	mu         sync.Mutex
 	scheduling sync.Mutex
 
-	jobMasters        map[string]*JobManager
+	jobMasters  map[string]*JobManager
 	enabled     bool
 	parallelism int
 }
@@ -23,7 +23,7 @@ func (scheduler *SchedulerFCFS) Start() {
 
 	go func() {
 		for {
-			log.Info("Scheduling")
+			log.Debug("Scheduling")
 			time.Sleep(time.Second * 5)
 			scheduler.scheduling.Lock()
 			scheduler.mu.Lock()
