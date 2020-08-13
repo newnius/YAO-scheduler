@@ -346,6 +346,8 @@ func serverAPI(w http.ResponseWriter, r *http.Request) {
 			/* allocator.strategy */
 		case "allocator.strategy":
 			ok = InstanceOfAllocator().updateStrategy(value)
+			scheduler = InstanceOfConfiguration().GetScheduler()
+			scheduler.Start()
 			break
 
 			/* logger */
@@ -412,22 +414,7 @@ func main() {
 	InstanceOfOptimizer().Start()
 	InstanceOfGroupManager().Start()
 
-	switch config.SchedulerPolicy {
-	case "FCFS":
-		scheduler = &SchedulerFCFS{}
-		break
-	case "priority":
-		scheduler = &SchedulerPriority{}
-		break
-	case "capacity":
-		scheduler = &SchedulerCapacity{}
-		break
-	case "fair":
-		scheduler = &SchedulerFair{}
-		break
-	default:
-		scheduler = &SchedulerFCFS{}
-	}
+	scheduler = config.GetScheduler()
 	scheduler.Start()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

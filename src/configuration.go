@@ -10,7 +10,7 @@ import (
 type Configuration struct {
 	KafkaBrokers           []string `json:"KafkaBrokers"`
 	KafkaTopic             string   `json:"KafkaTopic"`
-	SchedulerPolicy        string   `json:"SchedulerPolicy"`
+	SchedulerPolicy        string   `json:"scheduler.strategy"`
 	ListenAddr             string   `json:"ListenAddr"`
 	HDFSAddress            string   `json:"HDFSAddress"`
 	HDFSBaseDir            string   `json:"HDFSBaseDir"`
@@ -176,6 +176,45 @@ func (config *Configuration) SetPreemptEnabled(enabled bool) bool {
 	config.PreemptEnabled = enabled
 	log.Info("scheduler.preempt_enabled is set to ", enabled)
 	return true
+}
+
+func (config *Configuration) SetSchedulePolicy(strategy string) bool {
+	config.mu.Lock()
+	defer config.mu.Unlock()
+	available := map[string]bool{
+		"FCFS":     true,
+		"priority": true,
+		"capacity": true,
+		"fair":     true,
+	}
+	if _, ok := available[strategy]; ok {
+		config.SchedulerPolicy = strategy
+	}
+	log.Info("scheduler.strategy is set to ", config.SchedulerPolicy)
+	return true
+}
+
+func (config *Configuration) GetScheduler() Scheduler {
+	config.mu.Lock()
+	defer config.mu.Unlock()
+	var scheduler Scheduler
+	switch config.SchedulerPolicy {
+	case "FCFS":
+		scheduler = &SchedulerFCFS{}
+		break
+	case "priority":
+		scheduler = &SchedulerPriority{}
+		break
+	case "capacity":
+		scheduler = &SchedulerCapacity{}
+		break
+	case "fair":
+		scheduler = &SchedulerFair{}
+		break
+	default:
+		scheduler = &SchedulerFCFS{}
+	}
+	return scheduler
 }
 
 func (config *Configuration) Dump() map[string]interface{} {
