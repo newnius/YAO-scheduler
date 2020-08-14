@@ -24,12 +24,21 @@ func (scheduler *SchedulerFCFS) Start() {
 	scheduler.jobMasters = map[string]*JobManager{}
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
+	scheduler.parallelism = 1
 
 	go func() {
 		for {
 			log.Debug("Scheduling")
 			time.Sleep(time.Second * 5)
+
 			scheduler.schedulingMu.Lock()
+			if len(scheduler.schedulingJobs) >= scheduler.parallelism {
+				scheduler.schedulingMu.Unlock()
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+			scheduler.schedulingMu.Unlock()
+
 			scheduler.queueMu.Lock()
 			if len(scheduler.queue) > 0 {
 
@@ -47,8 +56,6 @@ func (scheduler *SchedulerFCFS) Start() {
 				go func() {
 					jm.start()
 				}()
-			} else {
-				scheduler.schedulingMu.Unlock()
 			}
 			scheduler.queueMu.Unlock()
 		}
