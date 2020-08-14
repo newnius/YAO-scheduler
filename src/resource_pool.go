@@ -164,6 +164,40 @@ func (pool *ResourcePool) Start() {
 			pool.batchMu.Unlock()
 		}
 	}()
+
+	/* create overlay networks ahead */
+	go func() {
+		for {
+			pool.networkMu.Lock()
+			if len(pool.networksFree) < 5 {
+				var network string
+				for {
+					network = "yao-net-" + strconv.Itoa(rand.Intn(999999))
+					if _, ok := pool.networks[network]; !ok {
+						break
+					}
+				}
+				v := url.Values{}
+				v.Set("name", network)
+				spider := Spider{}
+				spider.Method = "POST"
+				spider.URL = "http://yao-agent-master:8000/create"
+				spider.Data = v
+				spider.ContentType = "application/x-www-form-urlencoded"
+				err := spider.do()
+				if err != nil {
+					log.Warn(err.Error())
+					continue
+				}
+				resp := spider.getResponse()
+				resp.Body.Close()
+				pool.networksFree[network] = true
+				pool.networks[network] = true
+			}
+			pool.networkMu.Unlock()
+			time.Sleep(time.Second * 1)
+		}
+	}()
 }
 
 /* check dead nodes periodically */
@@ -544,7 +578,7 @@ func (pool *ResourcePool) acquireNetwork() string {
 
 func (pool *ResourcePool) releaseNetwork(network string) {
 	pool.networkMu.Lock()
-	pool.networksFree[network] = true
+	//pool.networksFree[network] = true
 	pool.networkMu.Unlock()
 }
 

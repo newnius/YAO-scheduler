@@ -189,6 +189,7 @@ func (jm *JobManager) start() {
 	}
 
 	/* release again to make sure resources are released */
+	jm.stop()
 	jm.returnResource()
 
 	/* feed data to optimizer */
