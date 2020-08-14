@@ -32,7 +32,7 @@ func (scheduler *SchedulerPriority) Start() {
 	go func() {
 		flag := true
 		for {
-			log.Info("Scheduling")
+			log.Debug("Scheduling")
 			if !flag { /* no more job */
 				time.Sleep(time.Millisecond * 100)
 			}
