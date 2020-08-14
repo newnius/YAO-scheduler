@@ -25,11 +25,11 @@ func (scheduler *SchedulerFCFS) Start() {
 	scheduler.history = []*Job{}
 	scheduler.enabled = true
 	scheduler.parallelism = 1
+	scheduler.schedulingJobs = map[string]bool{}
 
 	go func() {
 		for {
 			log.Debug("Scheduling")
-			time.Sleep(time.Second * 5)
 
 			scheduler.schedulingMu.Lock()
 			if len(scheduler.schedulingJobs) >= scheduler.parallelism {
